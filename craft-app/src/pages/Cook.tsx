@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import styles from './Cook.module.css'
 
 const PRESET_MEALS = [
-  'overnight oats','scrambled eggs','pasta','chicken','lentil soup',
-  'tuna','pancakes','stir fry','omelette','rice and beans'
+  'pasta','chicken',
+  'pancakes','stir fry','omelette'
 ]
 
 const CONVERSIONS = {
