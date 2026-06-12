@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import type { PantryItem } from '../types'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import styles from './Pantry.module.css'
 
 const LEVEL_LABEL: Record<string, string> = { full: 'full', ok: 'ok', low: 'low!' }
 const CYCLE: PantryItem['level'][] = ['full', 'ok', 'low']
 
 export default function Pantry() {
-  const { user } = useAuth()
   const [items, setItems] = useState<PantryItem[]>([])
   const [newName, setNewName] = useState('')
   const [newLevel, setNewLevel] = useState<PantryItem['level']>('ok')
@@ -21,7 +19,6 @@ export default function Pantry() {
     const { data } = await supabase
       .from('pantry_items')
       .select('*')
-      .eq('user_id', user!.id)
       .order('name', { ascending: true })
     setItems(data ?? [])
     setLoading(false)
@@ -32,7 +29,7 @@ export default function Pantry() {
     if (!name) return
     const { data } = await supabase
       .from('pantry_items')
-      .insert({ name, level: newLevel, user_id: user!.id })
+      .insert({ name, level: newLevel })
       .select()
       .single()
     if (data) setItems(prev => [...prev, data])
