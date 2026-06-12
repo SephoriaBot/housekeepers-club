@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import type { GroceryItem } from '../types'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import styles from './Grocery.module.css'
 
 interface SavedList { id: string; name: string; items: string[]; created_at: string }
 
 export default function Grocery() {
-  const { user } = useAuth()
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
   const [newQty, setNewQty] = useState('')
@@ -24,7 +22,6 @@ export default function Grocery() {
     const { data } = await supabase
       .from('grocery_items')
       .select('*')
-      .eq('user_id', user!.id)
       .order('created_at', { ascending: true })
     setItems(data ?? [])
     setLoading(false)
@@ -34,7 +31,6 @@ export default function Grocery() {
     const { data } = await supabase
       .from('saved_grocery_lists')
       .select('*')
-      .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
     setSavedLists(data ?? [])
   }
