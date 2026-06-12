@@ -20,7 +20,6 @@
   --amber: #C89A5A;
   --amber-light: #F5EDD8;
 }
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background-color: var(--cream); color: var(--ink); min-height: 100vh; }
 h1, h2, h3 { font-family: 'Playfair Display', serif; }
@@ -63,4 +62,20 @@ h1, h2, h3 { font-family: 'Playfair Display', serif; }
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .form-label { font-size: 0.8rem; font-weight: 500; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
 .form-input, .form-select, .form-textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: 'Inter', sans-serif; color: var(--ink); background: var(--white); transition: border-color 0.15s ease; outline: none; }
-.form-
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(212,130,154,0.12); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(42,31,46,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px); }
+.modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(42,31,46,0.25); }
+.modal-header { padding: 22px 24px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 1.2rem; color: var(--ink); }
+.modal-body { padding: 22px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+.close-btn { background: none; border: none; cursor: pointer; color: var(--ink-muted); padding: 4px; border-radius: 6px; display: flex; align-items: center; }
+.close-btn:hover { background: var(--blush); color: var(--pink-dark); }
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 500; text-transform: capitalize; }
+.badge-pink { background: var(--blush); color: var(--pink-dark); }
+.badge-lavender { background: var(--lavender-light); color: var(--lavender-dark); }
+.badge-green { background: var(--green-light); color: var(--green-dark); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--ink-muted); }
+.empty-
