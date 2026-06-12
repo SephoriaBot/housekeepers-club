@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import styles from './Suggest.module.css'
 
 const DIETS = ['vegetarian','vegan','gluten free','ketogenic','paleo','whole30']
@@ -30,7 +29,6 @@ function stripHtml(html: string) {
 }
 
 export default function Suggest() {
-  const { user } = useAuth()
   const [selectedDiets, setSelectedDiets] = useState<Set<string>>(new Set(['vegetarian']))
   const [selectedIntolerances, setSelectedIntolerances] = useState<Set<string>>(new Set())
   const [maxTime, setMaxTime] = useState('')
@@ -78,8 +76,8 @@ export default function Suggest() {
       m.dairyFree && 'dairy-free',
     ].filter(Boolean) as string[]
     const { error } = await supabase.from('meals').upsert(
-      { user_id: user!.id, name: m.title, time: `${m.readyInMinutes} min`, tags },
-      { onConflict: 'user_id,name' }
+      { name: m.title, time: `${m.readyInMinutes} min`, tags },
+      { onConflict: 'name' }
     )
     if (!error) setSaved(s => new Set([...s, m.id]))
   }
