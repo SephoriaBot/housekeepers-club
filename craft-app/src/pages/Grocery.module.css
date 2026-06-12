@@ -1,0 +1,81 @@
+.page { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
+
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px; }
+
+.title {
+  font-family: 'Lora', serif;
+  font-size: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title i { color: var(--sage); }
+
+.saveRow { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+
+.savedPanel { padding: 14px; margin-bottom: 1rem; }
+.savedPanelTitle { font-size: 12px; font-weight: 500; color: var(--text-soft); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+
+.savedListRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--border);
+  gap: 8px;
+}
+.savedListRow:last-child { border-bottom: none; }
+.savedListName { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+.savedListItems { font-size: 11px; color: var(--text-soft); }
+
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.colHeader {
+  background: var(--sage-light);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sage-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.count { font-size: 11px; opacity: 0.7; }
+
+.list { padding: 6px 8px; min-height: 80px; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  border-bottom: 0.5px solid var(--border);
+  transition: background 0.1s;
+}
+.item:last-child { border-bottom: none; }
+.item:hover { background: var(--cream); }
+.item input[type="checkbox"] { accent-color: var(--sage); cursor: pointer; flex-shrink: 0; }
+.item.checked .itemName { text-decoration: line-through; color: var(--text-soft); }
+
+.itemName { flex: 1; }
+.itemQty { font-size: 11px; color: var(--text-soft); white-space: nowrap; }
+
+.removeBtn {
+  background: none;
+  border: none;
+  padding: 3px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.1s;
+  flex-shrink: 0;
+}
+.removeBtn:hover { color: #c0392b; }
+.removeBtn i { font-size: 13px; }
+
+.addRow { display: flex; gap: 6px; padding: 8px; border-top: 0.5px solid var(--border); }
