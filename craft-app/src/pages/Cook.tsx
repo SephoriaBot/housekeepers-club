@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
 import styles from './Cook.module.css'
 
 const PRESET_MEALS = [
@@ -56,8 +55,7 @@ function parseMeal(raw: Record<string, string>): MealData {
 }
 
 export default function Cook() {
-  const location = useLocation()
-  const initialMeal = (location.state as { meal?: string })?.meal ?? null
+  const initialMeal = null
   const [search, setSearch] = useState(initialMeal ?? '')
   const [meal, setMeal] = useState<MealData | null>(null)
   const [loading, setLoading] = useState(false)
