@@ -134,7 +134,8 @@ h1, h2, h3 { font-family: 'Playfair Display', serif; }
 
 @media (max-width: 480px) {
   .grid-3 { grid-template-columns: 1fr; }
-} .grid-3, .grid-2 { grid-template-columns: 1fr; } .page-body { padding: 20px 16px; } .page-header { padding: 18px 16px; } }
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
