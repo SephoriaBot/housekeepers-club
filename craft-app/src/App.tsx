@@ -11,10 +11,11 @@ import Grocery from './pages/Grocery';
 import Pantry from './pages/Pantry';
 import Planner from './pages/Planner';
 import Suggest from './pages/Suggest';
-import Bible from './pages/Bible';
+import Pets from './pages/Pets';
+import BreadRecipes from './pages/BreadRecipes';
 import { ToastProvider } from './hooks/useToast';
 
-type Page = 'home' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'bible';
+type Page = 'home' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'bread';
 
 export default function App() {
   const [page, setPage] = useState<Page>('home');
@@ -38,7 +39,8 @@ export default function App() {
           {page === 'pantry'       && <Pantry />}
           {page === 'planner'      && <Planner />}
           {page === 'suggest'      && <Suggest />}
-          {page === 'bible'        && <Bible />}
+          {page === 'pets'         && <Pets />}
+          {page === 'bread'        && <BreadRecipes />}
         </main>
       </div>
     </ToastProvider>
