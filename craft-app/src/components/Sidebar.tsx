@@ -1,4 +1,4 @@
-import { Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2, UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb, BookMarked } from 'lucide-react';
+import { Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2, UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb, PawPrint, Sandwich } from 'lucide-react';
 
 interface SidebarProps {
   currentPage: string;
@@ -18,36 +18,6 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <nav className="sidebar-nav">
           <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => onNavigate('home')}>
             <Home size={16} /> Dashboard
-          </button>
-          <button className={`nav-item ${currentPage === 'bible' ? 'active' : ''}`} onClick={() => onNavigate('bible')}>
-            <BookMarked size={16} /> Housekeepers Bible
-          </button>
-        </nav>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-label">Garden</div>
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${currentPage === 'plants' ? 'active' : ''}`} onClick={() => onNavigate('plants')}>
-            <Leaf size={16} /> My Plants
-          </button>
-        </nav>
-      </div>
-
-      <div className="sidebar-section">
-        <div className="sidebar-section-label">Alchemy</div>
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${currentPage === 'recipes' ? 'active' : ''}`} onClick={() => onNavigate('recipes')}>
-            <BookOpen size={16} /> Recipe Library
-          </button>
-          <button className={`nav-item ${currentPage === 'wizard' ? 'active' : ''}`} onClick={() => onNavigate('wizard')}>
-            <Wand2 size={16} /> Recipe Wizard
-          </button>
-          <button className={`nav-item ${currentPage === 'ingredients' ? 'active' : ''}`} onClick={() => onNavigate('ingredients')}>
-            <FlaskConical size={16} /> Ingredients
-          </button>
-          <button className={`nav-item ${currentPage === 'add-recipe' ? 'active' : ''}`} onClick={() => onNavigate('add-recipe')}>
-            <Sparkles size={16} /> Add Recipe
           </button>
         </nav>
       </div>
@@ -69,6 +39,39 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           </button>
           <button className={`nav-item ${currentPage === 'pantry' ? 'active' : ''}`} onClick={() => onNavigate('pantry')}>
             <Archive size={16} /> Pantry
+          </button>
+          <button className={`nav-item ${currentPage === 'bread' ? 'active' : ''}`} onClick={() => onNavigate('bread')}>
+            <Sandwich size={16} /> Bread Machine
+          </button>
+        </nav>
+      </div>
+
+      <div className="sidebar-section">
+        <div className="sidebar-section-label">Garden & Home</div>
+        <nav className="sidebar-nav">
+          <button className={`nav-item ${currentPage === 'plants' ? 'active' : ''}`} onClick={() => onNavigate('plants')}>
+            <Leaf size={16} /> My Plants
+          </button>
+          <button className={`nav-item ${currentPage === 'pets' ? 'active' : ''}`} onClick={() => onNavigate('pets')}>
+            <PawPrint size={16} /> My Pets
+          </button>
+        </nav>
+      </div>
+
+      <div className="sidebar-section">
+        <div className="sidebar-section-label">Alchemy</div>
+        <nav className="sidebar-nav">
+          <button className={`nav-item ${currentPage === 'recipes' ? 'active' : ''}`} onClick={() => onNavigate('recipes')}>
+            <BookOpen size={16} /> Recipe Library
+          </button>
+          <button className={`nav-item ${currentPage === 'wizard' ? 'active' : ''}`} onClick={() => onNavigate('wizard')}>
+            <Wand2 size={16} /> Recipe Wizard
+          </button>
+          <button className={`nav-item ${currentPage === 'ingredients' ? 'active' : ''}`} onClick={() => onNavigate('ingredients')}>
+            <FlaskConical size={16} /> Ingredients
+          </button>
+          <button className={`nav-item ${currentPage === 'add-recipe' ? 'active' : ''}`} onClick={() => onNavigate('add-recipe')}>
+            <Sparkles size={16} /> Add Recipe
           </button>
         </nav>
       </div>
