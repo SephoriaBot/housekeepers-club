@@ -11,9 +11,10 @@ import Grocery from './pages/Grocery';
 import Pantry from './pages/Pantry';
 import Planner from './pages/Planner';
 import Suggest from './pages/Suggest';
+import Bible from './pages/Bible';
 import { ToastProvider } from './hooks/useToast';
 
-type Page = 'home' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest';
+type Page = 'home' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'bible';
 
 export default function App() {
   const [page, setPage] = useState<Page>('home');
@@ -37,6 +38,7 @@ export default function App() {
           {page === 'pantry'       && <Pantry />}
           {page === 'planner'      && <Planner />}
           {page === 'suggest'      && <Suggest />}
+          {page === 'bible'        && <Bible />}
         </main>
       </div>
     </ToastProvider>
