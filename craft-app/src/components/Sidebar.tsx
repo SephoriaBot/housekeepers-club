@@ -1,4 +1,4 @@
-import { Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2, UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb } from 'lucide-react';
+import { Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2, UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb, BookMarked } from 'lucide-react';
 
 interface SidebarProps {
   currentPage: string;
@@ -18,6 +18,9 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <nav className="sidebar-nav">
           <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => onNavigate('home')}>
             <Home size={16} /> Dashboard
+          </button>
+          <button className={`nav-item ${currentPage === 'bible' ? 'active' : ''}`} onClick={() => onNavigate('bible')}>
+            <BookMarked size={16} /> Housekeepers Bible
           </button>
         </nav>
       </div>
