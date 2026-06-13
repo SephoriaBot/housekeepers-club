@@ -13,25 +13,32 @@ const CATEGORIES = [
 interface GuideResult {
   guideid: number
   title: string
-  difficulty: string
-  time_required: string
-  image?: { text: string; thumbnail: string }
-  url: string
+  difficulty?: string
+  time_required?: string
+  image?: { thumbnail?: string }
+}
+
+interface StepLine {
+  text_rendered?: string
+}
+
+interface StepMedia {
+  data?: { standard?: string; thumbnail?: string }[]
 }
 
 interface Step {
-  title: string
-  lines: { text_rendered: string }[]
-  media?: { data: { standard?: string; thumbnail?: string }[] }
+  title?: string
+  lines?: StepLine[]
+  media?: StepMedia
 }
 
 interface GuideDetail {
-  title: string
-  difficulty: string
-  time_required: string
-  introduction_rendered: string
-  steps: Step[]
-  image?: { standard: string }
+  title?: string
+  difficulty?: string
+  time_required?: string
+  introduction_rendered?: string
+  steps?: Step[]
+  image?: { standard?: string }
 }
 
 export default function Bible() {
@@ -55,7 +62,7 @@ export default function Bible() {
         `https://www.ifixit.com/api/2.0/search/${encodeURIComponent(query)}?doctypes=guide&limit=9`
       )
       const data = await res.json()
-      const guides = (data.results || []).filter((r: any) => r.dataType === 'guide')
+      const guides = (data.results ?? []).filter((r: any) => r.dataType === 'guide')
       if (!guides.length) {
         setError(`No guides found for "${query}" — try different keywords`)
       } else {
@@ -81,45 +88,42 @@ export default function Bible() {
     setLoadingGuide(false)
   }
 
-  function difficultyColor(d: string) {
+  function difficultyColor(d?: string) {
     if (!d) return ''
     const lower = d.toLowerCase()
-    if (lower.includes('easy') || lower.includes('very easy')) return styles.easy
+    if (lower.includes('easy')) return styles.easy
     if (lower.includes('moderate')) return styles.moderate
     return styles.hard
   }
 
+  const steps = guide?.steps ?? []
+  const currentStep = steps[activeStep]
+  const progressPct = steps.length > 1
+    ? Math.round((activeStep / (steps.length - 1)) * 100)
+    : 100
+
   return (
     <div className={styles.page}>
 
-      {/* Header */}
       <div className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>home repair & maintenance</p>
-          <h1 className={styles.title}>The Housekeepers Bible</h1>
-        </div>
+        <p className={styles.eyebrow}>home repair & maintenance</p>
+        <h1 className={styles.title}>The Housekeepers Bible</h1>
       </div>
 
-      {/* Search bar */}
       <div className={styles.searchWrap}>
         <input
           type="text"
           className={styles.searchInput}
-          placeholder="e.g. leaky faucet, squeaky door, patch drywall..."
+          placeholder="e.g. leaky faucet, squeaky door..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && fetchResults(search)}
         />
-        <button
-          className="btn-primary"
-          onClick={() => fetchResults(search)}
-          disabled={loading}
-        >
+        <button className="btn-primary" onClick={() => fetchResults(search)} disabled={loading}>
           {loading ? 'searching...' : 'search'}
         </button>
       </div>
 
-      {/* Category chips */}
       {!guide && (
         <div className={styles.chips}>
           {CATEGORIES.map(cat => (
@@ -134,15 +138,10 @@ export default function Bible() {
         </div>
       )}
 
-      {/* Error */}
       {error && (
-        <div className="empty-state">
-          <i className="ti ti-alert-circle" aria-hidden="true" />
-          {error}
-        </div>
+        <div className="empty-state">{error}</div>
       )}
 
-      {/* Guide detail view */}
       {loadingGuide && (
         <div className="empty-state">loading guide...</div>
       )}
@@ -154,12 +153,12 @@ export default function Bible() {
             style={{ marginBottom: '1.25rem' }}
             onClick={() => { setGuide(null); setActiveStep(0) }}
           >
-            <i className="ti ti-arrow-left" aria-hidden="true" /> back to results
+            ← back to results
           </button>
 
           <div className={styles.guideHeader}>
             {guide.image?.standard && (
-              <img src={guide.image.standard} alt={guide.title} className={styles.guideHero} />
+              <img src={guide.image.standard} alt={guide.title ?? ''} className={styles.guideHero} />
             )}
             <div>
               <h2 className={styles.guideTitle}>{guide.title}</h2>
@@ -170,11 +169,9 @@ export default function Bible() {
                   </span>
                 )}
                 {guide.time_required && (
-                  <span className={styles.pill}>
-                    <i className="ti ti-clock" aria-hidden="true" /> {guide.time_required}
-                  </span>
+                  <span className={styles.pill}>{guide.time_required}</span>
                 )}
-                <span className={styles.pill}>{guide.steps?.length} steps</span>
+                <span className={styles.pill}>{steps.length} steps</span>
               </div>
               {guide.introduction_rendered && (
                 <p
@@ -185,51 +182,39 @@ export default function Bible() {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${guide.steps.length > 1 ? Math.round((activeStep / (guide.steps.length - 1)) * 100) : 100}%` }}
-            />
+            <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
           </div>
 
-          {/* Steps */}
           <div className={styles.stepsLayout}>
-            {/* Step list sidebar */}
             <div className={styles.stepsSidebar}>
-              {guide.steps.map((step, i) => (
+              {steps.map((step, i) => (
                 <button
                   key={i}
                   className={`${styles.stepBtn} ${i === activeStep ? styles.stepActive : ''} ${i < activeStep ? styles.stepDone : ''}`}
                   onClick={() => setActiveStep(i)}
                 >
-                  <span className={styles.stepNum}>
-                    {i < activeStep
-                      ? <i className="ti ti-check" style={{ fontSize: 10 }} aria-hidden="true" />
-                      : i + 1}
-                  </span>
-                  <span className={styles.stepLabel}>{step.title || `Step ${i + 1}`}</span>
+                  <span className={styles.stepNum}>{i < activeStep ? '✓' : i + 1}</span>
+                  <span className={styles.stepLabel}>{step.title ?? `Step ${i + 1}`}</span>
                 </button>
               ))}
             </div>
 
-            {/* Active step detail */}
             <div className={styles.stepDetail}>
-              {guide.steps[activeStep] && (
+              {currentStep && (
                 <>
                   <h3 className={styles.stepTitle}>
-                    Step {activeStep + 1}: {guide.steps[activeStep].title || ''}
+                    Step {activeStep + 1}{currentStep.title ? `: ${currentStep.title}` : ''}
                   </h3>
 
-                  {/* Step images */}
-                  {guide.steps[activeStep].media?.data?.length > 0 && (
+                  {(currentStep.media?.data ?? []).length > 0 && (
                     <div className={styles.stepImages}>
-                      {guide.steps[activeStep].media.data.slice(0, 3).map((img, i) =>
+                      {(currentStep.media?.data ?? []).slice(0, 3).map((img, i) =>
                         img.standard || img.thumbnail ? (
                           <img
                             key={i}
-                            src={img.standard || img.thumbnail}
-                            alt={`step ${activeStep + 1} image ${i + 1}`}
+                            src={img.standard ?? img.thumbnail}
+                            alt={`step ${activeStep + 1}`}
                             className={styles.stepImg}
                           />
                         ) : null
@@ -237,32 +222,30 @@ export default function Bible() {
                     </div>
                   )}
 
-                  {/* Step instructions */}
                   <div className={styles.stepLines}>
-                    {guide.steps[activeStep].lines.map((line, i) => (
+                    {(currentStep.lines ?? []).map((line, i) => (
                       <p
                         key={i}
                         className={styles.stepLine}
-                        dangerouslySetInnerHTML={{ __html: line.text_rendered }}
+                        dangerouslySetInnerHTML={{ __html: line.text_rendered ?? '' }}
                       />
                     ))}
                   </div>
 
-                  {/* Nav buttons */}
                   <div className={styles.navRow}>
                     <button
                       className="btn-ghost"
                       disabled={activeStep === 0}
                       onClick={() => setActiveStep(s => s - 1)}
                     >
-                      <i className="ti ti-arrow-left" aria-hidden="true" /> prev
+                      ← prev
                     </button>
                     <button
                       className="btn-primary"
-                      disabled={activeStep === guide.steps.length - 1}
+                      disabled={activeStep === steps.length - 1}
                       onClick={() => setActiveStep(s => s + 1)}
                     >
-                      next <i className="ti ti-arrow-right" aria-hidden="true" />
+                      next →
                     </button>
                   </div>
                 </>
@@ -272,7 +255,6 @@ export default function Bible() {
         </div>
       )}
 
-      {/* Results grid */}
       {!guide && !loadingGuide && results.length > 0 && (
         <div className={styles.resultsGrid}>
           {results.map(r => (
@@ -302,10 +284,8 @@ export default function Bible() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && !loadingGuide && !error && results.length === 0 && !guide && (
         <div className="empty-state">
-          <i className="ti ti-tool" aria-hidden="true" />
           <p>search for a repair above or pick a category</p>
         </div>
       )}
