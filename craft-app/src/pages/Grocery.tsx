@@ -40,7 +40,7 @@ export default function Grocery() {
     if (!name) return
     const { data } = await supabase
       .from('grocery_items')
-      .insert({ name, qty: newQty.trim(), checked: false, user_id: user!.id })
+      .insert({ name, qty: newQty.trim(), checked: false })
       .select().single()
     if (data) setItems(prev => [...prev, data])
     setNewItem('')
@@ -70,7 +70,7 @@ export default function Grocery() {
     setSaving(true)
     const { data } = await supabase
       .from('saved_grocery_lists')
-      .insert({ user_id: user!.id, name, items: itemNames })
+      .insert({ name, items: itemNames })
       .select().single()
     if (data) setSavedLists(prev => [data, ...prev])
     setListName('')
@@ -82,16 +82,20 @@ export default function Grocery() {
     setSavedLists(prev => prev.filter(l => l.id !== id))
   }
 
-  function openAmazon() {
+  function openShoppingList() {
     const needItems = items.filter(i => !i.checked)
     if (!needItems.length) return
-    const listText = needItems.map(i => `${i.qty ? i.qty + ' ' : ''}${i.name}`).join(', ')
+    const listText = needItems.map(i => `${i.qty ? i.qty + ' ' : ''}${i.name}`).join('\n')
+
     navigator.clipboard?.writeText(listText).then(() => {
-      alert(`Your list has been copied to clipboard!\n\nYour shopping list will open — your items are copied to clipboard separated by commas.`)
-      window.open('https://www.doordash.com/categories?cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbIjM1ODAwOTMyIiwiMjYyNzQ4NyIsIjI0MzIwNDk4IiwiMzEwMjA0MzAiLCIyNDQ3ODg2MiIsIjIzODk3NjgiLCIyNzU0OTkyMiIsIjIzMjA1NjMiLCIyNDcwMTA1OSJdLCJyZXF1ZXN0X3BhcmVudF9pZCI6IkRFRkFVTFRfSE9NRVBBR0UiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiY2Fyb3VzZWwuc3RhbmRhcmQ6c3RvcmVfY2Fyb3VzZWw6Mzc3ZTliNjQtZjQzMi00NmVkLTgzYzYtMDQ5Y2I2MTYzOGNmIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiJjYXJvdXNlbC5zdGFuZGFyZCIsImNyb3NzX3ZlcnRpY2FsX3BhZ2VfdHlwZSI6IkRFRkFVTFRfSE9NRVBBR0UiLCJwYWdlX3N0YWNrX3RyYWNlIjpbXSwidmVydGljYWxfaWRzIjpbXSwidmVydGljYWxfY29udGV4dF9pZCI6bnVsbCwibGF5b3V0X292ZXJyaWRlIjoiVU5TUEVDSUZJRUQiLCJzaW5nbGVfc3RvcmVfaWQiOm51bGwsInNlYXJjaF9pdGVtX2Nhcm91c2VsX2N1cnNvciI6bnVsbCwiY2F0ZWdvcnlfaWRzIjpbXSwiY29sbGVjdGlvbl9pZHMiOltdLCJpc19wYWdpbmF0aW9uX2ZhbGxiYWNrIjpudWxsLCJzb3VyY2VfcGFnZV90eXBlIjpudWxsLCJnZW9fdHlwZSI6IiIsImdlb19pZCI6IiIsImtleXdvcmQiOiIiLCJhZHNfY3Vyc29yX2NhY2hlX2tleSI6bnVsbCwidmlzdWFsX2Fpc2xlc19pbnNlcnRpb25faW5kZXgiOm51bGwsImJhc2VDdXJzb3IiOnsicGFnZV9pZCI6IjM3N2U5YjY0LWY0MzItNDZlZC04M2M2LTA0OWNiNjE2MzhjZiIsInBhZ2VfdHlwZSI6IlNUT1JFX0NBUk9VU0VMX0xBTkRJTkciLCJjdXJzb3JfdmVyc2lvbiI6IkZBQ0VUIn0sInZlcnRpY2FsX25hbWVzIjp7fSwiaXRlbV9pZHMiOltdLCJtZXJjaGFudF9zdXBwbGllZF9pZHMiOltdLCJpc19vdXRfb2Zfc3RvY2siOm51bGwsIm1lbnVfaWQiOm51bGwsInRyYWNraW5nIjpudWxsLCJkaWV0YXJ5X3RhZyI6bnVsbCwib3JpZ2luX3RpdGxlIjpudWxsLCJyYW5rZWRfcmVtYWluaW5nX2NvbGxlY3Rpb25faWRzIjpudWxsLCJwcmV2aW91c2x5X3NlZW5fY29sbGVjdGlvbl9pZHMiOltdLCJwcmVjaGVja291dF9idW5kbGVfc2VhcmNoX2luZm8iOm51bGwsInRvdGFsX2l0ZW1zX29mZnNldCI6MCwidG90YWxfYWRzX3ByZXZpb3VzbHlfYmxlbmRlZCI6MCwidmVydGljYWxfdGl0bGUiOm51bGwsIm11bHRpX3N0b3JlX2VudGl0aWVzIjpbXSwibGFzdF9zZWVuX2l0ZW1faWRzIjpbXSwibGFzdF9pbnNlcnRlZF9yb3dfaW5kZXgiOm51bGwsImN1cnNvclZlcnNpb24iOiJGQUNFVF9DT05URU5UX09GRlNFVCIsInBhZ2VJZCI6IjM3N2U5YjY0LWY0MzItNDZlZC04M2M2LTA0OWNiNjE2MzhjZiIsInBhZ2VUeXBlIjoiU1RPUkVfQ0FST1VTRUxfTEFORElORyJ9', '_blank')
+      // Try to open Notes app directly (iOS)
+      window.location.href = 'mobilenotes://'
+      // Fallback message in case it doesn't open
+      setTimeout(() => {
+        alert('Your list has been copied!\n\nOpen Notes and paste (long-press → Paste) to create your shopping list.')
+      }, 500)
     }).catch(() => {
-      alert(`Open your shopping list and add these items:\n\n${listText}`)
-      window.open('https://www.doordash.com/categories?cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbIjM1ODAwOTMyIiwiMjYyNzQ4NyIsIjI0MzIwNDk4IiwiMzEwMjA0MzAiLCIyNDQ3ODg2MiIsIjIzODk3NjgiLCIyNzU0OTkyMiIsIjIzMjA1NjMiLCIyNDcwMTA1OSJdLCJyZXF1ZXN0X3BhcmVudF9pZCI6IkRFRkFVTFRfSE9NRVBBR0UiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiY2Fyb3VzZWwuc3RhbmRhcmQ6c3RvcmVfY2Fyb3VzZWw6Mzc3ZTliNjQtZjQzMi00NmVkLTgzYzYtMDQ5Y2I2MTYzOGNmIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiJjYXJvdXNlbC5zdGFuZGFyZCIsImNyb3NzX3ZlcnRpY2FsX3BhZ2VfdHlwZSI6IkRFRkFVTFRfSE9NRVBBR0UiLCJwYWdlX3N0YWNrX3RyYWNlIjpbXSwidmVydGljYWxfaWRzIjpbXSwidmVydGljYWxfY29udGV4dF9pZCI6bnVsbCwibGF5b3V0X292ZXJyaWRlIjoiVU5TUEVDSUZJRUQiLCJzaW5nbGVfc3RvcmVfaWQiOm51bGwsInNlYXJjaF9pdGVtX2Nhcm91c2VsX2N1cnNvciI6bnVsbCwiY2F0ZWdvcnlfaWRzIjpbXSwiY29sbGVjdGlvbl9pZHMiOltdLCJpc19wYWdpbmF0aW9uX2ZhbGxiYWNrIjpudWxsLCJzb3VyY2VfcGFnZV90eXBlIjpudWxsLCJnZW9fdHlwZSI6IiIsImdlb19pZCI6IiIsImtleXdvcmQiOiIiLCJhZHNfY3Vyc29yX2NhY2hlX2tleSI6bnVsbCwidmlzdWFsX2Fpc2xlc19pbnNlcnRpb25faW5kZXgiOm51bGwsImJhc2VDdXJzb3IiOnsicGFnZV9pZCI6IjM3N2U5YjY0LWY0MzItNDZlZC04M2M2LTA0OWNiNjE2MzhjZiIsInBhZ2VfdHlwZSI6IlNUT1JFX0NBUk9VU0VMX0xBTkRJTkciLCJjdXJzb3JfdmVyc2lvbiI6IkZBQ0VUIn0sInZlcnRpY2FsX25hbWVzIjp7fSwiaXRlbV9pZHMiOltdLCJtZXJjaGFudF9zdXBwbGllZF9pZHMiOltdLCJpc19vdXRfb2Zfc3RvY2siOm51bGwsIm1lbnVfaWQiOm51bGwsInRyYWNraW5nIjpudWxsLCJkaWV0YXJ5X3RhZyI6bnVsbCwib3JpZ2luX3RpdGxlIjpudWxsLCJyYW5rZWRfcmVtYWluaW5nX2NvbGxlY3Rpb25faWRzIjpudWxsLCJwcmV2aW91c2x5X3NlZW5fY29sbGVjdGlvbl9pZHMiOltdLCJwcmVjaGVja291dF9idW5kbGVfc2VhcmNoX2luZm8iOm51bGwsInRvdGFsX2l0ZW1zX29mZnNldCI6MCwidG90YWxfYWRzX3ByZXZpb3VzbHlfYmxlbmRlZCI6MCwidmVydGljYWxfdGl0bGUiOm51bGwsIm11bHRpX3N0b3JlX2VudGl0aWVzIjpbXSwibGFzdF9zZWVuX2l0ZW1faWRzIjpbXSwibGFzdF9pbnNlcnRlZF9yb3dfaW5kZXgiOm51bGwsImN1cnNvclZlcnNpb24iOiJGQUNFVF9DT05URU5UX09GRlNFVCIsInBhZ2VJZCI6IjM3N2U5YjY0LWY0MzItNDZlZC04M2M2LTA0OWNiNjE2MzhjZiIsInBhZ2VUeXBlIjoiU1RPUkVfQ0FST1VTRUxfTEFORElORyJ9', '_blank')
+      alert(`Copy failed — here's your list:\n\n${listText}`)
     })
   }
 
@@ -106,8 +110,8 @@ export default function Grocery() {
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
-          <button className="btn-primary" onClick={openAmazon} disabled={!needs.length}>
-            <i className="ti ti-shopping-bag" aria-hidden="true" /> shop on doordash
+          <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
+            <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
           </button>
         </div>
       </div>
