@@ -15,10 +15,10 @@ import Pets from './pages/Pets';
 import BreadRecipes from './pages/BreadRecipes';
 import { ToastProvider } from './hooks/useToast';
 
-type Page = 'home' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'bread';
+type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'bread';
 
 export default function App() {
-  const [page, setPage] = useState<Page>('home');
+  const [page, setPage] = useState<Page>('dashboard');
   function navigate(p: string) {
     setPage(p as Page);
     window.scrollTo(0, 0);
@@ -28,7 +28,7 @@ export default function App() {
       <div className="app-layout">
         <Sidebar currentPage={page} onNavigate={navigate} />
         <main className="main-content">
-          {page === 'home'         && <Dashboard onNavigate={navigate} />}
+          {page === 'dashboard'    && <Dashboard onNavigate={navigate} />}
           {page === 'plants'       && <PlantsPage />}
           {page === 'recipes'      && <RecipesPage onNavigate={navigate} />}
           {page === 'wizard'       && <WizardPage />}
