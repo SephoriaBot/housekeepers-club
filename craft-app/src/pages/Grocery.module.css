@@ -108,6 +108,7 @@
   align-items: center;
   flex-shrink: 0;
 }
+.priceToggle:hover { background: var(--cream); }
 .priceToggle:hover { color: var(--pink); }
 
 .priceDrawer {
