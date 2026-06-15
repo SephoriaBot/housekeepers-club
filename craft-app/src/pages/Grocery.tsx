@@ -117,6 +117,19 @@ export default function Grocery() {
     })
   }
 
+  function openInFlipp() {
+    const needItems = items.filter(i => !i.checked)
+    if (!needItems.length) return
+    const namesOnly = needItems.map(i => i.name).join(', ')
+
+    navigator.clipboard?.writeText(namesOnly).then(() => {
+      alert('Item names copied!\n\nOpening Flipp — paste into search to check this week\'s deals, then come back and log any good prices below.')
+      window.open('https://flipp.com/', '_blank')
+    }).catch(() => {
+      window.open('https://flipp.com/', '_blank')
+    })
+  }
+
   function pricesFor(itemName: string) {
     return prices
       .filter(p => p.item_name.toLowerCase() === itemName.toLowerCase())
@@ -163,6 +176,9 @@ export default function Grocery() {
         <div style={{display:'flex',gap:8}}>
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
+          </button>
+          <button className="btn-ghost" onClick={openInFlipp} disabled={!needs.length}>
+            <i className="ti ti-tag" aria-hidden="true" /> check Flipp deals
           </button>
           <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
             <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
