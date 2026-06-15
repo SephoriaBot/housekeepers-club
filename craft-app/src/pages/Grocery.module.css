@@ -67,8 +67,8 @@
 .itemQty { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 
 .removeBtn {
-  background: none;
-  border: none;
+  background: var(--green-dark);
+  border: var(--green-dark);
   padding: 3px;
   color: var(--green-light);
   cursor: pointer;
@@ -99,10 +99,10 @@
 }
 
 .priceToggle {
-  background: none;
-  border: none;
+  background: var(--green-dark);
+  border: var(--green-dark);
   padding: 3px;
-  color: var(--green-dark);
+  color: var(--green-light);
   cursor: pointer;
   display: fixed;
   align-items: center;
