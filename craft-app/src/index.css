@@ -1,32 +1,32 @@
 :root {
-  --cream: #FDF6E3;
-  --blush: #E0E0E0;
-  --pink: #800080;
-  --pink-light: #C080C0;
-  --pink-dark: #4B0082;
-  --lavender: #008080;
-  --lavender-light: #B0E0E0;
-  --lavender-dark: #005050;
-  --ink: #000000;
-  --ink-soft: #333333;
-  --ink-muted: #707070;
+  --cream: #FFF0F5;
+  --blush: #FFD1E3;
+  --pink: #E0245E;
+  --pink-light: #FFB6D5;
+  --pink-dark: #B5103F;
+  --lavender: #FF6FA8;
+  --lavender-light: #FFE3EF;
+  --lavender-dark: #C2185B;
+  --ink: #4A1428;
+  --ink-soft: #7A3A52;
+  --ink-muted: #B98098;
   --white: #FFFFFF;
-  --border: #808080;
-  --shadow: rgba(0, 0, 0, 0.15);
-  --shadow-md: rgba(0, 0, 0, 0.3);
-  --green: #008000;
-  --green-light: #D0F0D0;
-  --green-dark: #005000;
+  --border: #F0A8C4;
+  --shadow: rgba(224, 36, 94, 0.12);
+  --shadow-md: rgba(224, 36, 94, 0.25);
+  --green: #6FBF73;
+  --green-light: #E3F5E4;
+  --green-dark: #3E8C42;
   --amber: #FFA500;
   --amber-light: #FFF0C0;
 
-  --win-gray: #C0C0C0;
-  --win-teal: #008080;
-  --win-navy: #000080;
-  --win-yellow: #FFFF00;
+  --win-gray: #FFE3EF;
+  --win-teal: #FF6FA8;
+  --win-navy: #E0245E;
+  --win-yellow: #FFE680;
   --bevel-light: #FFFFFF;
-  --bevel-dark: #808080;
-  --bevel-darker: #404040;
+  --bevel-dark: #F0A8C4;
+  --bevel-darker: #D46A93;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -164,7 +164,7 @@ h1, h2, h3 {
 .nav-item.active svg { opacity: 1; }
 
 .sidebar::after {
-  content: 'SYSTEM READY ▓▓▓▓▓▓▓▓░░';
+  content: '♥ ALL SET ♥ ▓▓▓▓▓▓▓▓░░';
   display: block;
   margin-top: auto;
   padding: 6px 10px;
@@ -321,7 +321,7 @@ h1, h2, h3 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,128,0.35);
+  background: rgba(224,36,94,0.35);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -341,7 +341,7 @@ h1, h2, h3 {
   border-left: 2px solid var(--bevel-light);
   border-bottom: 2px solid var(--bevel-darker);
   border-right: 2px solid var(--bevel-darker);
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
 }
 
 .modal-header {
@@ -666,6 +666,10 @@ h1, h2, h3 {
 
 @media (min-width: 641px) {
   .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 901px) {
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
 }
 
