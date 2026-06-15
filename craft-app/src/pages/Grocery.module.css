@@ -78,6 +78,7 @@
 }
 .removeBtn:hover { color: var(--pink); }
 .removeBtn i { font-size: 13px; }
+.removeBtn { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
 
 .addRow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
 
@@ -109,6 +110,7 @@
   flex-shrink: 0;
 }
 
+.priceToggle { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
 .priceToggle:hover { color: var(--pink); }
 
 .priceDrawer {
