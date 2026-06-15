@@ -3,48 +3,52 @@
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px; }
 
 .title {
-  font-family: 'Lora', serif;
+  font-family: 'Playfair Display', serif;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--ink);
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.title i { color: var(--sage); }
+.title i { color: var(--pink); }
 
 .saveRow { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
 
 .savedPanel { padding: 14px; margin-bottom: 1rem; }
-.savedPanelTitle { font-size: 12px; font-weight: 500; color: var(--text-soft); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.savedPanelTitle { font-size: 12px; font-weight: 600; color: var(--ink-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
 
 .savedListRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
   gap: 8px;
 }
 .savedListRow:last-child { border-bottom: none; }
-.savedListName { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
-.savedListItems { font-size: 11px; color: var(--text-soft); }
+.savedListName { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
+.savedListItems { font-size: 11px; color: var(--ink-muted); }
 
 .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
 .colHeader {
-  background: var(--sage-light);
+  background: var(--blush);
   padding: 10px 14px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--sage-dark);
+  font-weight: 600;
+  color: var(--pink-dark);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: 10px 10px 0 0;
 }
 .count { font-size: 11px; opacity: 0.7; }
 
 .list { padding: 6px 8px; min-height: 80px; }
+
+.itemWrap { border-bottom: 1px solid var(--border); }
+.itemWrap:last-child { border-bottom: none; }
 
 .item {
   display: flex;
@@ -53,22 +57,20 @@
   padding: 7px 6px;
   border-radius: 6px;
   font-size: 12px;
-  border-bottom: 0.5px solid var(--border);
   transition: background 0.1s;
 }
-.item:last-child { border-bottom: none; }
 .item:hover { background: var(--cream); }
-.item input[type="checkbox"] { accent-color: var(--sage); cursor: pointer; flex-shrink: 0; }
-.item.checked .itemName { text-decoration: line-through; color: var(--text-soft); }
+.item input[type="checkbox"] { accent-color: var(--pink); cursor: pointer; flex-shrink: 0; }
+.item.checked .itemName { text-decoration: line-through; color: var(--ink-muted); }
 
 .itemName { flex: 1; }
-.itemQty { font-size: 11px; color: var(--text-soft); white-space: nowrap; }
+.itemQty { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 
 .removeBtn {
   background: none;
   border: none;
   padding: 3px;
-  color: var(--text-soft);
+  color: var(--ink-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -78,4 +80,79 @@
 .removeBtn:hover { color: #c0392b; }
 .removeBtn i { font-size: 13px; }
 
-.addRow { display: flex; gap: 6px; padding: 8px; border-top: 0.5px solid var(--border); }
+.addRow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+
+/* ── Price tracking ─────────────────────────────── */
+.priceBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green-dark);
+  background: var(--green-light);
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.priceStale {
+  color: var(--amber) !important;
+  background: var(--amber-light) !important;
+}
+
+.priceToggle {
+  background: none;
+  border: none;
+  padding: 3px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.priceToggle:hover { color: var(--pink); }
+
+.priceDrawer {
+  padding: 8px 12px 12px 34px;
+  background: var(--cream);
+}
+
+.priceList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.priceStore { flex: 2; font-weight: 600; color: var(--ink); }
+.priceAmt { flex: 1; color: var(--pink-dark); font-weight: 600; }
+.priceDate { flex: 1; color: var(--ink-muted); font-size: 10px; }
+
+.noPrices {
+  font-size: 11px;
+  color: var(--ink-muted);
+  padding: 4px 0 8px;
+}
+
+.priceAddRow { display: flex; gap: 6px; }
+.priceAddRow input {
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  background: var(--white);
+}
+.priceAddRow input:focus { border-color: var(--pink); }
+
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+}
