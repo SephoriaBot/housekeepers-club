@@ -5,6 +5,14 @@ import styles from './Grocery.module.css'
 
 interface SavedList { id: string; name: string; items: string[]; created_at: string }
 
+interface PriceEntry {
+  id: string
+  item_name: string
+  store: string
+  price: number
+  updated_at: string
+}
+
 export default function Grocery() {
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
@@ -15,7 +23,11 @@ export default function Grocery() {
   const [showSaved, setShowSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { fetchItems(); fetchSavedLists() }, [])
+  const [prices, setPrices] = useState<PriceEntry[]>([])
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  const [priceForm, setPriceForm] = useState<{ store: string; price: string }>({ store: '', price: '' })
+
+  useEffect(() => { fetchItems(); fetchSavedLists(); fetchPrices() }, [])
 
   async function fetchItems() {
     setLoading(true)
@@ -33,6 +45,14 @@ export default function Grocery() {
       .select('*')
       .order('created_at', { ascending: false })
     setSavedLists(data ?? [])
+  }
+
+  async function fetchPrices() {
+    const { data } = await supabase
+      .from('grocery_prices')
+      .select('*')
+      .order('price', { ascending: true })
+    setPrices(data ?? [])
   }
 
   async function addItem() {
@@ -88,15 +108,49 @@ export default function Grocery() {
     const listText = needItems.map(i => `${i.qty ? i.qty + ' ' : ''}${i.name}`).join('\n')
 
     navigator.clipboard?.writeText(listText).then(() => {
-      // Try to open Notes app directly (iOS)
       window.location.href = 'mobilenotes://'
-      // Fallback message in case it doesn't open
       setTimeout(() => {
         alert('Your list has been copied!\n\nOpen Notes and paste (long-press → Paste) to create your shopping list.')
       }, 500)
     }).catch(() => {
       alert(`Copy failed — here's your list:\n\n${listText}`)
     })
+  }
+
+  function pricesFor(itemName: string) {
+    return prices
+      .filter(p => p.item_name.toLowerCase() === itemName.toLowerCase())
+      .sort((a, b) => a.price - b.price)
+  }
+
+  function cheapestFor(itemName: string) {
+    const list = pricesFor(itemName)
+    return list.length > 0 ? list[0] : null
+  }
+
+  function isStale(dateStr: string) {
+    const days = (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24)
+    return days > 30
+  }
+
+  async function addPrice(itemName: string) {
+    if (!priceForm.store.trim() || !priceForm.price) return
+    const { data } = await supabase
+      .from('grocery_prices')
+      .insert({
+        item_name: itemName,
+        store: priceForm.store.trim(),
+        price: parseFloat(priceForm.price),
+        updated_at: new Date().toISOString().split('T')[0],
+      })
+      .select().single()
+    if (data) setPrices(prev => [...prev, data].sort((a, b) => a.price - b.price))
+    setPriceForm({ store: '', price: '' })
+  }
+
+  async function deletePrice(id: string) {
+    await supabase.from('grocery_prices').delete().eq('id', id)
+    setPrices(prev => prev.filter(p => p.id !== id))
   }
 
   const needs = items.filter(i => !i.checked)
@@ -137,7 +191,7 @@ export default function Grocery() {
         <div className={`card ${styles.savedPanel}`}>
           <div className={styles.savedPanelTitle}>saved lists</div>
           {savedLists.length === 0
-            ? <p style={{fontSize:12,color:'var(--text-soft)',padding:'0.5rem 0'}}>no saved lists yet</p>
+            ? <p style={{fontSize:12,color:'var(--ink-muted)',padding:'0.5rem 0'}}>no saved lists yet</p>
             : savedLists.map(list => (
               <div key={list.id} className={styles.savedListRow}>
                 <div>
@@ -154,7 +208,7 @@ export default function Grocery() {
       )}
 
       {loading ? (
-        <p style={{color:'var(--text-soft)',fontSize:13}}>loading...</p>
+        <p style={{color:'var(--ink-muted)',fontSize:13}}>loading...</p>
       ) : (
         <div className={styles.layout}>
           <div className="card">
@@ -164,17 +218,73 @@ export default function Grocery() {
             </div>
             <div className={styles.list}>
               {needs.length === 0
-                ? <p style={{textAlign:'center',fontSize:12,color:'var(--text-soft)',padding:'1rem'}}>list is clear!</p>
-                : needs.map(item => (
-                  <div key={item.id} className={styles.item}>
-                    <input type="checkbox" onChange={() => toggle(item.id, item.checked)} />
-                    <span className={styles.itemName}>{item.name}</span>
-                    <span className={styles.itemQty}>{item.qty}</span>
-                    <button className={styles.removeBtn} onClick={() => removeItem(item.id)}>
-                      <i className="ti ti-trash" aria-hidden="true" />
-                    </button>
-                  </div>
-                ))
+                ? <p style={{textAlign:'center',fontSize:12,color:'var(--ink-muted)',padding:'1rem'}}>list is clear!</p>
+                : needs.map(item => {
+                  const cheapest = cheapestFor(item.name)
+                  const itemPrices = pricesFor(item.name)
+                  const isOpen = expandedItem === item.id
+                  return (
+                    <div key={item.id} className={styles.itemWrap}>
+                      <div className={styles.item}>
+                        <input type="checkbox" onChange={() => toggle(item.id, item.checked)} />
+                        <span className={styles.itemName}>{item.name}</span>
+                        <span className={styles.itemQty}>{item.qty}</span>
+                        {cheapest && (
+                          <span className={`${styles.priceBadge} ${isStale(cheapest.updated_at) ? styles.priceStale : ''}`}>
+                            ${cheapest.price.toFixed(2)} @ {cheapest.store}
+                          </span>
+                        )}
+                        <button className={styles.priceToggle} onClick={() => setExpandedItem(isOpen ? null : item.id)}>
+                          <i className={`ti ti-chevron-${isOpen ? 'up' : 'down'}`} aria-hidden="true" />
+                        </button>
+                        <button className={styles.removeBtn} onClick={() => removeItem(item.id)}>
+                          <i className="ti ti-trash" aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      {isOpen && (
+                        <div className={styles.priceDrawer}>
+                          {itemPrices.length === 0 ? (
+                            <p className={styles.noPrices}>no prices logged yet</p>
+                          ) : (
+                            <div className={styles.priceList}>
+                              {itemPrices.map(p => (
+                                <div key={p.id} className={styles.priceRow}>
+                                  <span className={styles.priceStore}>{p.store}</span>
+                                  <span className={styles.priceAmt}>${p.price.toFixed(2)}</span>
+                                  <span className={`${styles.priceDate} ${isStale(p.updated_at) ? styles.priceStale : ''}`}>{p.updated_at}</span>
+                                  <button className={styles.removeBtn} onClick={() => deletePrice(p.id)}>
+                                    <i className="ti ti-x" aria-hidden="true" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className={styles.priceAddRow}>
+                            <input
+                              type="text"
+                              placeholder="store..."
+                              value={priceForm.store}
+                              onChange={e => setPriceForm(f => ({ ...f, store: e.target.value }))}
+                              style={{flex:2}}
+                            />
+                            <input
+                              type="number"
+                              placeholder="price"
+                              value={priceForm.price}
+                              onChange={e => setPriceForm(f => ({ ...f, price: e.target.value }))}
+                              onKeyDown={e => e.key === 'Enter' && addPrice(item.name)}
+                              style={{flex:1}}
+                            />
+                            <button className="btn-primary" style={{padding:'6px 10px'}} onClick={() => addPrice(item.name)}>
+                              <i className="ti ti-plus" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
               }
             </div>
             <div className={styles.addRow}>
@@ -199,7 +309,7 @@ export default function Grocery() {
             </div>
             <div className={styles.list}>
               {have.length === 0
-                ? <p style={{textAlign:'center',fontSize:12,color:'var(--text-soft)',padding:'1rem'}}>nothing checked off yet</p>
+                ? <p style={{textAlign:'center',fontSize:12,color:'var(--ink-muted)',padding:'1rem'}}>nothing checked off yet</p>
                 : have.map(item => (
                   <div key={item.id} className={`${styles.item} ${styles.checked}`}>
                     <input type="checkbox" checked onChange={() => toggle(item.id, item.checked)} />
