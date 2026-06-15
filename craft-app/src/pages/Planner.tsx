@@ -10,14 +10,17 @@ const EMPTY_PLAN: WeekPlan = Object.fromEntries(
   DAYS.map(d => [d, { breakfast: null, lunch: null, dinner: null }])
 )
 
+interface PlannerProps {
+  onNavigate: (page: string) => void
+}
+
 export default function Planner({ onNavigate }: PlannerProps) {
   const [plan, setPlan] = useState<WeekPlan>(EMPTY_PLAN)
   const [meals, setMeals] = useState<Meal[]>([])
   const [selecting, setSelecting] = useState<{day:string; type:typeof MEAL_TYPES[number]} | null>(null)
   const [loading, setLoading] = useState(true)
-  interface PlannerProps {
-  onNavigate: (page: string) => void
-}
+  const [addingId, setAddingId] = useState<string | null>(null)
+  const [addedId, setAddedId] = useState<string | null>(null)
 
   useEffect(() => { fetchData() }, [])
 
@@ -58,6 +61,19 @@ export default function Planner({ onNavigate }: PlannerProps) {
     setPlan(p => ({ ...p, [day]: { ...p[day], [type]: null } }))
   }
 
+  async function sendToGroceryList(meal: Meal) {
+    const ingredients = meal.ingredients ?? []
+    if (!ingredients.length) return
+    setAddingId(meal.id)
+
+    const rows = ingredients.map(ing => ({ name: ing, qty: '', checked: false }))
+    await supabase.from('grocery_items').insert(rows)
+
+    setAddingId(null)
+    setAddedId(meal.id)
+    setTimeout(() => setAddedId(null), 2000)
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -67,7 +83,7 @@ export default function Planner({ onNavigate }: PlannerProps) {
         </button>
       </div>
 
-      {loading ? <p style={{color:'var(--text-soft)',fontSize:13}}>loading...</p> : (
+      {loading ? <p style={{color:'var(--ink-muted)',fontSize:13}}>loading...</p> : (
         <>
           <div className={styles.grid}>
             {DAYS.map(day => (
@@ -106,7 +122,7 @@ export default function Planner({ onNavigate }: PlannerProps) {
                 </div>
                 <div className={styles.pickerMeals}>
                   {meals.length === 0 && (
-                    <p style={{fontSize:12,color:'var(--text-soft)',padding:'1rem',textAlign:'center'}}>
+                    <p style={{fontSize:12,color:'var(--ink-muted)',padding:'1rem',textAlign:'center'}}>
                       no saved meals yet — visit suggest meals to add some
                     </p>
                   )}
@@ -133,22 +149,40 @@ export default function Planner({ onNavigate }: PlannerProps) {
               </div>
             ) : (
               <div className={styles.mealsGrid}>
-                {meals.map(m => (
-                  <div key={m.id} className={`card ${styles.mealCard}`}>
-                    <div className={styles.mealName}>{m.name}</div>
-                    <div className={styles.mealMeta}>
-                      <span style={{color:'var(--text-soft)',fontSize:11}}>{m.time}</span>
-                      {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
+                {meals.map(m => {
+                  const hasIngredients = (m.ingredients ?? []).length > 0
+                  return (
+                    <div key={m.id} className={`card ${styles.mealCard}`}>
+                      <div className={styles.mealName}>{m.name}</div>
+                      <div className={styles.mealMeta}>
+                        <span style={{color:'var(--ink-muted)',fontSize:11}}>{m.time}</span>
+                        {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
+                      </div>
+                      <div style={{display:'flex',gap:6,marginTop:6}}>
+                        <button
+                          className="btn-ghost"
+                          style={{fontSize:11,padding:'4px 8px',flex:1,justifyContent:'center'}}
+                          onClick={() => onNavigate('cook')}
+                        >
+                          <i className="ti ti-chef-hat" aria-hidden="true" /> cook this
+                        </button>
+                        <button
+                          className="btn-primary"
+                          style={{fontSize:11,padding:'4px 8px',flex:1,justifyContent:'center'}}
+                          onClick={() => sendToGroceryList(m)}
+                          disabled={!hasIngredients || addingId === m.id}
+                          title={!hasIngredients ? 'no ingredients saved for this meal' : ''}
+                        >
+                          {addedId === m.id
+                            ? <><i className="ti ti-check" aria-hidden="true" /> added!</>
+                            : addingId === m.id
+                              ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> adding...</>
+                              : <><i className="ti ti-shopping-cart" aria-hidden="true" /> add to list</>}
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      className="btn-ghost"
-                      style={{fontSize:11,padding:'4px 8px',marginTop:6,width:'100%',justifyContent:'center'}}
-                      onClick={() => onNavigate('cook')}
-                    >
-                      <i className="ti ti-chef-hat" aria-hidden="true" /> cook this
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
