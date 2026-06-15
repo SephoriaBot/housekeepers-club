@@ -110,7 +110,6 @@
   flex-shrink: 0;
 }
 
-.priceToggle i { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
 .priceToggle:hover { color: var(--pink); }
 
 .priceDrawer {
