@@ -56,7 +56,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   }
 
   return (
-    <aside className="sidebar" style={{ position: 'static' }}>
+    <aside className="sidebar">
       <div className="sidebar-logo">
         <h1>Housekeepers Club</h1>
         <p>Your creative sanctuary</p>
