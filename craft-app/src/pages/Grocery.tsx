@@ -163,6 +163,23 @@ export default function Grocery() {
   const needs = items.filter(i => !i.checked)
   const have  = items.filter(i =>  i.checked)
 
+  function storeTally() {
+    const tally = new Map<string, number>()
+    const itemNames = new Set(needs.map(i => i.name.toLowerCase()))
+    for (const name of itemNames) {
+      const cheapest = cheapestFor(name)
+      if (cheapest) {
+        tally.set(cheapest.store, (tally.get(cheapest.store) ?? 0) + 1)
+      }
+    }
+    return Array.from(tally.entries())
+      .map(([store, count]) => ({ store, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  const tally = storeTally()
+  const totalTracked = tally.reduce((sum, t) => sum + t.count, 0)
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -211,6 +228,23 @@ export default function Grocery() {
               </div>
             ))
           }
+        </div>
+      )}
+
+      {/* store leaderboard */}
+      {totalTracked > 0 && (
+        <div className={`card ${styles.savedPanel}`}>
+          <div className={styles.savedPanelTitle}>cheapest store so far</div>
+          {tally.map((t, i) => (
+            <div key={t.store} className={styles.tallyRow}>
+              <span className={styles.tallyRank}>{i + 1}</span>
+              <span className={styles.tallyStore}>{t.store}</span>
+              <div className={styles.tallyBarTrack}>
+                <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+              </div>
+              <span className={styles.tallyCount}>{t.count}/{totalTracked}</span>
+            </div>
+          ))}
         </div>
       )}
 
