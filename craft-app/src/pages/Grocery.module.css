@@ -67,10 +67,10 @@
 .itemQty { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 
 .removeBtn {
-  background: var(--green-dark);
-  border: var(--green-dark);
+  background: var(--pink);
+  border: var(--pink-light);
   padding: 6px;
-  color: var(--green-light);
+  color: var(--cream);
   cursor: pointer;
   display: flex;
   align-items: center;
