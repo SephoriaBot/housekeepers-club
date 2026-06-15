@@ -146,6 +146,7 @@ export default function Grocery() {
       .select().single()
     if (data) setPrices(prev => [...prev, data].sort((a, b) => a.price - b.price))
     setPriceForm({ store: '', price: '' })
+<i className="ti ti-price" aria-hidden="true" />Add Price
   }
 
   async function deletePrice(id: string) {
