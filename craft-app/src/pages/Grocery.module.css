@@ -107,8 +107,8 @@
   align-items: center;
   flex-shrink: 0;
 }
-.priceToggle:hover { background: var(--cream); }
-.priceToggle:hover { color: var(--pink); }
+
+.priceToggle:hover { color: var(--pink-light); }
 
 .priceDrawer {
   padding: 8px 12px 12px 34px;
