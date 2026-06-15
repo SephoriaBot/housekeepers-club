@@ -117,17 +117,11 @@ export default function Grocery() {
     })
   }
 
-  function openInFlipp() {
-    const needItems = items.filter(i => !i.checked)
-    if (!needItems.length) return
-    const namesOnly = needItems.map(i => i.name).join(', ')
-
-    navigator.clipboard?.writeText(namesOnly).then(() => {
-      alert('Item names copied!\n\nOpening Flipp — paste into search to check this week\'s deals, then come back and log any good prices below.')
-      window.open('https://flipp.com/', '_blank')
-    }).catch(() => {
-      window.open('https://flipp.com/', '_blank')
-    })
+  function searchOnInstacart(itemId: string, itemName: string) {
+    const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(itemName)}`
+    window.open(url, '_blank')
+    setPriceForm({ store: 'Instacart', price: '' })
+    setExpandedItem(itemId)
   }
 
   function pricesFor(itemName: string) {
@@ -176,9 +170,6 @@ export default function Grocery() {
         <div style={{display:'flex',gap:8}}>
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
-          </button>
-          <button className="btn-ghost" onClick={openInFlipp} disabled={!needs.length}>
-            <i className="ti ti-tag" aria-hidden="true" /> check Flipp deals
           </button>
           <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
             <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
@@ -250,6 +241,9 @@ export default function Grocery() {
                             ${cheapest.price.toFixed(2)} @ {cheapest.store}
                           </span>
                         )}
+                        <button className={styles.priceToggle} onClick={() => searchOnInstacart(item.id, item.name)} title="search on Instacart">
+                          <i className="ti ti-shopping-cart-plus" aria-hidden="true" />
+                        </button>
                         <button className={styles.priceToggle} onClick={() => setExpandedItem(isOpen ? null : item.id)}>
                           <i className={`ti ti-chevron-${isOpen ? 'up' : 'down'}`} aria-hidden="true" />
                         </button>
