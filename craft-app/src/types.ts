@@ -4,8 +4,10 @@ export interface Meal {
   name: string
   time: string
   tags: string[]
+  ingredients?: string[]
   created_at?: string
 }
+
 
 export interface Ingredient {
   name: string
