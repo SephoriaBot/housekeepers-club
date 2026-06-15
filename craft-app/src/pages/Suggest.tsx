@@ -35,6 +35,7 @@ export default function Suggest() {
   const [loading, setLoading] = useState(false)
   const [meals, setMeals] = useState<SpoonRecipe[]>([])
   const [saved, setSaved] = useState<Set<number>>(new Set())
+  const [savingId, setSavingId] = useState<number | null>(null)
   const [error, setError] = useState('')
 
   function toggleSet(setFn: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) {
@@ -69,17 +70,30 @@ export default function Suggest() {
   }
 
   async function saveMeal(m: SpoonRecipe) {
+    setSavingId(m.id)
     const tags = [
       m.vegetarian && 'vegetarian',
       m.vegan && 'vegan',
       m.glutenFree && 'gluten-free',
       m.dairyFree && 'dairy-free',
     ].filter(Boolean) as string[]
+
+    let ingredients: string[] = []
+    try {
+      const params = new URLSearchParams({ apiKey: import.meta.env.VITE_SPOONACULAR_API_KEY })
+      const res = await fetch(`https://api.spoonacular.com/recipes/${m.id}/information?${params}`)
+      const data = await res.json()
+      ingredients = (data.extendedIngredients || []).map((ing: any) => ing.original as string)
+    } catch {
+      // if this fails, we still save the meal without ingredients
+    }
+
     const { error } = await supabase.from('meals').upsert(
-      { name: m.title, time: `${m.readyInMinutes} min`, tags },
+      { name: m.title, time: `${m.readyInMinutes} min`, tags, ingredients },
       { onConflict: 'name' }
     )
     if (!error) setSaved(s => new Set([...s, m.id]))
+    setSavingId(null)
   }
 
   return (
@@ -150,11 +164,13 @@ export default function Suggest() {
                     className="btn-ghost"
                     style={{width:'100%',justifyContent:'center',fontSize:11,padding:'5px 8px',marginTop:8}}
                     onClick={() => saveMeal(m)}
-                    disabled={saved.has(m.id)}
+                    disabled={saved.has(m.id) || savingId === m.id}
                   >
                     {saved.has(m.id)
                       ? <><i className="ti ti-check" aria-hidden="true" /> saved!</>
-                      : <><i className="ti ti-plus" aria-hidden="true" /> save to my meals</>}
+                      : savingId === m.id
+                        ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> saving...</>
+                        : <><i className="ti ti-plus" aria-hidden="true" /> save to my meals</>}
                   </button>
                 </div>
               </div>
