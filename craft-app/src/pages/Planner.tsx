@@ -61,19 +61,34 @@ export default function Planner({ onNavigate }: PlannerProps) {
     setPlan(p => ({ ...p, [day]: { ...p[day], [type]: null } }))
   }
 
+  function cleanIngredient(raw: string): string {
+    const units = new Set([
+      'cup','cups','tbsp','tsp','tablespoon','tablespoons','teaspoon','teaspoons',
+      'oz','ounce','ounces','lb','lbs','pound','pounds','g','gram','grams',
+      'kg','ml','l','liter','liters','pinch','dash','can','cans','clove','cloves',
+      'slice','slices','piece','pieces','large','medium','small','whole','bunch',
+      'handful','package','packages','pkg','sprig','sprigs','stalk','stalks',
+      'head','heads','quart','quarts','pint','pints','gallon','gallons',
+    ])
+    const words = raw.split(' ')
+    const start = words.findIndex(w => {
+      const clean = w.toLowerCase().replace(/[.,()]/g, '')
+      return (
+        isNaN(parseFloat(clean)) &&
+        !units.has(clean) &&
+        !['of','fresh','dried','ground','chopped','minced','diced','sliced','to','taste','or','and','finely','roughly','coarsely'].includes(clean) &&
+        clean.length > 0
+      )
+    })
+    return start === -1 ? raw : words.slice(start).join(' ')
+  }
+
   async function sendToGroceryList(meal: Meal) {
     const ingredients = meal.ingredients ?? []
     if (!ingredients.length) return
     setAddingId(meal.id)
 
-    const rows = ingredients.map(ing => {
-  // strip leading quantity + unit e.g. "2 cups", "1/2 tsp", "3 large"
-  const cleaned = ing
-    .replace(/^[\d\s/¼½¾⅓⅔⅛⅜⅝⅞]+\s*(cups?|tbsp?|tsp?|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|grams?|g|kg|ml|liters?|l|pinch|dash|can|cans|cloves?|slices?|pieces?|large|medium|small|whole)\.?\s*/i, '')
-    .trim()
-  return { name: cleaned, qty: '', checked: false }
-})
-
+    const rows = ingredients.map(ing => ({ name: cleanIngredient(ing), qty: '', checked: false }))
     await supabase.from('grocery_items').insert(rows)
 
     setAddingId(null)
