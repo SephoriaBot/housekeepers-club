@@ -66,7 +66,14 @@ export default function Planner({ onNavigate }: PlannerProps) {
     if (!ingredients.length) return
     setAddingId(meal.id)
 
-    const rows = ingredients.map(ing => ({ name: ing, qty: '', checked: false }))
+    const rows = ingredients.map(ing => {
+  // strip leading quantity + unit e.g. "2 cups", "1/2 tsp", "3 large"
+  const cleaned = ing
+    .replace(/^[\d\s/¼½¾⅓⅔⅛⅜⅝⅞]+\s*(cups?|tbsp?|tsp?|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|grams?|g|kg|ml|liters?|l|pinch|dash|can|cans|cloves?|slices?|pieces?|large|medium|small|whole)\.?\s*/i, '')
+    .trim()
+  return { name: cleaned, qty: '', checked: false }
+})
+
     await supabase.from('grocery_items').insert(rows)
 
     setAddingId(null)
