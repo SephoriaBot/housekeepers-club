@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Droplets, Check } from 'lucide-react';
+import { Plus, X, Droplets, Check, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Plant, PlantLog, PlantType, LogAction } from '../types';
 import { useToast } from '../hooks/useToast';
@@ -7,6 +7,8 @@ import { useToast } from '../hooks/useToast';
 const PLANT_EMOJIS: Record<PlantType, string> = {
   herb: '🌿', flower: '🌸', succulent: '🪴', vegetable: '🥬', tropical: '🌴', other: '🌱',
 };
+
+const EMPTY_FORM = { name: '', type: 'herb' as PlantType, notes: '', watering_frequency_days: '', location: '', emoji: '', acquired_date: '' };
 
 const WATER_STATUS = (plant: Plant): { label: string; className: string } => {
   if (!plant.last_watered || !plant.watering_frequency_days) return { label: 'No schedule', className: '' };
@@ -22,9 +24,10 @@ export default function PlantsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [logs, setLogs] = useState<PlantLog[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  const [form, setForm] = useState({ name: '', type: 'herb' as PlantType, notes: '', watering_frequency_days: '', location: '', emoji: '', acquired_date: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => { loadPlants(); }, []);
 
@@ -40,9 +43,29 @@ export default function PlantsPage() {
     setLogs(data || []);
   }
 
-  async function addPlant() {
+  function openAdd() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowAdd(true);
+  }
+
+  function openEdit(plant: Plant) {
+    setEditingId(plant.id);
+    setForm({
+      name: plant.name,
+      type: plant.type,
+      notes: plant.notes ?? '',
+      watering_frequency_days: plant.watering_frequency_days != null ? String(plant.watering_frequency_days) : '',
+      location: plant.location ?? '',
+      emoji: plant.emoji ?? '',
+      acquired_date: plant.acquired_date ?? '',
+    });
+    setShowAdd(true);
+  }
+
+  async function savePlant() {
     if (!form.name.trim()) return;
-    const { error } = await supabase.from('plants').insert({
+    const payload = {
       name: form.name.trim(),
       type: form.type,
       notes: form.notes || null,
@@ -50,11 +73,24 @@ export default function PlantsPage() {
       location: form.location || null,
       emoji: form.emoji || PLANT_EMOJIS[form.type],
       acquired_date: form.acquired_date || null,
-    });
-    if (error) { showToast('Error adding plant', 'error'); return; }
-    showToast('Plant added!');
+    };
+
+    if (editingId) {
+      const { error } = await supabase.from('plants').update(payload).eq('id', editingId);
+      if (error) { showToast('Error updating plant', 'error'); return; }
+      showToast('Plant updated!');
+      if (selectedPlant?.id === editingId) {
+        setSelectedPlant({ ...selectedPlant, ...payload } as Plant);
+      }
+    } else {
+      const { error } = await supabase.from('plants').insert(payload);
+      if (error) { showToast('Error adding plant', 'error'); return; }
+      showToast('Plant added!');
+    }
+
     setShowAdd(false);
-    setForm({ name: '', type: 'herb', notes: '', watering_frequency_days: '', location: '', emoji: '', acquired_date: '' });
+    setEditingId(null);
+    setForm(EMPTY_FORM);
     loadPlants();
   }
 
@@ -82,7 +118,7 @@ export default function PlantsPage() {
           <h2>My Garden 🌿</h2>
           <p>{plants.length} plant{plants.length !== 1 ? 's' : ''} growing</p>
         </div>
-        <button className="btn btn-green" onClick={() => setShowAdd(true)}>
+        <button className="btn btn-green" onClick={openAdd}>
           <Plus size={15} /> Add Plant
         </button>
       </div>
@@ -95,14 +131,22 @@ export default function PlantsPage() {
             <div className="empty-icon">🌱</div>
             <h3>Your garden is empty</h3>
             <p>Add your first plant to start tracking waterings and care notes.</p>
-            <button className="btn btn-green" onClick={() => setShowAdd(true)}><Plus size={14} /> Add Plant</button>
+            <button className="btn btn-green" onClick={openAdd}><Plus size={14} /> Add Plant</button>
           </div>
         ) : (
           <div className="grid-3">
             {plants.map(plant => {
               const status = WATER_STATUS(plant);
               return (
-                <div key={plant.id} className="card" style={{ cursor: 'pointer' }} onClick={() => { setSelectedPlant(plant); loadLogs(plant.id); }}>
+                <div key={plant.id} className="card" style={{ cursor: 'pointer', position: 'relative' }} onClick={() => { setSelectedPlant(plant); loadLogs(plant.id); }}>
+                  <button
+                    className="btn-ghost btn-sm"
+                    style={{ position: 'absolute', top: 10, right: 10, padding: '4px 7px', zIndex: 2 }}
+                    onClick={e => { e.stopPropagation(); openEdit(plant); }}
+                    title="edit"
+                  >
+                    <Pencil size={12} />
+                  </button>
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
                       <div className="plant-emoji">{plant.emoji || PLANT_EMOJIS[plant.type]}</div>
@@ -126,12 +170,12 @@ export default function PlantsPage() {
         )}
       </div>
 
-      {/* Add Plant Modal */}
+      {/* Add/Edit Plant Modal */}
       {showAdd && (
         <div className="modal-overlay" onClick={() => setShowAdd(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Add a Plant</h3>
+              <h3>{editingId ? 'Edit Plant' : 'Add a Plant'}</h3>
               <button className="close-btn" onClick={() => setShowAdd(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
@@ -177,7 +221,9 @@ export default function PlantsPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-green" onClick={addPlant}><Plus size={14} /> Add Plant</button>
+              <button className="btn btn-green" onClick={savePlant}>
+                <Plus size={14} /> {editingId ? 'Save Changes' : 'Add Plant'}
+              </button>
             </div>
           </div>
         </div>
@@ -195,7 +241,12 @@ export default function PlantsPage() {
                   <span className="badge badge-green">{selectedPlant.type}</span>
                 </div>
               </div>
-              <button className="close-btn" onClick={() => setSelectedPlant(null)}><X size={18} /></button>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button className="btn-ghost btn-sm" onClick={() => openEdit(selectedPlant)}>
+                  <Pencil size={13} /> Edit
+                </button>
+                <button className="close-btn" onClick={() => setSelectedPlant(null)}><X size={18} /></button>
+              </div>
             </div>
             <div className="modal-body">
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
