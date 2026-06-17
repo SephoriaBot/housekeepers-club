@@ -45,6 +45,8 @@ const SPECIES_EMOJI: Record<string, string> = {
   cat: '🐱', dog: '🐶', bird: '🐦', rabbit: '🐰', fish: '🐠', other: '🐾'
 }
 
+const EMPTY_PET_FORM = { name: '', species: 'cat', breed: '', age: '', weight: '', notes: '' }
+
 export default function Pets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
@@ -53,18 +55,13 @@ export default function Pets() {
   const [medications, setMedications] = useState<Medication[]>([])
   const [weights, setWeights] = useState<WeightEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddPet, setShowAddPet] = useState(false)
+  const [showPetModal, setShowPetModal] = useState(false)
+  const [editingPetId, setEditingPetId] = useState<string | null>(null)
 
-  // Add pet form
-  const [petForm, setPetForm] = useState({ name: '', species: 'cat', breed: '', age: '', weight: '', notes: '' })
+  const [petForm, setPetForm] = useState(EMPTY_PET_FORM)
 
-  // Add vaccination form
   const [vacForm, setVacForm] = useState({ name: '', date_given: '', next_due: '', notes: '' })
-
-  // Add medication form
   const [medForm, setMedForm] = useState({ name: '', dose: '', frequency: '', start_date: '', end_date: '', notes: '' })
-
-  // Add weight form
   const [weightForm, setWeightForm] = useState({ weight: '', unit: 'lbs', recorded_at: new Date().toISOString().split('T')[0] })
 
   useEffect(() => { fetchPets() }, [])
@@ -99,22 +96,53 @@ export default function Pets() {
     setWeights(data ?? [])
   }
 
-  async function addPet() {
+  function openAddPet() {
+    setEditingPetId(null)
+    setPetForm(EMPTY_PET_FORM)
+    setShowPetModal(true)
+  }
+
+  function openEditPet(pet: Pet) {
+    setEditingPetId(pet.id)
+    setPetForm({
+      name: pet.name,
+      species: pet.species ?? 'cat',
+      breed: pet.breed ?? '',
+      age: pet.age != null ? String(pet.age) : '',
+      weight: pet.weight != null ? String(pet.weight) : '',
+      notes: pet.notes ?? '',
+    })
+    setShowPetModal(true)
+  }
+
+  async function savePet() {
     if (!petForm.name.trim()) return
-    const { data } = await supabase.from('pets').insert({
+    const payload = {
       name: petForm.name.trim(),
       species: petForm.species,
       breed: petForm.breed.trim(),
       age: petForm.age ? parseFloat(petForm.age) : null,
       weight: petForm.weight ? parseFloat(petForm.weight) : null,
       notes: petForm.notes.trim(),
-    }).select().single()
-    if (data) {
-      setPets(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
-      setSelectedPet(data)
     }
-    setPetForm({ name: '', species: 'cat', breed: '', age: '', weight: '', notes: '' })
-    setShowAddPet(false)
+
+    if (editingPetId) {
+      const { data } = await supabase.from('pets').update(payload).eq('id', editingPetId).select().single()
+      if (data) {
+        setPets(prev => prev.map(p => p.id === editingPetId ? data : p).sort((a, b) => a.name.localeCompare(b.name)))
+        if (selectedPet?.id === editingPetId) setSelectedPet(data)
+      }
+    } else {
+      const { data } = await supabase.from('pets').insert(payload).select().single()
+      if (data) {
+        setPets(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+        setSelectedPet(data)
+      }
+    }
+
+    setPetForm(EMPTY_PET_FORM)
+    setEditingPetId(null)
+    setShowPetModal(false)
   }
 
   async function deletePet(id: string) {
@@ -198,16 +226,16 @@ export default function Pets() {
           <p className={styles.eyebrow}>Garden & Home</p>
           <h1 className={styles.title}>My Pets</h1>
         </div>
-        <button className="btn-primary" onClick={() => setShowAddPet(true)}>+ Add Pet</button>
+        <button className="btn-primary" onClick={openAddPet}>+ Add Pet</button>
       </div>
 
-      {/* Add pet modal */}
-      {showAddPet && (
-        <div className="modal-overlay" onClick={() => setShowAddPet(false)}>
+      {/* Add/Edit pet modal */}
+      {showPetModal && (
+        <div className="modal-overlay" onClick={() => setShowPetModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Add a Pet</h3>
-              <button className="close-btn" onClick={() => setShowAddPet(false)}>✕</button>
+              <h3>{editingPetId ? 'Edit Pet' : 'Add a Pet'}</h3>
+              <button className="close-btn" onClick={() => setShowPetModal(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
@@ -245,8 +273,8 @@ export default function Pets() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setShowAddPet(false)}>Cancel</button>
-              <button className="btn-primary" onClick={addPet}>Add Pet</button>
+              <button className="btn-ghost" onClick={() => setShowPetModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={savePet}>{editingPetId ? 'Save Changes' : 'Add Pet'}</button>
             </div>
           </div>
         </div>
@@ -275,7 +303,8 @@ export default function Pets() {
                   <div className={styles.petName}>{pet.name}</div>
                   <div className={styles.petMeta}>{pet.breed || pet.species}</div>
                 </div>
-                <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); deletePet(pet.id) }}>✕</button>
+                <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); openEditPet(pet) }} title="edit">✎</button>
+                <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); deletePet(pet.id) }} title="delete">✕</button>
               </div>
             ))}
           </div>
@@ -288,8 +317,11 @@ export default function Pets() {
               <div className={`card ${styles.petSummary}`}>
                 <div className={styles.summaryLeft}>
                   <span className={styles.summaryEmoji}>{SPECIES_EMOJI[selectedPet.species] ?? '🐾'}</span>
-                  <div>
-                    <h2 className={styles.summaryName}>{selectedPet.name}</h2>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                      <h2 className={styles.summaryName}>{selectedPet.name}</h2>
+                      <button className="btn-ghost btn-sm" onClick={() => openEditPet(selectedPet)}>✎ Edit</button>
+                    </div>
                     <p className={styles.summaryMeta}>
                       {[selectedPet.breed, selectedPet.age ? `${selectedPet.age} yrs` : null, selectedPet.weight ? `${selectedPet.weight} lbs` : null].filter(Boolean).join(' · ')}
                     </p>
