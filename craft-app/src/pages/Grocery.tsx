@@ -118,9 +118,16 @@ export default function Grocery() {
   }
 
 function searchOnInstacart(itemId: string, itemName: string) {
-  const url = `https://www.grubhub.com/third-party/grocery?partner=instacart`
+  const query = encodeURIComponent(itemName)
+  const url = `https://www.instacart.com/store/s?k=${query}`
+
   window.open(url, '_blank')
-  setPriceForm({ store: 'Instacart', price: '' })
+
+  setPriceForm({
+    store: 'Instacart',
+    price: '',
+  })
+
   setExpandedItem(itemId)
 }
 
@@ -160,6 +167,23 @@ function searchOnInstacart(itemId: string, itemName: string) {
     setPrices(prev => prev.filter(p => p.id !== id))
   }
 
+  function searchEntireListOnInstacart() {
+  const needItems = items.filter(i => !i.checked)
+
+  if (!needItems.length) return
+
+  const query = encodeURIComponent(
+    needItems
+      .map(i => `${i.qty ? i.qty + ' ' : ''}${i.name}`)
+      .join(' ')
+  )
+
+  window.open(
+    `https://www.instacart.com/store/s?k=${query}`,
+    '_blank'
+  )
+}
+
   const needs = items.filter(i => !i.checked)
   const have  = items.filter(i =>  i.checked)
 
@@ -188,6 +212,14 @@ function searchOnInstacart(itemId: string, itemName: string) {
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
+          <button
+  className="btn-primary"
+  onClick={searchEntireListOnInstacart}
+  disabled={!needs.length}
+>
+  <i className="ti ti-shopping-cart-search" aria-hidden="true" />
+  shop on instacart
+</button>
           <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
             <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
           </button>
