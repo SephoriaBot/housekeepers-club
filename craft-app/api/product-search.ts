@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 function normalizeQuery(name: string) {
   return name
     .toLowerCase()
-    .replace(/can i|get|have|buy|deliver(ed)?|add to cart|search|instacart/g, '')
+    .replace(/can i|get|have|buy|deliver(ed)?|add to cart|products|y|how does|same-day|how long|how much|work|pickup|search|instacart/g, '')
     .replace(/\?/g, '')
     .replace(/\s+/g, ' ')
     .trim()
