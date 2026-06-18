@@ -104,26 +104,14 @@ const [loadingCart, setLoadingCart] = useState(false)
 }
   
 async function buildSmartCart() {
-  setLoadingCart(true)
+  const results = await Promise.all(
+    needs.map(async (item) => {
+      const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
+      return await res.json()
+    })
+  )
 
-  try {
-    const items = await Promise.all(
-      needs.map(async (item) => {
-        const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
-        const data = await res.json()
-
-        return {
-          item: item.name,
-          results: data || []
-        }
-      })
-    )
-
-    setCart(items)
-  }
-  finally {
-    setLoadingCart(false)
-  }
+  console.log(results)
 }
 
   function refreshSmartCart() {
@@ -306,13 +294,6 @@ function searchOnInstacart(itemId: string, itemName: string) {
       <div className={styles.header}>
         <h1 className={styles.title}><i className="ti ti-shopping-cart" aria-hidden="true" /> grocery list</h1>
         <div style={{display:'flex',gap:8}}>
-
-          <button
-  className="btn-primary"
-  onClick={buildSmartCart}
->
-  build smart cart
-</button>
 
           <button onClick={buildSmartCart}>
   Build Smart Cart
