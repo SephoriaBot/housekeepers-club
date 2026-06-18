@@ -32,8 +32,6 @@ export default async function handler(req, res) {
     const n = name.toLowerCase()
 
     return (
-      n.length >= 2 &&
-      n.length <= 20 &&
       !n.includes('delivered') &&
       !n.includes('can i') &&
       !n.includes('?')
