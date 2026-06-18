@@ -10,14 +10,22 @@ export default async function handler(req, res) {
     const r = await fetch(url)
     const data = await r.json()
 
-    const results = (data.shopping_results || []).slice(0, 10).map((item: any) => ({
-      name: item.title,
-      price: item.extracted_price ?? null,
-      store: item.source ?? "unknown",
-      image: item.thumbnail ?? null
-    }))
+    const products = (data.shopping_results || [])
+  .filter((p: any) => typeof p.extracted_price === 'number')
+  .sort((a: any, b: any) => a.extracted_price - b.extracted_price)
 
-    return res.status(200).json(results)
+const cheapest = products[0]
+
+if (!cheapest) {
+  return res.status(200).json(null)
+}
+
+return res.status(200).json({
+  name: cheapest.title,
+  price: cheapest.extracted_price,
+  store: cheapest.source,
+  image: cheapest.thumbnail
+})
   } catch (e) {
     return res.status(200).json([])
   }
