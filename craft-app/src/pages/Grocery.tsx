@@ -117,11 +117,13 @@ export default function Grocery() {
     })
   }
 
-  function searchOnInstacart(itemId: string, itemName: string) {
-    const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(itemName)}`
-    window.open(url, '_blank')
-    setPriceForm({ store: 'Instacart', price: '' })
-    setExpandedItem(itemId)
+function searchOnInstacart(itemId: string, itemName: string) {
+  const url = `https://www.grubhub.com/third-party/grocery?partner=instacart`
+  window.open(url, '_blank')
+  setPriceForm({ store: 'Instacart', price: '' })
+  setExpandedItem(itemId)
+}
+
   }
 
   function pricesFor(itemName: string) {
