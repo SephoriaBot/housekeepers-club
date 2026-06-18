@@ -33,7 +33,8 @@ export default function Grocery() {
   const [listName, setListName] = useState('')
   const [showSaved, setShowSaved] = useState(false)
   const [saving, setSaving] = useState(false)
-
+const [cart, setCart] = useState([])
+const [loadingCart, setLoadingCart] = useState(false)
   const [prices, setPrices] = useState<PriceEntry[]>([])
   const [productMatches, setProductMatches] = useState<ProductMatch[]>([])
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
@@ -101,47 +102,62 @@ export default function Grocery() {
 
   return await res.json()
 }
-  async function buildSmartCart() {
-  const needItems = items.filter(i => !i.checked)
+  
+async function buildSmartCart() {
+  setLoadingCart(true)
 
-  for (const item of needItems) {
-    const query = item.qty ? `${item.qty} ${item.name}` : item.name
+  try {
+    const items = await Promise.all(
+      needs.map(async (item) => {
+        const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
+        const data = await res.json()
 
-    let product = []
-
-try {
-  const res = await fetch(`/api/product-search?q=${encodeURIComponent(query)}`)
-
-  const text = await res.text()
-  product = JSON.parse(text)
-} catch (e) {
-  console.log('API broken or not returning JSON')
-  return
-}
-
-    const best = product?.[0] || null
-
-    if (!best) continue
-
-    const { data } = await supabase
-      .from('grocery_product_matches')
-      .insert({
-        item_name: item.name,
-        product_name: best.name,
-        retailer: best.retailer || 'Instacart',
-        price: best.price || 0,
-        product_url: best.url || null,
-        image_url: best.image || null,
+        return {
+          item: item.name,
+          results: data || []
+        }
       })
-      .select()
-      .single()
+    )
 
-    if (data) {
-      setProductMatches(prev => [data, ...prev])
-    }
+    <button onClick={buildSmartCart}>
+  Build Smart Cart
+</button>
+
+<button onClick={refreshSmartCart}>
+  Refresh
+</button>
+
+<button onClick={clearSmartCart}>
+  Clear
+</button>
+
+    setCart(items)
+  } finally {
+    setLoadingCart(false)
   }
 }
 
+  function refreshSmartCart() {
+  setCart([])
+  buildSmartCart()
+}
+
+  function clearSmartCart() {
+  setCart([])
+}
+
+  {cart.map((c, i) => (
+  <div key={i}>
+    <strong>{c.item}</strong>
+
+    {c.results.map((r, j) => (
+      <div key={j}>
+        {r.name} — {r.store} — ${r.price}
+      </div>
+    ))}
+  </div>
+))}
+  
   async function addTestProductMatch() {
   const { data } = await supabase
     .from('grocery_product_matches')
