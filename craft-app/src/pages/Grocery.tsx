@@ -298,14 +298,7 @@ function searchOnInstacart(itemId: string, itemName: string) {
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
-          <button
-  className="btn-primary"
-  onClick={searchEntireListOnInstacart}
-  disabled={!needs.length}
->
-  <i className="ti ti-shopping-cart-search" aria-hidden="true" />
-  shop on instacart
-</button>
+          
           <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
             <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
           </button>
