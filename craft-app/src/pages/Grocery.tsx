@@ -261,15 +261,23 @@ function searchOnInstacart(itemId: string, itemName: string) {
   const have  = items.filter(i =>  i.checked)
 
   function storeTally() {
-    const tally = new Map<string, number>()
-    const itemNames = new Set(needs.map(i => i.name.toLowerCase()))
-    for (const name of itemNames) {
-      const cheapest = cheapestFor(name)
-      if (cheapest) {
-        tally.set(cheapest.store, (tally.get(cheapest.store) ?? 0) + 1)
-      }
+    const storeCounts = new Map<string, number>()
+
+    cart.forEach(c => {
+      const store = c.product?.store
+      if (!store) return
+
+    storeCounts.set(
+      store,
+      (storeCounts.get(store) ?? 0) + 1
+  )
+})
+
+const rankedStores = [...storeCounts.entries()]
+  .sort((a, b) => b[1] - a[1])
+
     }
-    return Array.from(tally.entries())
+    return Array.from(storeCounts.entries())
       .map(([store, count]) => ({ store, count }))
       .sort((a, b) => b.count - a.count)
   }
