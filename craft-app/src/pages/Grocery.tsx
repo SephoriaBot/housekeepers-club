@@ -79,7 +79,17 @@ const [loadingCart, setLoadingCart] = useState(false)
     .select('*')
     .order('created_at', { ascending: false })
 
-  setProductMatches(data ?? [])
+  setProductMatches(
+  results.flatMap(r =>
+    (r.results ?? []).map((p: any) => ({
+      id: crypto.randomUUID(),
+      item_name: r.item,
+      product_name: p.name,
+      retailer: p.store,
+      price: p.price ?? 0
+    }))
+  )
+)
 }
 
   async function addItem() {
@@ -98,26 +108,27 @@ const [loadingCart, setLoadingCart] = useState(false)
   const q = encodeURIComponent(itemName)
 
   const res = await fetch(`/api/product-search?q=${q}`)
-const data = await res.json()
-return { item: item.name, results: data }
+  if (!res.ok) return null
+
+  return await res.json()
 }
   
 async function buildSmartCart() {
   const needItems = items.filter(i => !i.checked)
 
   const results = await Promise.all(
-  needs.map(async (item) => {
-    const res = await fetch(`/api/product-search?q=${q}`)
-    const product = await res.json()
+    needItems.map(async (item) => {
+      const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
+      const data = await res.json()
 
-    return {
-      item: item.name,
-      product
-    }
-  })
-)
+      return {
+        item: item.name,
+        results: Array.isArray(data) ? data : []
+      }
+    })
+  )
 
-setCart(results.filter(r => r.product))
+  setCart(results)
 }
 
   function refreshSmartCart() {
@@ -513,17 +524,17 @@ function searchOnInstacart(itemId: string, itemName: string) {
   <div key={i}>
     <strong>{c.item}</strong>
 
-    {c.product && (
-      <div>
-        {c.product.name} — {c.product.store} — ${c.product.price}
+    {c.results.map((r: any, j: number) => (
+      <div key={j}>
+        {r.name} — {r.store} — ${r.price}
       </div>
-    )}
+    ))}
   </div>
 ))}
   </div>
 
   <div className={styles.list}>
-    {cart.length === 0 ? (
+    {productMatches.length === 0 ? (
       <p
         style={{
           textAlign: 'center',
@@ -535,7 +546,7 @@ function searchOnInstacart(itemId: string, itemName: string) {
         no smart cart items yet
       </p>
     ) : (
-      cart.map(match => (
+      productMatches.map(match => (
         <div key={match.id} className={styles.item}>
           <div style={{ flex: 1 }}>
             <strong>{match.product_name}</strong>
