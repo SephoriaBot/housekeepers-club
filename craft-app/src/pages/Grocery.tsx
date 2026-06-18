@@ -523,7 +523,7 @@ function searchOnInstacart(itemId: string, itemName: string) {
   </div>
 
   <div className={styles.list}>
-    {productMatches.length === 0 ? (
+    {cart.length === 0 ? (
       <p
         style={{
           textAlign: 'center',
@@ -535,7 +535,7 @@ function searchOnInstacart(itemId: string, itemName: string) {
         no smart cart items yet
       </p>
     ) : (
-      productMatches.map(match => (
+      cart.map(match => (
         <div key={match.id} className={styles.item}>
           <div style={{ flex: 1 }}>
             <strong>{match.product_name}</strong>
