@@ -490,12 +490,12 @@ function searchOnInstacart(itemId: string, itemName: string) {
       {productMatches.length} items
     </span>
 
-      {rankedStores.length > 0 && (
+      {tally.length > 0 && (
   <div style={{ marginTop: 8, fontSize: 14 }}>
-    Best overall store: <strong>{rankedStores[0][0]}</strong>
-    ({rankedStores[0][1]} items)
+    Best overall store: <strong>{tally[0].store}</strong> ({tally[0].count} items)
   </div>
 )}
+
 
   </div>
 
