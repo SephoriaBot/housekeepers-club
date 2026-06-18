@@ -450,6 +450,61 @@ function searchOnInstacart(itemId: string, itemName: string) {
           </div>
         </div>
       )}
+
+      <div className="card">
+  <div className={styles.colHeader}>
+    <span>
+      <i className="ti ti-shopping-cart" aria-hidden="true" /> smart cart
+    </span>
+    <span className={styles.count}>
+      {productMatches.length} items
+    </span>
+  </div>
+
+  <div className={styles.list}>
+    {productMatches.length === 0 ? (
+      <p
+        style={{
+          textAlign: 'center',
+          fontSize: 12,
+          color: 'var(--ink-muted)',
+          padding: '1rem'
+        }}
+      >
+        no smart cart items yet
+      </p>
+    ) : (
+      productMatches.map(match => (
+        <div key={match.id} className={styles.item}>
+          <div style={{ flex: 1 }}>
+            <strong>{match.product_name}</strong>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--ink-muted)'
+              }}
+            >
+              {match.item_name}
+            </div>
+          </div>
+
+          <span className={styles.priceBadge}>
+            ${Number(match.price ?? 0).toFixed(2)}
+          </span>
+
+          <span
+            style={{
+              fontSize: 12,
+              color: 'var(--ink-muted)'
+            }}
+          >
+            {match.retailer}
+          </span>
+        </div>
+      ))
+    )}
+  </div>
+</div>
     </div>
   )
 }
