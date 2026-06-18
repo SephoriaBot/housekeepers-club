@@ -29,18 +29,28 @@ export default async function handler(req, res) {
 
     const cleaned = [...new Set(names)]
   .filter(name => {
-    const n = name.toLowerCase()
+  const n = normalizeQuery(name)
 
-    return (
-      n.length >= 4 &&
-n.length <=20
-    )
-  })
-  .map(name => ({ name }))
+  return (
+    n.length >= 2 &&
+    n.length <= 40 &&
+    /^[a-z0-9\s\-&()]+$/.test(n)
+  )
+})
+  .map(name => ({ name: normalizeQuery(name) }))
   .slice(0, 10)
 
     return res.status(200).json(cleaned)
   } catch (e) {
     return res.status(200).json([])
   }
+}
+
+function normalizeQuery(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/can i|get|have|buy|deliver(ed)?|add to cart|search|instacart/g, '')
+    .replace(/\?/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
