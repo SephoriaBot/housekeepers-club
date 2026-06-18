@@ -140,24 +140,6 @@ async function buildSmartCart() {
   setCart([])
 }
 
-  
-  async function addTestProductMatch() {
-  const { data } = await supabase
-    .from('grocery_product_matches')
-    .insert({
-      item_name: 'milk',
-      product_name: 'Test Milk',
-      retailer: 'Instacart',
-      price: 3.99,
-    })
-    .select()
-    .single()
-
-  if (data) {
-    setProductMatches(prev => [data, ...prev])
-  }
-}
-
   async function toggle(id: string, checked: boolean) {
     await supabase.from('grocery_items').update({ checked: !checked }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, checked: !checked } : i))
@@ -313,12 +295,6 @@ function searchOnInstacart(itemId: string, itemName: string) {
   Clear
 </button>
           
-          <button
-  className="btn-ghost"
-  onClick={addTestProductMatch}
->
-  test smart cart
-</button>
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
@@ -520,7 +496,11 @@ function searchOnInstacart(itemId: string, itemName: string) {
     <span className={styles.count}>
       {productMatches.length} items
     </span>
-{cart.length > 0 && cart.map((c, i) => (
+  </div>
+
+  <div className={styles.list}>
+
+    {cart.length > 0 && cart.map((c, i) => (
   <div key={i}>
     <strong>{c.item}</strong>
 
@@ -531,9 +511,6 @@ function searchOnInstacart(itemId: string, itemName: string) {
     ))}
   </div>
 ))}
-  </div>
-
-  <div className={styles.list}>
     {productMatches.length === 0 ? (
       <p
         style={{
