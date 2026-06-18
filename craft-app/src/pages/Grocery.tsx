@@ -124,8 +124,6 @@ function searchOnInstacart(itemId: string, itemName: string) {
   setExpandedItem(itemId)
 }
 
-  }
-
   function pricesFor(itemName: string) {
     return prices
       .filter(p => p.item_name.toLowerCase() === itemName.toLowerCase())
