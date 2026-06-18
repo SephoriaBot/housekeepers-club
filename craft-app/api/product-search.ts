@@ -33,3 +33,62 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'failed' })
   }
 }
+
+function extractItemIds(html) {
+  const matches = []
+
+  const regex = /items_\d+-\d+/g
+  let m
+
+  while ((m = regex.exec(html))) {
+    matches.push(m[0])
+  }
+
+  return [...new Set(matches)]
+}
+
+async function fetchItems(ids) {
+  const url = `https://www.instacart.com/graphql?operationName=Items`
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      variables: {
+        ids
+      }
+    })
+  })
+
+  const json = await res.json()
+
+  return json?.data?.items || []
+}
+
+function rank(items, q) {
+  const words = q.toLowerCase().split(' ').filter(Boolean)
+
+  return items
+    .map(i => ({
+      name: i.name,
+      price: i.price,
+      image: i.image,
+      score: score(i.name.toLowerCase(), q, words)
+    }))
+    .sort((a, b) => b.score - a.score)
+}
+
+function score(name, q, words) {
+  let s = 0
+
+  if (name === q) s += 200
+  if (name.includes(q)) s += 100
+
+  for (const w of words) {
+    if (name.includes(w)) s += 20
+  }
+
+  return s
+}
