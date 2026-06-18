@@ -3,56 +3,36 @@ export const config = {
 }
 
 export default async function handler(req, res) {
-  const q = (req.query.q || '').toString().toLowerCase()
+  const q = (req.query.q || '').toString().trim()
+
+  if (!q) {
+    return res.status(400).json([])
+  }
 
   try {
     const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(q)}`
 
-    const html = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    }).then(r => r.text())
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'text/html'
+      }
+    })
 
-    const products = extractCandidates(html)
-      .filter(isRealProduct)
+    const html = await response.text()
+
+    // safer extraction (not regex-only spam)
+    const names = [...html.matchAll(/"name":"([^"]+)"/g)]
+      .map(m => m[1])
+      .filter(Boolean)
+      .slice(0, 20)
+
+    const cleaned = [...new Set(names)]
+      .map(name => ({ name }))
       .slice(0, 10)
 
-    const ranked = rank(products, q)
-
-    res.status(200).json(ranked)
+    return res.status(200).json(cleaned)
   } catch (e) {
-    res.status(200).json([])
+    return res.status(200).json([])
   }
-}
-
-function extractCandidates(html) {
-  const matches = []
-  const regex = /"name"\s*:\s*"(.*?)"/g
-
-  let m
-  while ((m = regex.exec(html))) {
-    if (m[1]) matches.push(m[1])
-  }
-
-  return [...new Set(matches)]
-}
-
-function isRealProduct(name) {
-  const n = name.toLowerCase()
-
-  if (n.length < 3 || n.length > 80) return false
-  if (n.includes('instacart')) return false
-  if (n.includes('add to cart')) return false
-  if (n.includes('delivery')) return false
-  if (n.includes('can i get')) return false
-
-  return true
-}
-
-function rank(products, q) {
-  return products
-    .map(name => ({
-      item: name,
-      score: name.toLowerCase().includes(q) ? 2 : 0
-    }))
-    .sort((a, b) => b.score - a.score)
 }
