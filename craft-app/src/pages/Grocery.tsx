@@ -33,7 +33,7 @@ export default function Grocery() {
   const [listName, setListName] = useState('')
   const [showSaved, setShowSaved] = useState(false)
   const [saving, setSaving] = useState(false)
-const [cart, setCart] = useState([])
+const [cart, setCart] = useState<any[]>([])
 const [loadingCart, setLoadingCart] = useState(false)
   const [prices, setPrices] = useState<PriceEntry[]>([])
   const [productMatches, setProductMatches] = useState<ProductMatch[]>([])
