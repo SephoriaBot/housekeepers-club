@@ -126,18 +126,6 @@ async function buildSmartCart() {
   }
 }
 
-  <button onClick={buildSmartCart}>
-  Build Smart Cart
-</button>
-
-<button onClick={refreshSmartCart}>
-  Refresh
-</button>
-
-<button onClick={clearSmartCart}>
-  Clear
-</button>
-
   function refreshSmartCart() {
   setCart([])
   buildSmartCart()
@@ -324,6 +312,18 @@ function searchOnInstacart(itemId: string, itemName: string) {
   onClick={buildSmartCart}
 >
   build smart cart
+</button>
+
+          <button onClick={buildSmartCart}>
+  Build Smart Cart
+</button>
+
+  <button onClick={refreshSmartCart}>
+  Refresh
+</button>
+
+  <button onClick={clearSmartCart}>
+  Clear
 </button>
           
           <button
