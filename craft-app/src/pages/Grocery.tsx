@@ -104,14 +104,21 @@ const [loadingCart, setLoadingCart] = useState(false)
 }
   
 async function buildSmartCart() {
+  const needItems = items.filter(i => !i.checked)
+
   const results = await Promise.all(
-    needs.map(async (item) => {
+    needItems.map(async (item) => {
       const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
-      return await res.json()
+      const data = await res.json()
+
+      return {
+        item: item.name,
+        results: Array.isArray(data) ? data : []
+      }
     })
   )
 
-  console.log(results)
+  setCart(results)
 }
 
   function refreshSmartCart() {
@@ -123,17 +130,6 @@ async function buildSmartCart() {
   setCart([])
 }
 
-  {cart.map((c, i) => (
-  <div key={i}>
-    <strong>{c.item}</strong>
-
-    {c.results.map((r, j) => (
-      <div key={j}>
-        {r.name} — {r.store} — ${r.price}
-      </div>
-    ))}
-  </div>
-))}
   
   async function addTestProductMatch() {
   const { data } = await supabase
@@ -514,6 +510,17 @@ function searchOnInstacart(itemId: string, itemName: string) {
     <span className={styles.count}>
       {productMatches.length} items
     </span>
+{cart.length > 0 && cart.map((c, i) => (
+  <div key={i}>
+    <strong>{c.item}</strong>
+
+    {c.results.map((r: any, j: number) => (
+      <div key={j}>
+        {r.name} — {r.store} — ${r.price}
+      </div>
+    ))}
+  </div>
+))}
   </div>
 
   <div className={styles.list}>
