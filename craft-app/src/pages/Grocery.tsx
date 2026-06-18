@@ -13,6 +13,17 @@ interface PriceEntry {
   updated_at: string
 }
 
+interface ProductMatch {
+  id: string
+  item_name: string
+  product_name: string
+  product_url: string
+  retailer: string
+  price: number
+  external_id: string
+  image_url: string
+}
+
 export default function Grocery() {
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
@@ -24,10 +35,16 @@ export default function Grocery() {
   const [saving, setSaving] = useState(false)
 
   const [prices, setPrices] = useState<PriceEntry[]>([])
+  const [productMatches, setProductMatches] = useState<ProductMatch[]>([])
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const [priceForm, setPriceForm] = useState<{ store: string; price: string }>({ store: '', price: '' })
 
-  useEffect(() => { fetchItems(); fetchSavedLists(); fetchPrices() }, [])
+  useEffect(() => {
+  fetchItems()
+  fetchSavedLists()
+  fetchPrices()
+  fetchProductMatches()
+}, [])
 
   async function fetchItems() {
     setLoading(true)
@@ -55,6 +72,15 @@ export default function Grocery() {
     setPrices(data ?? [])
   }
 
+  async function fetchProductMatches() {
+  const { data } = await supabase
+    .from('grocery_product_matches')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  setProductMatches(data ?? [])
+}
+
   async function addItem() {
     const name = newItem.trim()
     if (!name) return
@@ -66,6 +92,23 @@ export default function Grocery() {
     setNewItem('')
     setNewQty('')
   }
+
+  async function addTestProductMatch() {
+  const { data } = await supabase
+    .from('grocery_product_matches')
+    .insert({
+      item_name: 'milk',
+      product_name: 'Test Milk',
+      retailer: 'Instacart',
+      price: 3.99,
+    })
+    .select()
+    .single()
+
+  if (data) {
+    setProductMatches(prev => [data, ...prev])
+  }
+}
 
   async function toggle(id: string, checked: boolean) {
     await supabase.from('grocery_items').update({ checked: !checked }).eq('id', id)
@@ -209,6 +252,12 @@ function searchOnInstacart(itemId: string, itemName: string) {
       <div className={styles.header}>
         <h1 className={styles.title}><i className="ti ti-shopping-cart" aria-hidden="true" /> grocery list</h1>
         <div style={{display:'flex',gap:8}}>
+          <button
+  className="btn-ghost"
+  onClick={addTestProductMatch}
+>
+  test smart cart
+</button>
           <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
