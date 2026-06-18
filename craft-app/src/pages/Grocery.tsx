@@ -116,18 +116,18 @@ async function buildSmartCart() {
   const needItems = items.filter(i => !i.checked)
 
   const results = await Promise.all(
-    needItems.map(async (item) => {
-      const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
-      const data = await res.json()
+  needs.map(async (item) => {
+    const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
+    const product = await res.json()
 
-      return {
-        item: item.name,
-        results: Array.isArray(data) ? data : []
-      }
-    })
-  )
+    return {
+      item: item.name,
+      product
+    }
+  })
+)
 
-  setCart(results)
+setCart(results.filter(r => r.product))
 }
 
   function refreshSmartCart() {
