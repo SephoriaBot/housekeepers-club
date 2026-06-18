@@ -79,17 +79,7 @@ const [loadingCart, setLoadingCart] = useState(false)
     .select('*')
     .order('created_at', { ascending: false })
 
-  setProductMatches(
-  results.flatMap(r =>
-    (r.results ?? []).map((p: any) => ({
-      id: crypto.randomUUID(),
-      item_name: r.item,
-      product_name: p.name,
-      retailer: p.store,
-      price: p.price ?? 0
-    }))
-  )
-)
+  setProductMatches(data ?? [])
 }
 
   async function addItem() {
