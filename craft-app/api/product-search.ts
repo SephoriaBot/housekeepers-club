@@ -1,42 +1,44 @@
 export default async function handler(req, res) {
   const q = req.query.q
 
-  if (!q) {
-    return res.status(400).json({ error: 'missing query' })
-  }
+  if (!q) return res.status(400).json({ error: 'missing query' })
 
   const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(q)}`
 
   try {
-    const response = await fetch(url, {
+    const html = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0'
       }
-    })
+    }).then(r => r.text())
 
-    const html = await response.text()
-
-    // very simple extraction (no API needed)
     const products = extractProducts(html)
-
     const ranked = rankProducts(products, q)
 
-    return res.status(200).json(ranked.slice(0, 5))
+    return res.status(200).json(ranked.slice(0, 8))
   } catch (e) {
-    return res.status(500).json({ error: 'search failed' })
+    return res.status(500).json({ error: 'failed search' })
   }
 }
 
 function extractProducts(html) {
   const results = []
 
-  const regex = /"name":"(.*?)".*?"price":(\d+\.?\d*)/g
-  let match
+  // safer: pull product names even if price missing
+  const nameRegex = /"name":"(.*?)"/g
 
-  while ((match = regex.exec(html)) !== null) {
+  let match
+  const seen = new Set()
+
+  while ((match = nameRegex.exec(html)) !== null) {
+    const name = decode(match[1])
+
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+
     results.push({
-      name: decode(match[1]),
-      price: parseFloat(match[2] || '0'),
+      name,
+      price: null,
       retailer: 'Instacart'
     })
   }
@@ -46,50 +48,31 @@ function extractProducts(html) {
 
 function rankProducts(products, query) {
   const q = query.toLowerCase()
-  const qWords = q.split(' ').filter(Boolean)
+  const words = q.split(' ').filter(Boolean)
 
   return products
     .map(p => ({
       ...p,
-      score: scoreProduct(p, q, qWords)
+      score: score(p.name.toLowerCase(), q, words)
     }))
     .sort((a, b) => b.score - a.score)
 }
 
-function scoreProduct(p, query, qWords) {
-  const name = (p.name || '').toLowerCase()
+function score(name, query, words) {
   let score = 0
 
-  // 1. Exact match boost (huge)
   if (name === query) score += 200
-
-  // 2. Contains full query
   if (name.includes(query)) score += 100
 
-  // 3. Word overlap scoring
-  for (const w of qWords) {
-    if (name.includes(w)) score += 15
+  for (const w of words) {
+    if (name.includes(w)) score += 20
   }
 
-  // 4. Penalize bad matches
-  const badWords = ['unscented wipes', 'diaper', 'pet', 'formula']
-  if (badWords.some(b => name.includes(b) && !query.includes(b))) {
-    score -= 50
-  }
-
-  // 5. Size preference boost
-  score += sizeScore(name, query)
-
-  // 6. Brand quality boost (simple heuristic)
-  score += brandScore(name)
-
-  // 7. Price sanity filter
-  if (p.price <= 0) score -= 100
-  if (p.price > 50 && query.includes('milk')) score -= 10
+  // punish junk matches
+  if (name.length < 3) score -= 100
 
   return score
 }
-
 function sizeScore(name, query) {
   const sizes = ['oz', 'lb', 'gallon', 'ct', 'pack']
 
