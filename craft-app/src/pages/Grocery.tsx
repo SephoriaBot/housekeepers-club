@@ -107,7 +107,17 @@ export default function Grocery() {
   for (const item of needItems) {
     const query = item.qty ? `${item.qty} ${item.name}` : item.name
 
-    const product = await searchProduct(query)
+    let product = []
+
+try {
+  const res = await fetch(`/api/product-search?q=${encodeURIComponent(query)}`)
+
+  const text = await res.text()
+  product = JSON.parse(text)
+} catch (e) {
+  console.log('API broken or not returning JSON')
+  return
+}
 
     const best = product?.[0] || null
 
