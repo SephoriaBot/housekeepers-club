@@ -1,49 +1,128 @@
-const productDB = [
-  { name: 'milk whole gallon', brand: 'generic', score: 0 },
-  { name: 'fairlife milk 52oz', brand: 'fairlife', score: 0 },
-  { name: 'organic valley milk', brand: 'organic valley', score: 0 },
-  { name: 'eggs large dozen', brand: 'generic', score: 0 },
-  { name: 'kirkland eggs 18ct', brand: 'kirkland', score: 0 },
-  { name: 'wonder bread white', brand: 'wonder', score: 0 },
-  { name: 'kirkland bread whole wheat', brand: 'kirkland', score: 0 },
-]
-
-export default function handler(req, res) {
-  const q = (req.query.q || '').toLowerCase().trim()
+export default async function handler(req, res) {
+  const q = req.query.q
 
   if (!q) return res.status(400).json({ error: 'missing query' })
 
-  const words = q.split(' ').filter(Boolean)
+  const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(q)}`
 
-  const ranked = productDB
-    .map(p => ({
-      ...p,
-      score: scoreProduct(p.name, q, words)
-    }))
-    .sort((a, b) => b.score - a.score)
+  try {
+    const html = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    }).then(r => r.text())
 
-  return res.status(200).json(ranked.slice(0, 5))
+    const products = extractProducts(html)
+    const ranked = rankProducts(products, q)
+
+    return res.status(200).json(ranked.slice(0, 8))
+  } catch (e) {
+    return res.status(500).json({ error: 'failed search' })
+  }
 }
 
-function scoreProduct(name, query, words) {
-  let score = 0
-  const n = name.toLowerCase()
+function extractProducts(html) {
+  const results = []
 
-  if (n === query) score += 200
-  if (n.includes(query)) score += 120
+  // safer: pull product names even if price missing
+  const nameRegex = /"name":"(.*?)"/g
 
-  for (const w of words) {
-    if (n.includes(w)) score += 25
+  let match
+  const seen = new Set()
+
+  while ((match = nameRegex.exec(html)) !== null) {
+    const name = decode(match[1])
+
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+
+    results.push({
+      name,
+      price: null,
+      retailer: 'Instacart'
+    })
   }
 
-  // milk logic
-  if (query.includes('milk') && n.includes('milk')) score += 30
+  return results
+}
 
-  // eggs logic
-  if (query.includes('egg') && n.includes('egg')) score += 30
+function rankProducts(products, query) {
+  const q = query.toLowerCase()
+  const words = q.split(' ').filter(Boolean)
 
-  // penalty for weak matches
-  if (n.length < 3) score -= 100
+  return products
+    .map(p => ({
+      ...p,
+      score: score(p.name.toLowerCase(), q, words)
+    }))
+    .sort((a, b) => b.score - a.score)
+}
+
+function score(name, query, words) {
+  let score = 0
+
+  if (name === query) score += 200
+  if (name.includes(query)) score += 100
+
+  for (const w of words) {
+    if (name.includes(w)) score += 20
+  }
+
+  // punish junk matches
+  if (name.length < 3) score -= 100
 
   return score
+}
+function sizeScore(name, query) {
+  const sizes = ['oz', 'lb', 'gallon', 'ct', 'pack']
+
+  let score = 0
+
+  for (const s of sizes) {
+    if (name.includes(s)) score += 5
+  }
+
+  // prefer gallon milk if milk is requested
+  if (query.includes('milk') && name.includes('gallon')) {
+    score += 30
+  }
+
+  return score
+}
+
+function brandScore(name) {
+  const preferred = [
+    'fairlife',
+    'organic valley',
+    'land o lakes',
+    'kirkland',
+    'great value',
+    'heinz'
+  ]
+
+  for (const b of preferred) {
+    if (name.includes(b)) return 10
+  }
+
+  return 0
+}
+
+function scoreMatch(name, query) {
+  const n = name.toLowerCase()
+
+  let score = 0
+
+  if (n === query) score += 100
+  if (n.includes(query)) score += 50
+
+  const words = query.split(' ')
+  for (const w of words) {
+    if (n.includes(w)) score += 10
+  }
+
+  return score
+}
+
+function decode(str) {
+  return str.replace(/\\u0026/g, '&')
 }
