@@ -112,24 +112,7 @@ const [loadingCart, setLoadingCart] = useState(false)
 
   return await res.json()
 }
-  
-async function buildSmartCart() {
-  const needItems = items.filter(i => !i.checked)
 
-  const results = await Promise.all(
-    needItems.map(async (item) => {
-      const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}`)
-      const data = await res.json()
-
-      return {
-        item: item.name,
-        results: Array.isArray(data) ? data : []
-      }
-    })
-  )
-
-  setCart(results)
-}
 
   function refreshSmartCart() {
   setCart([])
@@ -239,6 +222,62 @@ function searchOnInstacart(itemId: string, itemName: string) {
     await supabase.from('grocery_prices').delete().eq('id', id)
     setPrices(prev => prev.filter(p => p.id !== id))
   }
+
+const [zip, setZip] = useState(() => localStorage.getItem('grocery_zip') || '')
+
+function saveZip(val: string) {
+  setZip(val)
+  localStorage.setItem('grocery_zip', val)
+}
+
+async function buildSmartCart() {
+  const needItems = items.filter(i => !i.checked)
+  setLoadingCart(true)
+
+  const results = await Promise.all(
+    needItems.map(async (item) => {
+      const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}&zip=${encodeURIComponent(zip)}`)
+      const data = await res.json()
+      return {
+        item: item.name,
+        results: Array.isArray(data) ? data : []
+      }
+    })
+  )
+
+  setCart(results)
+  setLoadingCart(false)
+}
+
+function storeTally() {
+  const storeCounts = new Map<string, number>()
+  const storeTotals = new Map<string, number>()
+
+  cart.forEach(c => {
+    // cheapest result per item per store
+    const byStore = new Map<string, number>()
+    c.results?.forEach((r: any) => {
+      if (!r.store || r.price == null) return
+      if (!byStore.has(r.store) || r.price < byStore.get(r.store)!) {
+        byStore.set(r.store, r.price)
+      }
+    })
+
+    byStore.forEach((price, store) => {
+      storeCounts.set(store, (storeCounts.get(store) ?? 0) + 1)
+      storeTotals.set(store, (storeTotals.get(store) ?? 0) + price)
+    })
+  })
+
+  return Array.from(storeCounts.entries())
+    .map(([store, count]) => ({
+      store,
+      count,
+      total: storeTotals.get(store) ?? 0
+    }))
+    .sort((a, b) => b.count - a.count || a.total - b.total)
+}
+
 
   function searchEntireListOnInstacart() {
   const needItems = items.filter(i => !i.checked)
@@ -483,20 +522,89 @@ function searchOnInstacart(itemId: string, itemName: string) {
         </div>
       )}
 
-      <div className="card">
-  <div className={styles.colHeader}>
-    <span>
-      <i className="ti ti-shopping-cart" aria-hidden="true" /> smart cart
-    </span>
-    <span className={styles.count}>
-      {productMatches.length} items
-    </span>
+      {/* zip code input */}
+<div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+  <i className="ti ti-map-pin" aria-hidden="true" />
+  <input
+    type="text"
+    placeholder="zip code for local prices..."
+    value={zip}
+    onChange={e => saveZip(e.target.value)}
+    style={{ width: 160 }}
+    maxLength={5}
+  />
+</div>
 
-      {tally.length > 0 && (
-  <div style={{ marginTop: 8, fontSize: 14 }}>
-    Best overall store: <strong>{tally[0].store}</strong> ({tally[0].count} items)
+{/* store leaderboard */}
+{tally.length > 0 && (
+  <div className={`card ${styles.savedPanel}`}>
+    <div className={styles.savedPanelTitle}>best store for your list</div>
+    {tally.map((t, i) => (
+      <div key={t.store} className={styles.tallyRow}>
+        <span className={styles.tallyRank}>{i + 1}</span>
+        <span className={styles.tallyStore}>{t.store}</span>
+        <div className={styles.tallyBarTrack}>
+          <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+        </div>
+        <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
+        <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
+      </div>
+    ))}
   </div>
 )}
+
+{/* smart cart grouped by store */}
+<div className="card">
+  <div className={styles.colHeader}>
+    <span><i className="ti ti-shopping-cart" aria-hidden="true" /> smart cart</span>
+    <span className={styles.count}>{cart.length} items</span>
+  </div>
+
+  {loadingCart && <p style={{ fontSize: 13, color: 'var(--ink-muted)', padding: '1rem' }}>finding prices...</p>}
+
+  {!loadingCart && cart.length === 0 && (
+    <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-muted)', padding: '1rem' }}>
+      build a smart cart to see local prices
+    </p>
+  )}
+
+  {!loadingCart && cart.length > 0 && (() => {
+    // group cheapest option per item, highlight big savings
+    return cart.map((c, i) => {
+      const sorted = [...(c.results ?? [])].sort((a, b) => Number(a.price ?? 9999) - Number(b.price ?? 9999))
+      const cheapest = sorted[0]
+      const priciest = sorted[sorted.length - 1]
+      const bigDiff = cheapest && priciest && (priciest.price - cheapest.price) >= 1
+
+      return (
+        <div key={i} className={styles.itemWrap}>
+          <div className={styles.item}>
+            <span className={styles.itemName}>{c.item}</span>
+            {cheapest && (
+              <>
+                <span className={styles.priceBadge}>${Number(cheapest.price).toFixed(2)}</span>
+                <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>{cheapest.store}</span>
+                {bigDiff && (
+                  <span style={{ fontSize: 11, color: 'var(--accent-warm)', fontWeight: 600 }}>
+                    save ${(priciest.price - cheapest.price).toFixed(2)} vs {priciest.store}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          {sorted.length > 1 && (
+            <div style={{ paddingLeft: 16, fontSize: 12, color: 'var(--ink-muted)' }}>
+              {sorted.slice(1).map((r, j) => (
+                <span key={j} style={{ marginRight: 12 }}>{r.store} ${Number(r.price).toFixed(2)}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    })
+  })()}
+</div>
+
 
 
   </div>
