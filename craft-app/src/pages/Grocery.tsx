@@ -74,9 +74,9 @@ export default function Grocery() {
   }
 
   async function buildSmartCart() {
-    setCart([])
     const needItems = items.filter(i => !i.checked)
     setLoadingCart(true)
+    setCart([])
     const results = await Promise.all(
       needItems.map(async (item) => {
         const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}&zip=${encodeURIComponent(location)}`)
@@ -92,7 +92,6 @@ export default function Grocery() {
   }
 
   function refreshSmartCart() {
-    setCart([])
     buildSmartCart()
   }
 
@@ -197,11 +196,11 @@ export default function Grocery() {
     setPrices(prev => prev.filter(p => p.id !== id))
   }
 
-  function storeTally() {
+  function computeTally(cartData: any[]) {
     const storeCounts = new Map<string, number>()
     const storeTotals = new Map<string, number>()
 
-    cart.forEach(c => {
+    cartData.forEach(c => {
       const byStore = new Map<string, number>()
       c.results?.forEach((r: any) => {
         if (!r.store || r.price == null) return
@@ -226,8 +225,6 @@ export default function Grocery() {
 
   const needs = items.filter(i => !i.checked)
   const have  = items.filter(i =>  i.checked)
-  const tally = storeTally()
-  const totalTracked = tally.reduce((sum, t) => sum + t.count, 0)
 
   return (
     <div className={styles.page}>
@@ -299,23 +296,28 @@ export default function Grocery() {
         </div>
       )}
 
-      {/* store leaderboard */}
-      {tally.length > 0 && (
-        <div className={`card ${styles.savedPanel}`}>
-          <div className={styles.savedPanelTitle}>best store for your list</div>
-          {tally.map((t, i) => (
-            <div key={t.store} className={styles.tallyRow}>
-              <span className={styles.tallyRank}>{i + 1}</span>
-              <span className={styles.tallyStore}>{t.store}</span>
-              <div className={styles.tallyBarTrack}>
-                <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+      {/* store leaderboard — computed inline from current cart */}
+      {(() => {
+        const tally = computeTally(cart)
+        const totalTracked = tally.reduce((sum, t) => sum + t.count, 0)
+        if (tally.length === 0) return null
+        return (
+          <div className={`card ${styles.savedPanel}`}>
+            <div className={styles.savedPanelTitle}>best store for your list</div>
+            {tally.map((t, i) => (
+              <div key={t.store} className={styles.tallyRow}>
+                <span className={styles.tallyRank}>{i + 1}</span>
+                <span className={styles.tallyStore}>{t.store}</span>
+                <div className={styles.tallyBarTrack}>
+                  <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+                </div>
+                <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
+                <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
               </div>
-              <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
-              <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )
+      })()}
 
       {loading ? (
         <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
