@@ -74,6 +74,7 @@ export default function Grocery() {
   }
 
   async function buildSmartCart() {
+    setCart([])
     const needItems = items.filter(i => !i.checked)
     setLoadingCart(true)
     const results = await Promise.all(
