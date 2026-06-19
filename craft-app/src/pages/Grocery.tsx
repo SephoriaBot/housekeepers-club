@@ -315,5 +315,3 @@ export default function Grocery() {
           ))}
         </div>
       )}
-
-      {loading ?
