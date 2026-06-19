@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Droplets, Check, Pencil } from 'lucide-react';
+import { Plus, X, Droplets, Check, Pencil, Search, Leaf } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Plant, PlantLog, PlantType, LogAction } from '../types';
 import { useToast } from '../hooks/useToast';
@@ -18,6 +18,29 @@ const WATER_STATUS = (plant: Plant): { label: string; className: string } => {
   return { label: 'Watered ✓', className: 'water-ok' };
 };
 
+interface PlantGuide {
+  id: number
+  name: string
+  scientific_name: string | null
+  image: string | null
+  type: string | null
+  cycle: string | null
+  watering: string | null
+  sunlight: string[]
+  maintenance: string | null
+  growth_rate: string | null
+  indoor: boolean | null
+  poisonous_to_pets: number | null
+  poisonous_to_humans: number | null
+  description: string | null
+  propagation: string[]
+  hardiness: any
+  flowers: boolean | null
+  flowering_season: string | null
+  soil: string[]
+  care_guide: { type: string; description: string }[]
+}
+
 export default function PlantsPage() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +49,14 @@ export default function PlantsPage() {
   const [logs, setLogs] = useState<PlantLog[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { showToast } = useToast();
-
   const [form, setForm] = useState(EMPTY_FORM);
+
+  // Plant guide search
+  const [guideQuery, setGuideQuery] = useState('')
+  const [guideResult, setGuideResult] = useState<PlantGuide | null>(null)
+  const [guideLoading, setGuideLoading] = useState(false)
+  const [guideError, setGuideError] = useState('')
+  const [showGuide, setShowGuide] = useState(false)
 
   useEffect(() => { loadPlants(); }, []);
 
@@ -111,6 +140,48 @@ export default function PlantsPage() {
     loadPlants();
   }
 
+  async function searchPlantGuide() {
+    if (!guideQuery.trim()) return
+    setGuideLoading(true)
+    setGuideError('')
+    setGuideResult(null)
+    try {
+      const res = await fetch(`/api/plant-search?q=${encodeURIComponent(guideQuery.trim())}`)
+      const data = await res.json()
+      if (!data) {
+        setGuideError('No results found. Try a different name.')
+      } else {
+        setGuideResult(data)
+      }
+    } catch {
+      setGuideError('Something went wrong. Try again.')
+    }
+    setGuideLoading(false)
+  }
+
+  function ToxicityBadge({ pets, humans }: { pets: number | null; humans: number | null }) {
+    const petSafe = pets === 0 || pets === null
+    const humanSafe = humans === 0 || humans === null
+    return (
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+          background: petSafe ? 'var(--green-light)' : '#fee2e2',
+          color: petSafe ? 'var(--green-dark)' : '#b91c1c'
+        }}>
+          {petSafe ? '✓ Pet safe' : '⚠ Toxic to pets'}
+        </span>
+        <span style={{
+          padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+          background: humanSafe ? 'var(--green-light)' : '#fee2e2',
+          color: humanSafe ? 'var(--green-dark)' : '#b91c1c'
+        }}>
+          {humanSafe ? '✓ Human safe' : '⚠ Toxic to humans'}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -118,9 +189,14 @@ export default function PlantsPage() {
           <h2>My Garden 🌿</h2>
           <p>{plants.length} plant{plants.length !== 1 ? 's' : ''} growing</p>
         </div>
-        <button className="btn btn-green" onClick={openAdd}>
-          <Plus size={15} /> Add Plant
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={() => setShowGuide(true)}>
+            <Search size={14} /> Plant Guide
+          </button>
+          <button className="btn btn-green" onClick={openAdd}>
+            <Plus size={15} /> Add Plant
+          </button>
+        </div>
       </div>
 
       <div className="page-body">
@@ -169,6 +245,120 @@ export default function PlantsPage() {
           </div>
         )}
       </div>
+
+      {/* Plant Guide Modal */}
+      {showGuide && (
+        <div className="modal-overlay" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>
+          <div className="modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🌿 Plant Guide</h3>
+              <button className="close-btn" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {/* Search bar */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <input
+                  className="form-input"
+                  placeholder="Search a plant (e.g. nasturtium, spider plant)..."
+                  value={guideQuery}
+                  onChange={e => setGuideQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchPlantGuide()}
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-green" onClick={searchPlantGuide} disabled={guideLoading}>
+                  {guideLoading ? '...' : <Search size={14} />}
+                </button>
+              </div>
+
+              {guideError && (
+                <p style={{ color: '#b91c1c', fontSize: 13 }}>{guideError}</p>
+              )}
+
+              {guideResult && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                    {guideResult.image && (
+                      <img src={guideResult.image} alt={guideResult.name} style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{guideResult.name}</div>
+                      {guideResult.scientific_name && <div style={{ fontSize: 12, color: 'var(--ink-muted)', fontStyle: 'italic', marginBottom: 6 }}>{guideResult.scientific_name}</div>}
+                      <ToxicityBadge pets={guideResult.poisonous_to_pets} humans={guideResult.poisonous_to_humans} />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {guideResult.description && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, margin: 0 }}>
+                      {guideResult.description}
+                    </p>
+                  )}
+
+                  {/* Care grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    {[
+                      { label: '💧 Watering', value: guideResult.watering },
+                      { label: '☀️ Sunlight', value: guideResult.sunlight?.join(', ') },
+                      { label: '🌱 Growth Rate', value: guideResult.growth_rate },
+                      { label: '🔄 Cycle', value: guideResult.cycle },
+                      { label: '🛠 Maintenance', value: guideResult.maintenance },
+                      { label: '🏠 Indoor', value: guideResult.indoor === null ? null : guideResult.indoor ? 'Yes' : 'No' },
+                      { label: '🌸 Flowers', value: guideResult.flowers === null ? null : guideResult.flowers ? `Yes${guideResult.flowering_season ? ` (${guideResult.flowering_season})` : ''}` : 'No' },
+                      { label: '🌍 Hardiness', value: guideResult.hardiness ? `Zone ${guideResult.hardiness.min}–${guideResult.hardiness.max}` : null },
+                    ].filter(r => r.value).map(row => (
+                      <div key={row.label} style={{ background: 'var(--cream)', borderRadius: 8, padding: '8px 12px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 2 }}>{row.label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>{row.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Soil */}
+                  {guideResult.soil?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soil</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {guideResult.soil.map(s => <span key={s} className="badge badge-green">{s}</span>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Propagation */}
+                  {guideResult.propagation?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Propagation</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {guideResult.propagation.map(p => <span key={p} className="badge badge-green">{p}</span>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Care guide sections */}
+                  {guideResult.care_guide?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Care Guide</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {guideResult.care_guide.map((section, i) => (
+                          <div key={i} style={{ background: 'var(--cream)', borderRadius: 8, padding: '10px 14px' }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, textTransform: 'capitalize' }}>{section.type}</div>
+                            <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6 }}>{section.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Plant Modal */}
       {showAdd && (
