@@ -451,11 +451,6 @@ const DIFF_MAP: Record<string, string[]> = {
   'Experienced — bring on the complexity': ['easy', 'medium', 'advanced'],
 };
 
-const DIFF_NORMALIZE: Record<string, 'easy' | 'medium' | 'advanced'> = {
-  Beginner: 'easy', Intermediate: 'medium', Advanced: 'advanced',
-  easy: 'easy', medium: 'medium', advanced: 'advanced',
-};
-
 export default function WizardPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
