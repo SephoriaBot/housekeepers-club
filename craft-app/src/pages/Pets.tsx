@@ -10,6 +10,13 @@ interface Pet {
   age: number
   weight: number
   notes: string
+  vet_name: string | null
+  vet_phone: string | null
+  insurance_provider: string | null
+  insurance_policy: string | null
+  feeding_routine: string | null
+  personality: string | null
+  hiding_spots: string | null
   created_at: string
 }
 
@@ -22,17 +29,6 @@ interface Vaccination {
   notes: string
 }
 
-interface Medication {
-  id: string
-  pet_id: string
-  name: string
-  dose: string
-  frequency: string
-  start_date: string
-  end_date: string
-  notes: string
-}
-
 interface WeightEntry {
   id: string
   pet_id: string
@@ -41,36 +37,52 @@ interface WeightEntry {
   recorded_at: string
 }
 
+interface FeedingEntry {
+  id: string
+  pet_id: string
+  food_type: string
+  amount: string
+  ate_well: boolean
+  notes: string
+  fed_at: string
+}
+
 const SPECIES_EMOJI: Record<string, string> = {
   cat: '🐱', dog: '🐶', bird: '🐦', rabbit: '🐰', fish: '🐠', other: '🐾'
 }
 
-const EMPTY_PET_FORM = { name: '', species: 'cat', breed: '', age: '', weight: '', notes: '' }
+const EMPTY_PET_FORM = {
+  name: '', species: 'cat', breed: '', age: '', weight: '', notes: '',
+  vet_name: '', vet_phone: '', insurance_provider: '', insurance_policy: '',
+  feeding_routine: '', personality: '', hiding_spots: ''
+}
 
 export default function Pets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
-  const [tab, setTab] = useState<'vaccinations' | 'medications' | 'weight' | 'notes'>('vaccinations')
+  const [tab, setTab] = useState<'feeding' | 'vaccinations' | 'weight' | 'sitter'>('feeding')
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([])
-  const [medications, setMedications] = useState<Medication[]>([])
   const [weights, setWeights] = useState<WeightEntry[]>([])
+  const [feedings, setFeedings] = useState<FeedingEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [showPetModal, setShowPetModal] = useState(false)
   const [editingPetId, setEditingPetId] = useState<string | null>(null)
-
   const [petForm, setPetForm] = useState(EMPTY_PET_FORM)
 
   const [vacForm, setVacForm] = useState({ name: '', date_given: '', next_due: '', notes: '' })
-  const [medForm, setMedForm] = useState({ name: '', dose: '', frequency: '', start_date: '', end_date: '', notes: '' })
   const [weightForm, setWeightForm] = useState({ weight: '', unit: 'lbs', recorded_at: new Date().toISOString().split('T')[0] })
+  const [feedingForm, setFeedingForm] = useState({
+    food_type: 'wet', amount: '', ate_well: true, notes: '',
+    fed_at: new Date().toISOString().slice(0, 16)
+  })
 
   useEffect(() => { fetchPets() }, [])
 
   useEffect(() => {
     if (selectedPet) {
       fetchVaccinations(selectedPet.id)
-      fetchMedications(selectedPet.id)
       fetchWeights(selectedPet.id)
+      fetchFeedings(selectedPet.id)
     }
   }, [selectedPet])
 
@@ -86,14 +98,14 @@ export default function Pets() {
     setVaccinations(data ?? [])
   }
 
-  async function fetchMedications(petId: string) {
-    const { data } = await supabase.from('pet_medications').select('*').eq('pet_id', petId).order('start_date', { ascending: false })
-    setMedications(data ?? [])
-  }
-
   async function fetchWeights(petId: string) {
     const { data } = await supabase.from('pet_weights').select('*').eq('pet_id', petId).order('recorded_at', { ascending: false })
     setWeights(data ?? [])
+  }
+
+  async function fetchFeedings(petId: string) {
+    const { data } = await supabase.from('pet_feedings').select('*').eq('pet_id', petId).order('fed_at', { ascending: false }).limit(30)
+    setFeedings(data ?? [])
   }
 
   function openAddPet() {
@@ -111,6 +123,13 @@ export default function Pets() {
       age: pet.age != null ? String(pet.age) : '',
       weight: pet.weight != null ? String(pet.weight) : '',
       notes: pet.notes ?? '',
+      vet_name: pet.vet_name ?? '',
+      vet_phone: pet.vet_phone ?? '',
+      insurance_provider: pet.insurance_provider ?? '',
+      insurance_policy: pet.insurance_policy ?? '',
+      feeding_routine: pet.feeding_routine ?? '',
+      personality: pet.personality ?? '',
+      hiding_spots: pet.hiding_spots ?? '',
     })
     setShowPetModal(true)
   }
@@ -124,6 +143,13 @@ export default function Pets() {
       age: petForm.age ? parseFloat(petForm.age) : null,
       weight: petForm.weight ? parseFloat(petForm.weight) : null,
       notes: petForm.notes.trim(),
+      vet_name: petForm.vet_name.trim() || null,
+      vet_phone: petForm.vet_phone.trim() || null,
+      insurance_provider: petForm.insurance_provider.trim() || null,
+      insurance_policy: petForm.insurance_policy.trim() || null,
+      feeding_routine: petForm.feeding_routine.trim() || null,
+      personality: petForm.personality.trim() || null,
+      hiding_spots: petForm.hiding_spots.trim() || null,
     }
 
     if (editingPetId) {
@@ -170,26 +196,6 @@ export default function Pets() {
     setVaccinations(prev => prev.filter(v => v.id !== id))
   }
 
-  async function addMedication() {
-    if (!medForm.name.trim() || !selectedPet) return
-    const { data } = await supabase.from('pet_medications').insert({
-      pet_id: selectedPet.id,
-      name: medForm.name.trim(),
-      dose: medForm.dose.trim(),
-      frequency: medForm.frequency.trim(),
-      start_date: medForm.start_date || null,
-      end_date: medForm.end_date || null,
-      notes: medForm.notes.trim(),
-    }).select().single()
-    if (data) setMedications(prev => [data, ...prev])
-    setMedForm({ name: '', dose: '', frequency: '', start_date: '', end_date: '', notes: '' })
-  }
-
-  async function deleteMedication(id: string) {
-    await supabase.from('pet_medications').delete().eq('id', id)
-    setMedications(prev => prev.filter(m => m.id !== id))
-  }
-
   async function addWeight() {
     if (!weightForm.weight || !selectedPet) return
     const { data } = await supabase.from('pet_weights').insert({
@@ -207,6 +213,25 @@ export default function Pets() {
     setWeights(prev => prev.filter(w => w.id !== id))
   }
 
+  async function addFeeding() {
+    if (!selectedPet) return
+    const { data } = await supabase.from('pet_feedings').insert({
+      pet_id: selectedPet.id,
+      food_type: feedingForm.food_type,
+      amount: feedingForm.amount.trim() || null,
+      ate_well: feedingForm.ate_well,
+      notes: feedingForm.notes.trim() || null,
+      fed_at: new Date(feedingForm.fed_at).toISOString(),
+    }).select().single()
+    if (data) setFeedings(prev => [data, ...prev])
+    setFeedingForm({ food_type: 'wet', amount: '', ate_well: true, notes: '', fed_at: new Date().toISOString().slice(0, 16) })
+  }
+
+  async function deleteFeeding(id: string) {
+    await supabase.from('pet_feedings').delete().eq('id', id)
+    setFeedings(prev => prev.filter(f => f.id !== id))
+  }
+
   function isDueSoon(dateStr: string) {
     if (!dateStr) return false
     const due = new Date(dateStr)
@@ -217,6 +242,10 @@ export default function Pets() {
   function isOverdue(dateStr: string) {
     if (!dateStr) return false
     return new Date(dateStr) < new Date()
+  }
+
+  function formatDateTime(isoStr: string) {
+    return new Date(isoStr).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   }
 
   return (
@@ -232,30 +261,33 @@ export default function Pets() {
       {/* Add/Edit pet modal */}
       {showPetModal && (
         <div className="modal-overlay" onClick={() => setShowPetModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingPetId ? 'Edit Pet' : 'Add a Pet'}</h3>
               <button className="close-btn" onClick={() => setShowPetModal(false)}>✕</button>
             </div>
             <div className="modal-body">
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Basic Info</div>
               <div className="form-group">
                 <label className="form-label">Name *</label>
                 <input className="form-input" value={petForm.name} onChange={e => setPetForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Luna" />
               </div>
-              <div className="form-group">
-                <label className="form-label">Species</label>
-                <select className="form-select" value={petForm.species} onChange={e => setPetForm(f => ({ ...f, species: e.target.value }))}>
-                  <option value="cat">Cat</option>
-                  <option value="dog">Dog</option>
-                  <option value="bird">Bird</option>
-                  <option value="rabbit">Rabbit</option>
-                  <option value="fish">Fish</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Breed</label>
-                <input className="form-input" value={petForm.breed} onChange={e => setPetForm(f => ({ ...f, breed: e.target.value }))} placeholder="e.g. Domestic Shorthair" />
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Species</label>
+                  <select className="form-select" value={petForm.species} onChange={e => setPetForm(f => ({ ...f, species: e.target.value }))}>
+                    <option value="cat">Cat</option>
+                    <option value="dog">Dog</option>
+                    <option value="bird">Bird</option>
+                    <option value="rabbit">Rabbit</option>
+                    <option value="fish">Fish</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Breed</label>
+                  <input className="form-input" value={petForm.breed} onChange={e => setPetForm(f => ({ ...f, breed: e.target.value }))} placeholder="e.g. Domestic Shorthair" />
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div className="form-group" style={{ flex: 1 }}>
@@ -267,9 +299,45 @@ export default function Pets() {
                   <input className="form-input" type="number" value={petForm.weight} onChange={e => setPetForm(f => ({ ...f, weight: e.target.value }))} placeholder="10" />
                 </div>
               </div>
+
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Vet & Insurance</div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Vet Name</label>
+                  <input className="form-input" value={petForm.vet_name} onChange={e => setPetForm(f => ({ ...f, vet_name: e.target.value }))} placeholder="Dr. Smith" />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Vet Phone</label>
+                  <input className="form-input" value={petForm.vet_phone} onChange={e => setPetForm(f => ({ ...f, vet_phone: e.target.value }))} placeholder="(804) 555-0100" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Insurance Provider</label>
+                  <input className="form-input" value={petForm.insurance_provider} onChange={e => setPetForm(f => ({ ...f, insurance_provider: e.target.value }))} placeholder="Trupanion" />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Policy Number</label>
+                  <input className="form-input" value={petForm.insurance_policy} onChange={e => setPetForm(f => ({ ...f, insurance_policy: e.target.value }))} placeholder="POL-12345" />
+                </div>
+              </div>
+
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Catsitter Info</div>
               <div className="form-group">
-                <label className="form-label">Notes</label>
-                <textarea className="form-textarea" value={petForm.notes} onChange={e => setPetForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any important info..." />
+                <label className="form-label">Feeding Routine</label>
+                <textarea className="form-textarea" value={petForm.feeding_routine} onChange={e => setPetForm(f => ({ ...f, feeding_routine: e.target.value }))} placeholder="e.g. 1/4 cup dry in the morning, half a can wet at night" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Personality</label>
+                <textarea className="form-textarea" value={petForm.personality} onChange={e => setPetForm(f => ({ ...f, personality: e.target.value }))} placeholder="e.g. Shy at first, warms up quickly, loves chin scratches" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Hiding Spots / Favorite Places</label>
+                <textarea className="form-textarea" value={petForm.hiding_spots} onChange={e => setPetForm(f => ({ ...f, hiding_spots: e.target.value }))} placeholder="e.g. Under the bed, on top of the fridge" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Other Notes</label>
+                <textarea className="form-textarea" value={petForm.notes} onChange={e => setPetForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any other important info..." />
               </div>
             </div>
             <div className="modal-footer">
@@ -325,19 +393,68 @@ export default function Pets() {
                     <p className={styles.summaryMeta}>
                       {[selectedPet.breed, selectedPet.age ? `${selectedPet.age} yrs` : null, selectedPet.weight ? `${selectedPet.weight} lbs` : null].filter(Boolean).join(' · ')}
                     </p>
-                    {selectedPet.notes && <p className={styles.summaryNotes}>{selectedPet.notes}</p>}
+                    {selectedPet.vet_name && (
+                      <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 4 }}>
+                        🏥 {selectedPet.vet_name}{selectedPet.vet_phone ? ` · ${selectedPet.vet_phone}` : ''}
+                      </p>
+                    )}
+                    {selectedPet.insurance_provider && (
+                      <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 2 }}>
+                        🛡 {selectedPet.insurance_provider}{selectedPet.insurance_policy ? ` · ${selectedPet.insurance_policy}` : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Tabs */}
               <div className={styles.tabs}>
-                {(['vaccinations', 'medications', 'weight', 'notes'] as const).map(t => (
+                {(['feeding', 'vaccinations', 'weight', 'sitter'] as const).map(t => (
                   <button key={t} className={`${styles.tabBtn} ${tab === t ? styles.tabActive : ''}`} onClick={() => setTab(t)}>
-                    {t}
+                    {t === 'sitter' ? '🏠 catsitter' : t === 'feeding' ? '🍽 feeding' : t === 'vaccinations' ? '💉 vaccines' : '⚖️ weight'}
                   </button>
                 ))}
               </div>
+
+              {/* Feeding log */}
+              {tab === 'feeding' && (
+                <div className={styles.section}>
+                  <div className={styles.addRow}>
+                    <select className="form-select" value={feedingForm.food_type} onChange={e => setFeedingForm(f => ({ ...f, food_type: e.target.value }))} style={{ flex: 1 }}>
+                      <option value="wet">Wet</option>
+                      <option value="dry">Dry</option>
+                      <option value="both">Both</option>
+                      <option value="treat">Treat</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input className="form-input" placeholder="Amount (optional)" value={feedingForm.amount} onChange={e => setFeedingForm(f => ({ ...f, amount: e.target.value }))} style={{ flex: 1 }} />
+                    <select className="form-select" value={feedingForm.ate_well ? 'yes' : 'no'} onChange={e => setFeedingForm(f => ({ ...f, ate_well: e.target.value === 'yes' }))} style={{ flex: 1 }}>
+                      <option value="yes">Ate well ✓</option>
+                      <option value="no">Didn't finish</option>
+                    </select>
+                    <input className="form-input" type="datetime-local" value={feedingForm.fed_at} onChange={e => setFeedingForm(f => ({ ...f, fed_at: e.target.value }))} style={{ flex: 1 }} />
+                    <button className="btn-primary" onClick={addFeeding}>Log</button>
+                  </div>
+                  <div className="form-group" style={{ marginTop: 8 }}>
+                    <input className="form-input" placeholder="Notes (optional)" value={feedingForm.notes} onChange={e => setFeedingForm(f => ({ ...f, notes: e.target.value }))} />
+                  </div>
+                  {feedings.length === 0 ? (
+                    <p className={styles.empty}>No feedings logged yet</p>
+                  ) : feedings.map(f => (
+                    <div key={f.id} className={`card ${styles.recordRow}`}>
+                      <div className={styles.recordMain}>
+                        <span className={styles.recordName}>{f.food_type}{f.amount ? ` — ${f.amount}` : ''}</span>
+                        <span className={styles.recordMeta}>{formatDateTime(f.fed_at)}</span>
+                        <span className={styles.recordMeta} style={{ color: f.ate_well ? 'var(--green-dark)' : '#b91c1c' }}>
+                          {f.ate_well ? '✓ Ate well' : '⚠ Didn\'t finish'}
+                        </span>
+                        {f.notes && <span className={styles.recordNotes}>{f.notes}</span>}
+                      </div>
+                      <button className={styles.deleteBtn} onClick={() => deleteFeeding(f.id)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Vaccinations */}
               {tab === 'vaccinations' && (
@@ -345,7 +462,7 @@ export default function Pets() {
                   <div className={styles.addRow}>
                     <input className="form-input" placeholder="Vaccine name..." value={vacForm.name} onChange={e => setVacForm(f => ({ ...f, name: e.target.value }))} style={{ flex: 2 }} />
                     <input className="form-input" type="date" value={vacForm.date_given} onChange={e => setVacForm(f => ({ ...f, date_given: e.target.value }))} style={{ flex: 1 }} />
-                    <input className="form-input" type="date" value={vacForm.next_due} onChange={e => setVacForm(f => ({ ...f, next_due: e.target.value }))} style={{ flex: 1 }} placeholder="Next due" />
+                    <input className="form-input" type="date" value={vacForm.next_due} onChange={e => setVacForm(f => ({ ...f, next_due: e.target.value }))} style={{ flex: 1 }} />
                     <button className="btn-primary" onClick={addVaccination}>Add</button>
                   </div>
                   <div className={styles.addRowLabels}>
@@ -368,33 +485,6 @@ export default function Pets() {
                         {v.notes && <span className={styles.recordNotes}>{v.notes}</span>}
                       </div>
                       <button className={styles.deleteBtn} onClick={() => deleteVaccination(v.id)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Medications */}
-              {tab === 'medications' && (
-                <div className={styles.section}>
-                  <div className={styles.addRow}>
-                    <input className="form-input" placeholder="Medication name..." value={medForm.name} onChange={e => setMedForm(f => ({ ...f, name: e.target.value }))} style={{ flex: 2 }} />
-                    <input className="form-input" placeholder="Dose..." value={medForm.dose} onChange={e => setMedForm(f => ({ ...f, dose: e.target.value }))} style={{ flex: 1 }} />
-                    <input className="form-input" placeholder="Frequency..." value={medForm.frequency} onChange={e => setMedForm(f => ({ ...f, frequency: e.target.value }))} style={{ flex: 1 }} />
-                    <button className="btn-primary" onClick={addMedication}>Add</button>
-                  </div>
-                  {medications.length === 0 ? (
-                    <p className={styles.empty}>No medications recorded yet</p>
-                  ) : medications.map(m => (
-                    <div key={m.id} className={`card ${styles.recordRow}`}>
-                      <div className={styles.recordMain}>
-                        <span className={styles.recordName}>{m.name}</span>
-                        {m.dose && <span className={styles.recordMeta}>Dose: {m.dose}</span>}
-                        {m.frequency && <span className={styles.recordMeta}>Frequency: {m.frequency}</span>}
-                        {m.start_date && <span className={styles.recordMeta}>Started: {m.start_date}</span>}
-                        {m.end_date && <span className={styles.recordMeta}>Ends: {m.end_date}</span>}
-                        {m.notes && <span className={styles.recordNotes}>{m.notes}</span>}
-                      </div>
-                      <button className={styles.deleteBtn} onClick={() => deleteMedication(m.id)}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -426,13 +516,59 @@ export default function Pets() {
                 </div>
               )}
 
-              {/* Notes */}
-              {tab === 'notes' && (
+              {/* Catsitter card */}
+              {tab === 'sitter' && (
                 <div className={styles.section}>
-                  <div className={`card ${styles.notesCard}`}>
-                    <p className={styles.recordNotes} style={{ fontSize: '0.9rem', lineHeight: 1.7 }}>
-                      {selectedPet.notes || 'No notes for this pet yet.'}
-                    </p>
+                  <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)' }}>
+                      {SPECIES_EMOJI[selectedPet.species]} {selectedPet.name}'s Care Card
+                    </div>
+
+                    {selectedPet.feeding_routine ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🍽 Feeding Routine</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.feeding_routine}</p>
+                      </div>
+                    ) : null}
+
+                    {selectedPet.personality ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>😸 Personality</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.personality}</p>
+                      </div>
+                    ) : null}
+
+                    {selectedPet.hiding_spots ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>📍 Hiding Spots</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.hiding_spots}</p>
+                      </div>
+                    ) : null}
+
+                    {selectedPet.vet_name || selectedPet.vet_phone ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🏥 Vet</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)' }}>{selectedPet.vet_name}{selectedPet.vet_phone ? ` · ${selectedPet.vet_phone}` : ''}</p>
+                      </div>
+                    ) : null}
+
+                    {selectedPet.insurance_provider ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🛡 Insurance</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)' }}>{selectedPet.insurance_provider}{selectedPet.insurance_policy ? ` · Policy: ${selectedPet.insurance_policy}` : ''}</p>
+                      </div>
+                    ) : null}
+
+                    {selectedPet.notes ? (
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>📝 Other Notes</div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.notes}</p>
+                      </div>
+                    ) : null}
+
+                    {!selectedPet.feeding_routine && !selectedPet.personality && !selectedPet.hiding_spots && !selectedPet.vet_name && !selectedPet.insurance_provider && !selectedPet.notes && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)' }}>No catsitter info yet — edit this pet to add feeding routine, personality, and hiding spots.</p>
+                    )}
                   </div>
                 </div>
               )}
