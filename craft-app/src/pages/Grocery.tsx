@@ -220,7 +220,7 @@ export default function Grocery() {
         count,
         total: storeTotals.get(store) ?? 0
       }))
-      .sort((a, b) => b.total - a.total || a.total - b.total)
+      .sort((a, b) => b.count - a.count || a.total - b.total)
   }
 
   const needs = items.filter(i => !i.checked)
