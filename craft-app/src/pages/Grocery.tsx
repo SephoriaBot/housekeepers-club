@@ -298,26 +298,27 @@ export default function Grocery() {
 
       {/* store leaderboard — computed inline from current cart */}
       {(() => {
-        const tally = computeTally(cart)
-        const totalTracked = tally.reduce((sum, t) => sum + t.count, 0)
-        if (tally.length === 0) return null
-        return (
-          <div className={`card ${styles.savedPanel}`}>
-            <div className={styles.savedPanelTitle}>best store for your list</div>
-            {tally.map((t, i) => (
-              <div key={t.store} className={styles.tallyRow}>
-                <span className={styles.tallyRank}>{i + 1}</span>
-                <span className={styles.tallyStore}>{t.store}</span>
-                <div className={styles.tallyBarTrack}>
-                  <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
-                </div>
-                <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
-                <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
-              </div>
-            ))}
+  const tally = computeTally(cart)
+  const totalTracked = cart.length
+  if (tally.length === 0) return null
+  return (
+    <div className={`card ${styles.savedPanel}`}>
+      <div className={styles.savedPanelTitle}>best store for your list</div>
+      {tally.map((t, i) => (
+        <div key={t.store} className={styles.tallyRow}>
+          <span className={styles.tallyRank}>{i + 1}</span>
+          <span className={styles.tallyStore}>{t.store}</span>
+          <div className={styles.tallyBarTrack}>
+            <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
           </div>
-        )
-      })()}
+          <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
+          <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
+        </div>
+      ))}
+    </div>
+  )
+})()}
+
 
       {loading ? (
         <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
