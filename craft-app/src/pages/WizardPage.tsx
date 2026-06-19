@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Wand2, RotateCcw, X, Clock, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Wand2, RotateCcw, X, Clock, ChevronRight, BookmarkPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeCategory } from '../types';
 
@@ -12,6 +12,11 @@ const CATEGORY_META: Record<RecipeCategory, { label: string; emoji: string; clas
 const DIFF_BADGE: Record<string, string> = {
   easy: 'badge-green', medium: 'badge-amber', advanced: 'badge-pink',
   Beginner: 'badge-green', Intermediate: 'badge-amber', Advanced: 'badge-pink',
+};
+
+const DIFF_NORMALIZE: Record<string, 'easy' | 'medium' | 'advanced'> = {
+  Beginner: 'easy', Intermediate: 'medium', Advanced: 'advanced',
+  easy: 'easy', medium: 'medium', advanced: 'advanced',
 };
 
 interface WizardStep {
@@ -40,18 +45,6 @@ interface Formula {
   steps: string[];
   tips: string[];
 }
-
-const CATEGORIES_META = {
-  skincare: {
-    types: ['Face cream', 'Body lotion', 'Serum', 'Toner', 'Face oil', 'Lip balm'],
-  },
-  soap: {
-    types: ['Melt & pour soap', 'Cold process bar soap', 'Liquid soap', 'Shampoo bar'],
-  },
-  laundry: {
-    types: ['Laundry powder', 'Laundry liquid', 'Fabric softener', 'All-purpose cleaner'],
-  },
-};
 
 const FORMULAS: Record<string, Record<string, Record<string, Formula>>> = {
   skincare: {
@@ -458,6 +451,11 @@ const DIFF_MAP: Record<string, string[]> = {
   'Experienced — bring on the complexity': ['easy', 'medium', 'advanced'],
 };
 
+const DIFF_NORMALIZE: Record<string, 'easy' | 'medium' | 'advanced'> = {
+  Beginner: 'easy', Intermediate: 'medium', Advanced: 'advanced',
+  easy: 'easy', medium: 'medium', advanced: 'advanced',
+};
+
 export default function WizardPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
@@ -468,6 +466,8 @@ export default function WizardPage() {
   const [recipeSteps, setRecipeSteps] = useState<RecipeStep[]>([]);
   const [formula, setFormula] = useState<Formula | null>(null);
   const [activeTab, setActiveTab] = useState<'library' | 'formula'>('formula');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const currentFlow = FLOW.map(f => {
     if (f.id === 'goal') return { ...f, options: GOAL_OPTIONS[answers['category'] as string] || [] };
@@ -502,10 +502,68 @@ export default function WizardPage() {
     return Array.isArray(val) ? val.length > 0 : true;
   }
 
+  async function saveFormulaToLibrary() {
+    if (!formula) return;
+    setSaving(true);
+
+    const category = CAT_MAP[answers['category'] as string];
+    const difficulty = DIFF_NORMALIZE[formula.difficulty] ?? 'easy';
+
+    // Insert recipe
+    const { data: recipe, error } = await supabase
+      .from('recipes')
+      .insert({
+        name: formula.name,
+        category,
+        description: formula.description,
+        difficulty,
+        prep_time_min: formula.prep_time_min ?? null,
+        tags: ['wizard-generated'],
+      })
+      .select()
+      .single();
+
+    if (error || !recipe) {
+      setSaving(false);
+      return;
+    }
+
+    // Insert ingredients
+    await supabase.from('recipe_ingredients').insert(
+      formula.ingredients.map((ing, i) => ({
+        recipe_id: recipe.id,
+        ingredient_name: ing.name,
+        amount: ing.amount,
+        unit: ing.unit || null,
+        notes: ing.function || null,
+        sort_order: i,
+      }))
+    );
+
+    // Insert steps — tips appended as final steps
+    const allSteps = [
+      ...formula.steps.map((instruction, i) => ({
+        recipe_id: recipe.id,
+        step_number: i + 1,
+        instruction,
+      })),
+      ...(formula.tips ?? []).map((tip, i) => ({
+        recipe_id: recipe.id,
+        step_number: formula.steps.length + i + 1,
+        instruction: `💡 ${tip}`,
+      })),
+    ];
+
+    await supabase.from('recipe_steps').insert(allSteps);
+
+    setSaving(false);
+    setSaved(true);
+  }
+
   async function runSearch() {
     setLoading(true);
+    setSaved(false);
 
-    // Generate formula from lookup
     const goals = answers['goal'] as string[];
     const goal = Array.isArray(goals) ? goals[0] : goals;
     const type = answers['type'] as string;
@@ -513,7 +571,6 @@ export default function WizardPage() {
     const result = getFormula(CAT_MAP[cat] || cat, goal, type);
     setFormula(result);
 
-    // Also search Supabase library
     const dbCat = CAT_MAP[answers['category'] as string];
     const diffs = DIFF_MAP[answers['difficulty'] as string] || ['easy', 'medium', 'advanced'];
     const timeLimit = answers['time'] as string;
@@ -522,8 +579,6 @@ export default function WizardPage() {
     else if (timeLimit === '30–60 minutes') query = query.or('prep_time_min.is.null,prep_time_min.lte.60');
     const { data } = await query.limit(6);
     setResults(data || []);
-
-    // Default to formula tab if we got one, library if not
     setActiveTab(result ? 'formula' : 'library');
     setLoading(false);
   }
@@ -543,9 +598,9 @@ export default function WizardPage() {
     setAnswers({});
     setResults(null);
     setFormula(null);
+    setSaved(false);
   }
 
-  // Results view
   if (results !== null) {
     return (
       <div>
@@ -560,16 +615,10 @@ export default function WizardPage() {
 
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-            <button
-              className={`btn btn-sm ${activeTab === 'formula' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setActiveTab('formula')}
-            >
+            <button className={`btn btn-sm ${activeTab === 'formula' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('formula')}>
               ⚗️ Generated Formula
             </button>
-            <button
-              className={`btn btn-sm ${activeTab === 'library' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setActiveTab('library')}
-            >
+            <button className={`btn btn-sm ${activeTab === 'library' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('library')}>
               📖 My Library {results.length > 0 && `(${results.length})`}
             </button>
           </div>
@@ -579,13 +628,24 @@ export default function WizardPage() {
             formula ? (
               <div className="card" style={{ maxWidth: 680 }}>
                 <div className="card-body">
-                  <div style={{ marginBottom: 16 }}>
-                    <h3 style={{ fontSize: '1.15rem', color: 'var(--ink)', marginBottom: 6 }}>{formula.name}</h3>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 10px', fontStyle: 'italic' }}>{formula.description}</p>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <span className={`badge ${DIFF_BADGE[formula.difficulty] ?? 'badge-green'}`}>{formula.difficulty}</span>
-                      {formula.prep_time_min && <span className="badge badge-lavender"><Clock size={10} style={{ marginRight: 2 }} />{formula.prep_time_min} min</span>}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', color: 'var(--ink)', marginBottom: 6 }}>{formula.name}</h3>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 10px', fontStyle: 'italic' }}>{formula.description}</p>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span className={`badge ${DIFF_BADGE[formula.difficulty] ?? 'badge-green'}`}>{formula.difficulty}</span>
+                        {formula.prep_time_min && <span className="badge badge-lavender"><Clock size={10} style={{ marginRight: 2 }} />{formula.prep_time_min} min</span>}
+                      </div>
                     </div>
+                    <button
+                      className={`btn btn-sm ${saved ? 'btn-green' : 'btn-secondary'}`}
+                      onClick={saveFormulaToLibrary}
+                      disabled={saving || saved}
+                      style={{ flexShrink: 0 }}
+                    >
+                      <BookmarkPlus size={13} />
+                      {saving ? 'Saving…' : saved ? 'Saved!' : 'Save to Library'}
+                    </button>
                   </div>
 
                   <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Ingredients</div>
@@ -638,7 +698,7 @@ export default function WizardPage() {
               <div className="empty-state">
                 <div className="empty-icon">📖</div>
                 <h3>No matches in your library</h3>
-                <p>Add recipes to your library, or check the Generated Formula tab.</p>
+                <p>Generate a formula above and save it to start building your library.</p>
               </div>
             ) : (
               <div className="grid-3">
@@ -670,7 +730,6 @@ export default function WizardPage() {
           )}
         </div>
 
-        {/* Recipe detail modal */}
         {selected && (
           <div className="modal-overlay" onClick={() => setSelected(null)}>
             <div className="modal" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
@@ -725,7 +784,6 @@ export default function WizardPage() {
     );
   }
 
-  // Wizard questions view
   return (
     <div>
       <div className="page-header">
