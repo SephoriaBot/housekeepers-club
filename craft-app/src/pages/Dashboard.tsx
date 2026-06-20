@@ -129,7 +129,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
       <div className="page-body">
 
-        {(soonReminders.length > 0 || laterReminders.length > 0) && (
+                {(soonReminders.length > 0 || laterReminders.length > 0) && (
           <div style={{ marginBottom: 32 }}>
 
             {soonReminders.length > 0 && (
@@ -137,7 +137,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
                   Soon
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', paddingRight: 4 }}>
                   {soonReminders.map(r => (
                     <div
                       key={r.id}
@@ -146,7 +146,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         display: 'flex', alignItems: 'center', gap: 10,
                         background: 'var(--white)', border: '1px solid var(--border)',
                         borderRadius: 12, padding: '10px 14px', cursor: 'pointer',
-                        fontSize: '0.85rem',
+                        fontSize: '0.85rem', flexShrink: 0,
                       }}
                     >
                       <span style={{ fontSize: '1.05rem' }}>{r.emoji}</span>
@@ -167,7 +167,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
                   Later
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
                   {laterReminders.map(r => (
                     <div
                       key={r.id}
@@ -176,7 +176,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                         display: 'flex', alignItems: 'center', gap: 10,
                         background: 'var(--cream)', border: '1px solid var(--border)',
                         borderRadius: 12, padding: '8px 14px', cursor: 'pointer',
-                        fontSize: '0.82rem', opacity: 0.8,
+                        fontSize: '0.82rem', opacity: 0.8, flexShrink: 0,
                       }}
                     >
                       <span style={{ fontSize: '0.95rem' }}>{r.emoji}</span>
@@ -194,6 +194,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
           </div>
         )}
+
 
         <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
           Open Kitchen
