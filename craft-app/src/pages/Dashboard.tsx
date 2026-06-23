@@ -29,7 +29,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => {
     async function loadStats() {
       const [plantsRes, recipesRes, petsRes, groceryRes, pantryRes, vaccinationsRes] = await Promise.all([
-        supabase.from('plants').select('id, name, last_watered, watering_frequency_days'),
+        supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
         supabase.from('recipes').select('id', { count: 'exact', head: true }),
         supabase.from('pets').select('id, name'),
         supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
@@ -37,35 +37,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
       ]);
 
-      const plants = plantsRes.data || [];
       const pets = petsRes.data || [];
       const vaccinations = vaccinationsRes.data || [];
       const today = new Date();
 
       setStats({
-        plants: plants.length,
+        plants: plantsRes.count || 0,
         recipes: recipesRes.count || 0,
         pets: pets.length,
         groceryItems: groceryRes.count || 0,
         pantryItems: pantryRes.count || 0,
       });
 
-      // Build reminder list: plant watering due/overdue + vaccines due
       const allReminders: ReminderItem[] = [];
-
-      plants.forEach(p => {
-        if (!p.last_watered || !p.watering_frequency_days) return;
-        const last = new Date(p.last_watered);
-        const dueDate = new Date(last.getTime() + p.watering_frequency_days * 86400000);
-        allReminders.push({
-          id: `plant-${p.id}`,
-          label: p.name,
-          detail: dueDate < today ? 'water overdue' : 'water due',
-          dueDate,
-          page: 'plants',
-          emoji: '💧',
-        });
-      });
 
       vaccinations.forEach(v => {
         if (!v.next_due) return;
@@ -120,7 +104,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
       <div className="page-body">
 
-                {(soonReminders.length > 0 || laterReminders.length > 0) && (
+        {(soonReminders.length > 0 || laterReminders.length > 0) && (
           <div style={{ marginBottom: 32 }}>
 
             {soonReminders.length > 0 && (
@@ -186,7 +170,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         )}
 
-
         <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
           Open Kitchen
         </div>
@@ -198,7 +181,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
           Home
         </div>
-        <div className="grid-3" style={{ marginBottom: 28 }}>
+        <div className="grid-2" style={{ marginBottom: 28 }}>
           <StatCard icon={<Leaf size={22} />} label="Plants" value={stats.plants} color="green" onClick={() => onNavigate('plants')} />
           <StatCard icon={<PawPrint size={22} />} label="Pets" value={stats.pets} color="pink" onClick={() => onNavigate('pets')} />
         </div>
@@ -235,7 +218,7 @@ function StatCard({ icon, label, value, color, onClick }: { icon: React.ReactNod
           {icon}
         </div>
         <div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, fontFamily: 'Playfair Display, serif', color: 'var(--ink)' }}>{value}</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--ink)' }}>{value}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
         </div>
       </div>
