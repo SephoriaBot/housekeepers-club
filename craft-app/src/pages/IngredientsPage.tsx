@@ -87,24 +87,23 @@ export default function IngredientsPage() {
           <Plus size={14} /> Add Ingredient
         </button>
 
+
+      </div>
+
 <button
   className="btn btn-primary"
   onClick={async () => {
-  console.log("clicked");
-  if (!search) return;
-  setLoadingApi(true);
-  const res = await searchIngredient(search);
-  console.log(res);
-  setApiResult(res);
-  setLoadingApi(false);
-}}
+    console.log("clicked");
+    if (!search) return;
+
+    setLoadingApi(true);
+    const res = await searchIngredient(search);
+    setApiResult(res);
+    setLoadingApi(false);
+  }}
 >
   AI Lookup
 </button>
-
-
-
-      </div>
 
       <div className="page-body">
         <div style={{ position: 'relative', maxWidth: 360, marginBottom: 24 }}>
