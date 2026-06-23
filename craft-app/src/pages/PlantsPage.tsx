@@ -1,185 +1,163 @@
-import { useEffect, useState } from 'react';
-import { Plus, X, Droplets, Check, Pencil, Search, Leaf } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Search, Plus, Minus, Droplets, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Plant, PlantLog, PlantType, LogAction } from '../types';
-import { useToast } from '../hooks/useToast';
 
-const PLANT_EMOJIS: Record<PlantType, string> = {
-  herb: '🌿', flower: '🌸', succulent: '🪴', vegetable: '🥬', tropical: '🌴', other: '🌱',
-};
+interface GardenPlant {
+  id: string
+  name: string
+  scientific_name: string | null
+  perenual_id: number | null
+  quantity: number
+  created_at: string
+}
 
-const EMPTY_FORM = { name: '', type: 'herb' as PlantType, notes: '', watering_frequency_days: '', location: '', emoji: '', acquired_date: '' };
+interface WateringEntry {
+  id: string
+  watered_at: string
+}
 
-const WATER_STATUS = (plant: Plant): { label: string; className: string } => {
-  if (!plant.last_watered || !plant.watering_frequency_days) return { label: 'No schedule', className: '' };
-  const diff = (Date.now() - new Date(plant.last_watered).getTime()) / 86400000;
-  if (diff >= plant.watering_frequency_days) return { label: 'Needs water!', className: 'water-overdue' };
-  if (diff >= plant.watering_frequency_days * 0.75) return { label: 'Water soon', className: 'water-soon' };
-  return { label: 'Watered ✓', className: 'water-ok' };
-};
-
-interface PlantGuide {
+interface SearchResult {
   id: number
   name: string
   scientific_name: string | null
-  image: string | null
-  type: string | null
-  cycle: string | null
   watering: string | null
-  sunlight: string[]
-  maintenance: string | null
-  growth_rate: string | null
-  indoor: boolean | null
+  sunlight: string[] | null
   poisonous_to_pets: number | null
   poisonous_to_humans: number | null
-  description: string | null
-  propagation: string[]
-  hardiness: any
-  flowers: boolean | null
-  flowering_season: string | null
-  soil: string[]
-  care_guide: { type: string; description: string }[]
+  cycle: string | null
 }
 
 export default function PlantsPage() {
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [logs, setLogs] = useState<PlantLog[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const { showToast } = useToast();
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [plants, setPlants] = useState<GardenPlant[]>([])
+  const [waterings, setWaterings] = useState<WateringEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [wateringLoading, setWateringLoading] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
-  // Plant guide search
-  const [guideQuery, setGuideQuery] = useState('')
-  const [guideResult, setGuideResult] = useState<PlantGuide | null>(null)
-  const [guideLoading, setGuideLoading] = useState(false)
-  const [guideError, setGuideError] = useState('')
-  const [showGuide, setShowGuide] = useState(false)
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => { loadPlants(); }, []);
+  useEffect(() => {
+    loadPlants()
+    loadWaterings()
+  }, [])
 
   async function loadPlants() {
-    setLoading(true);
-    const { data } = await supabase.from('plants').select('*').order('created_at', { ascending: false });
-    setPlants(data || []);
-    setLoading(false);
+    setLoading(true)
+    const { data } = await supabase
+      .from('garden_plants')
+      .select('*')
+      .order('name')
+    setPlants(data ?? [])
+    setLoading(false)
   }
 
-  async function loadLogs(plantId: string) {
-    const { data } = await supabase.from('plant_logs').select('*').eq('plant_id', plantId).order('logged_at', { ascending: false }).limit(20);
-    setLogs(data || []);
+  async function loadWaterings() {
+    const { data } = await supabase
+      .from('garden_waterings')
+      .select('*')
+      .order('watered_at', { ascending: false })
+    setWaterings(data ?? [])
   }
 
-  function openAdd() {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setShowAdd(true);
-  }
-
-  function openEdit(plant: Plant) {
-    setEditingId(plant.id);
-    setForm({
-      name: plant.name,
-      type: plant.type,
-      notes: plant.notes ?? '',
-      watering_frequency_days: plant.watering_frequency_days != null ? String(plant.watering_frequency_days) : '',
-      location: plant.location ?? '',
-      emoji: plant.emoji ?? '',
-      acquired_date: plant.acquired_date ?? '',
-    });
-    setShowAdd(true);
-  }
-
-  async function savePlant() {
-    if (!form.name.trim()) return;
-    const payload = {
-      name: form.name.trim(),
-      type: form.type,
-      notes: form.notes || null,
-      watering_frequency_days: form.watering_frequency_days ? parseInt(form.watering_frequency_days) : null,
-      location: form.location || null,
-      emoji: form.emoji || PLANT_EMOJIS[form.type],
-      acquired_date: form.acquired_date || null,
-    };
-
-    if (editingId) {
-      const { error } = await supabase.from('plants').update(payload).eq('id', editingId);
-      if (error) { showToast('Error updating plant', 'error'); return; }
-      showToast('Plant updated!');
-      if (selectedPlant?.id === editingId) {
-        setSelectedPlant({ ...selectedPlant, ...payload } as Plant);
-      }
-    } else {
-      const { error } = await supabase.from('plants').insert(payload);
-      if (error) { showToast('Error adding plant', 'error'); return; }
-      showToast('Plant added!');
-    }
-
-    setShowAdd(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    loadPlants();
-  }
-
-  async function logAction(plantId: string, action: LogAction, note?: string) {
-    await supabase.from('plant_logs').insert({ plant_id: plantId, action, note: note || null, logged_at: new Date().toISOString() });
-    if (action === 'watered') {
-      await supabase.from('plants').update({ last_watered: new Date().toISOString() }).eq('id', plantId);
-    }
-    showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} logged!`);
-    loadPlants();
-    loadLogs(plantId);
-  }
-
-  async function deletePlant(id: string) {
-    await supabase.from('plants').delete().eq('id', id);
-    setSelectedPlant(null);
-    showToast('Plant removed');
-    loadPlants();
-  }
-
-  async function searchPlantGuide() {
-    if (!guideQuery.trim()) return
-    setGuideLoading(true)
-    setGuideError('')
-    setGuideResult(null)
+  async function searchPlants(q: string) {
+    if (!q.trim()) { setSearchResults([]); return }
+    setSearching(true)
+    setSearchError('')
     try {
-      const res = await fetch(`/api/plant-search?q=${encodeURIComponent(guideQuery.trim())}`)
+      const res = await fetch(`/api/plant-search?q=${encodeURIComponent(q.trim())}`)
       const data = await res.json()
       if (!data) {
-        setGuideError('No results found. Try a different name.')
+        setSearchResults([])
       } else {
-        setGuideResult(data)
+        // plant-search returns single top result — adapt to show it
+        setSearchResults([data])
       }
     } catch {
-      setGuideError('Something went wrong. Try again.')
+      setSearchError('Search failed, try again.')
+      setSearchResults([])
     }
-    setGuideLoading(false)
+    setSearching(false)
   }
 
-  function ToxicityBadge({ pets, humans }: { pets: number | null; humans: number | null }) {
-    const petSafe = pets === 0 || pets === null
-    const humanSafe = humans === 0 || humans === null
-    return (
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{
-          padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-          background: petSafe ? 'var(--green-light)' : '#fee2e2',
-          color: petSafe ? 'var(--green-dark)' : '#b91c1c'
-        }}>
-          {petSafe ? '✓ Pet safe' : '⚠ Toxic to pets'}
-        </span>
-        <span style={{
-          padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-          background: humanSafe ? 'var(--green-light)' : '#fee2e2',
-          color: humanSafe ? 'var(--green-dark)' : '#b91c1c'
-        }}>
-          {humanSafe ? '✓ Human safe' : '⚠ Toxic to humans'}
-        </span>
-      </div>
-    )
+  function handleQueryChange(val: string) {
+    setQuery(val)
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(() => searchPlants(val), 500)
+  }
+
+  async function addPlant(result: SearchResult) {
+    // if already in garden, just increment
+    const existing = plants.find(p => p.perenual_id === result.id)
+    if (existing) {
+      await updateQuantity(existing.id, existing.quantity + 1)
+      setQuery('')
+      setSearchResults([])
+      return
+    }
+
+    const { data } = await supabase
+      .from('garden_plants')
+      .insert({
+        name: result.name,
+        scientific_name: result.scientific_name ?? null,
+        perenual_id: result.id,
+        quantity: 1,
+      })
+      .select()
+      .single()
+
+    if (data) setPlants(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    setQuery('')
+    setSearchResults([])
+  }
+
+  async function updateQuantity(id: string, newQty: number) {
+    if (newQty < 1) {
+      removePlant(id)
+      return
+    }
+    await supabase.from('garden_plants').update({ quantity: newQty }).eq('id', id)
+    setPlants(prev => prev.map(p => p.id === id ? { ...p, quantity: newQty } : p))
+  }
+
+  async function removePlant(id: string) {
+    await supabase.from('garden_plants').delete().eq('id', id)
+    setPlants(prev => prev.filter(p => p.id !== id))
+  }
+
+  async function logWatering() {
+    setWateringLoading(true)
+    const { data } = await supabase
+      .from('garden_waterings')
+      .insert({ watered_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (data) setWaterings(prev => [data, ...prev])
+    setWateringLoading(false)
+  }
+
+  async function deleteWatering(id: string) {
+    await supabase.from('garden_waterings').delete().eq('id', id)
+    setWaterings(prev => prev.filter(w => w.id !== id))
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit'
+    })
+  }
+
+  function toxicityLabel(pets: number | null, humans: number | null) {
+    const parts = []
+    if (pets === 1) parts.push('⚠ toxic to pets')
+    else if (pets === 0) parts.push('✓ pet safe')
+    if (humans === 1) parts.push('⚠ toxic to humans')
+    return parts.join(' · ') || null
   }
 
   return (
@@ -189,303 +167,169 @@ export default function PlantsPage() {
           <h2>My Garden 🌿</h2>
           <p>{plants.length} plant{plants.length !== 1 ? 's' : ''} growing</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={() => setShowGuide(true)}>
-            <Search size={14} /> Plant Guide
-          </button>
-          <button className="btn btn-green" onClick={openAdd}>
-            <Plus size={15} /> Add Plant
-          </button>
-        </div>
       </div>
 
       <div className="page-body">
-        {loading ? (
-          <div className="loading-spinner">Loading your garden…</div>
-        ) : plants.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🌱</div>
-            <h3>Your garden is empty</h3>
-            <p>Add your first plant to start tracking waterings and care notes.</p>
-            <button className="btn btn-green" onClick={openAdd}><Plus size={14} /> Add Plant</button>
+
+        {/* Search */}
+        <div style={{ marginBottom: 28, maxWidth: 560 }}>
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }} />
+            <input
+              className="form-input"
+              style={{ paddingLeft: 36 }}
+              placeholder="Search a plant to add to your garden…"
+              value={query}
+              onChange={e => handleQueryChange(e.target.value)}
+            />
+            {query && (
+              <button onClick={() => { setQuery(''); setSearchResults([]) }} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)' }}>
+                <X size={14} />
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="grid-3">
-            {plants.map(plant => {
-              const status = WATER_STATUS(plant);
-              return (
-                <div key={plant.id} className="card" style={{ cursor: 'pointer', position: 'relative' }} onClick={() => { setSelectedPlant(plant); loadLogs(plant.id); }}>
-                  <button
-                    className="btn-ghost btn-sm"
-                    style={{ position: 'absolute', top: 10, right: 10, padding: '4px 7px', zIndex: 2 }}
-                    onClick={e => { e.stopPropagation(); openEdit(plant); }}
-                    title="edit"
+
+          {searching && <p style={{ fontSize: 13, color: 'var(--ink-muted)', padding: '6px 0' }}>Searching…</p>}
+          {searchError && <p style={{ fontSize: 13, color: '#b91c1c' }}>{searchError}</p>}
+
+          {searchResults.length > 0 && (
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--white)' }}>
+              {searchResults.map(r => {
+                const toxic = toxicityLabel(r.poisonous_to_pets, r.poisonous_to_humans)
+                const alreadyAdded = plants.some(p => p.perenual_id === r.id)
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => addPlant(r)}
+                    style={{
+                      padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}
                   >
-                    <Pencil size={12} />
-                  </button>
-                  <div className="card-body">
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                      <div className="plant-emoji">{plant.emoji || PLANT_EMOJIS[plant.type]}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{r.name}</div>
+                        {r.scientific_name && <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{r.scientific_name}</div>}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--ink-soft)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {r.watering && <span>💧 {r.watering}</span>}
+                          {r.sunlight?.[0] && <span>☀️ {r.sunlight[0]}</span>}
+                          {r.cycle && <span>🔄 {r.cycle}</span>}
+                          {toxic && <span style={{ color: r.poisonous_to_pets ? '#b91c1c' : 'var(--green-dark)' }}>{toxic}</span>}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: alreadyAdded ? 'var(--green-dark)' : 'var(--citrus-blue)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {alreadyAdded ? '+ add another' : '+ add'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Garden list + watering side by side */}
+        <div className="grid-2" style={{ alignItems: 'start' }}>
+
+          {/* Plant list */}
+          <div className="card">
+            <div className="card-body">
+              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>
+                In my garden
+              </div>
+              {loading ? (
+                <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>Loading…</p>
+              ) : plants.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', lineHeight: 1.6 }}>Search for a plant above to add it to your garden.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {plants.map(p => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 2 }}>{plant.name}</div>
-                        <span className="badge badge-green">{plant.type}</span>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink)' }}>{p.name}</div>
+                        {p.scientific_name && <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{p.scientific_name}</div>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        <button
+                          onClick={() => updateQuantity(p.id, p.quantity - 1)}
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <Minus size={11} />
+                        </button>
+                        <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 700, fontSize: '0.88rem' }}>{p.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(p.id, p.quantity + 1)}
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <Plus size={11} />
+                        </button>
+                        <button
+                          onClick={() => removePlant(p.id)}
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
-                    {plant.location && <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginBottom: 6 }}>📍 {plant.location}</div>}
-                    <div className={`water-indicator ${status.className}`}>
-                      <Droplets size={13} /> {status.label}
-                      {plant.last_watered && <span style={{ color: 'var(--ink-muted)', marginLeft: 4, fontSize: '0.75rem' }}>
-                        · {new Date(plant.last_watered).toLocaleDateString()}
-                      </span>}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Plant Guide Modal */}
-      {showGuide && (
-        <div className="modal-overlay" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>
-          <div className="modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>🌿 Plant Guide</h3>
-              <button className="close-btn" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>
-                <X size={18} />
+          {/* Watering */}
+          <div className="card">
+            <div className="card-body">
+              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>
+                Watering
+              </div>
+
+              <button
+                className="btn btn-green"
+                style={{ width: '100%', justifyContent: 'center', marginBottom: 20, padding: '12px', fontSize: '0.9rem' }}
+                onClick={logWatering}
+                disabled={wateringLoading}
+              >
+                <Droplets size={16} />
+                {wateringLoading ? 'Logging…' : 'Everyone had water today ✓'}
               </button>
-            </div>
-            <div className="modal-body">
-              {/* Search bar */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                <input
-                  className="form-input"
-                  placeholder="Search a plant (e.g. nasturtium, spider plant)..."
-                  value={guideQuery}
-                  onChange={e => setGuideQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && searchPlantGuide()}
-                  style={{ flex: 1 }}
-                />
-                <button className="btn btn-green" onClick={searchPlantGuide} disabled={guideLoading}>
-                  {guideLoading ? '...' : <Search size={14} />}
-                </button>
-              </div>
 
-              {guideError && (
-                <p style={{ color: '#b91c1c', fontSize: 13 }}>{guideError}</p>
-              )}
-
-              {guideResult && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Header */}
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    {guideResult.image && (
-                      <img src={guideResult.image} alt={guideResult.name} style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />
-                    )}
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{guideResult.name}</div>
-                      {guideResult.scientific_name && <div style={{ fontSize: 12, color: 'var(--ink-muted)', fontStyle: 'italic', marginBottom: 6 }}>{guideResult.scientific_name}</div>}
-                      <ToxicityBadge pets={guideResult.poisonous_to_pets} humans={guideResult.poisonous_to_humans} />
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  {guideResult.description && (
-                    <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, margin: 0 }}>
-                      {guideResult.description}
-                    </p>
-                  )}
-
-                  {/* Care grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {[
-                      { label: '💧 Watering', value: guideResult.watering },
-                      { label: '☀️ Sunlight', value: guideResult.sunlight?.join(', ') },
-                      { label: '🌱 Growth Rate', value: guideResult.growth_rate },
-                      { label: '🔄 Cycle', value: guideResult.cycle },
-                      { label: '🛠 Maintenance', value: guideResult.maintenance },
-                      { label: '🏠 Indoor', value: guideResult.indoor === null ? null : guideResult.indoor ? 'Yes' : 'No' },
-                      { label: '🌸 Flowers', value: guideResult.flowers === null ? null : guideResult.flowers ? `Yes${guideResult.flowering_season ? ` (${guideResult.flowering_season})` : ''}` : 'No' },
-                      { label: '🌍 Hardiness', value: guideResult.hardiness ? `Zone ${guideResult.hardiness.min}–${guideResult.hardiness.max}` : null },
-                    ].filter(r => r.value).map(row => (
-                      <div key={row.label} style={{ background: 'var(--cream)', borderRadius: 8, padding: '8px 12px' }}>
-                        <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 2 }}>{row.label}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>{row.value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Soil */}
-                  {guideResult.soil?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soil</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {guideResult.soil.map(s => <span key={s} className="badge badge-green">{s}</span>)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Propagation */}
-                  {guideResult.propagation?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Propagation</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {guideResult.propagation.map(p => <span key={p} className="badge badge-green">{p}</span>)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Care guide sections */}
-                  {guideResult.care_guide?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Care Guide</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {guideResult.care_guide.map((section, i) => (
-                          <div key={i} style={{ background: 'var(--cream)', borderRadius: 8, padding: '10px 14px' }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, textTransform: 'capitalize' }}>{section.type}</div>
-                            <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6 }}>{section.description}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => { setShowGuide(false); setGuideResult(null); setGuideError(''); setGuideQuery(''); }}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add/Edit Plant Modal */}
-      {showAdd && (
-        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingId ? 'Edit Plant' : 'Add a Plant'}</h3>
-              <button className="close-btn" onClick={() => setShowAdd(false)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Plant Name *</label>
-                <input className="form-input" placeholder="e.g. Cilantro, Nasturtium" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-              </div>
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label">Type</label>
-                  <select className="form-select" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PlantType }))}>
-                    <option value="herb">Herb</option>
-                    <option value="flower">Flower</option>
-                    <option value="succulent">Succulent</option>
-                    <option value="vegetable">Vegetable</option>
-                    <option value="tropical">Tropical</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Emoji (optional)</label>
-                  <input className="form-input" placeholder="🌿" value={form.emoji} onChange={e => setForm(f => ({ ...f, emoji: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label">Location</label>
-                  <input className="form-input" placeholder="e.g. Kitchen windowsill" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Water every (days)</label>
-                  <input className="form-input" type="number" min="1" placeholder="e.g. 3" value={form.watering_frequency_days} onChange={e => setForm(f => ({ ...f, watering_frequency_days: e.target.value }))} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Date Acquired</label>
-                <input className="form-input" type="date" value={form.acquired_date} onChange={e => setForm(f => ({ ...f, acquired_date: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <textarea className="form-textarea" placeholder="Care tips, personality traits…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-green" onClick={savePlant}>
-                <Plus size={14} /> {editingId ? 'Save Changes' : 'Add Plant'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Plant Detail Modal */}
-      {selectedPlant && (
-        <div className="modal-overlay" onClick={() => setSelectedPlant(null)}>
-          <div className="modal" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: '1.8rem' }}>{selectedPlant.emoji || PLANT_EMOJIS[selectedPlant.type]}</span>
-                <div>
-                  <h3>{selectedPlant.name}</h3>
-                  <span className="badge badge-green">{selectedPlant.type}</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button className="btn-ghost btn-sm" onClick={() => openEdit(selectedPlant)}>
-                  <Pencil size={13} /> Edit
-                </button>
-                <button className="close-btn" onClick={() => setSelectedPlant(null)}><X size={18} /></button>
-              </div>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-                {(['watered', 'fertilized', 'repotted', 'pruned'] as LogAction[]).map(action => (
-                  <button key={action} className={`btn btn-sm ${action === 'watered' ? 'btn-green' : 'btn-secondary'}`}
-                    onClick={() => logAction(selectedPlant.id, action)}>
-                    {action === 'watered' && <Droplets size={13} />}
-                    {action === 'fertilized' && '🌱'}
-                    {action === 'repotted' && '🪴'}
-                    {action === 'pruned' && '✂️'}
-                    {action}
-                  </button>
-                ))}
-              </div>
-
-              {selectedPlant.notes && (
-                <div style={{ background: 'var(--cream)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-                  {selectedPlant.notes}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 20, fontSize: '0.82rem', color: 'var(--ink-muted)', marginBottom: 16 }}>
-                {selectedPlant.location && <span>📍 {selectedPlant.location}</span>}
-                {selectedPlant.watering_frequency_days && <span><Droplets size={12} /> Every {selectedPlant.watering_frequency_days} day{selectedPlant.watering_frequency_days !== 1 ? 's' : ''}</span>}
-                {selectedPlant.last_watered && <span><Check size={12} /> Last watered {new Date(selectedPlant.last_watered).toLocaleDateString()}</span>}
-              </div>
-
-              {logs.length > 0 && (
+              {waterings.length > 0 && (
                 <>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 10, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Care Log</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {logs.map(log => (
-                      <div key={log.id} style={{ display: 'flex', gap: 10, fontSize: '0.85rem', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                        <span style={{ color: 'var(--ink-muted)', minWidth: 90 }}>{new Date(log.logged_at).toLocaleDateString()}</span>
-                        <span className="badge badge-green">{log.action}</span>
-                        {log.note && <span style={{ color: 'var(--ink-soft)' }}>{log.note}</span>}
-                      </div>
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => setShowHistory(h => !h)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--ink-muted)', fontWeight: 600, padding: 0, marginBottom: 10 }}
+                  >
+                    {showHistory ? '▾ hide history' : '▸ show history'} ({waterings.length})
+                  </button>
+
+                  {showHistory && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
+                      {waterings.map(w => (
+                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: '0.82rem' }}>
+                          <span style={{ color: 'var(--ink-soft)' }}>💧 {formatDate(w.watered_at)}</span>
+                          <button
+                            onClick={() => deleteWatering(w.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center' }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
-            </div>
-            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              <button className="btn btn-danger btn-sm" onClick={() => deletePlant(selectedPlant.id)}>Remove Plant</button>
-              <button className="btn btn-ghost" onClick={() => setSelectedPlant(null)}>Close</button>
+
+              {waterings.length === 0 && (
+                <p style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>No watering logged yet.</p>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
-  );
+  )
 }
