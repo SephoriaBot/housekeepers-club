@@ -20,11 +20,6 @@ interface SearchResult {
   id: number
   name: string
   scientific_name: string | null
-  watering: string | null
-  sunlight: string[] | null
-  poisonous_to_pets: number | null
-  poisonous_to_humans: number | null
-  cycle: string | null
 }
 
 export default function PlantsPage() {
@@ -63,7 +58,7 @@ export default function PlantsPage() {
     setWaterings(data ?? [])
   }
 
-    async function searchPlants(q: string) {
+  async function searchPlants(q: string) {
     if (!q.trim()) { setSearchResults([]); return }
     setSearching(true)
     setSearchError('')
@@ -79,7 +74,6 @@ export default function PlantsPage() {
     setSearching(false)
   }
 
-
   function handleQueryChange(val: string) {
     setQuery(val)
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
@@ -87,7 +81,6 @@ export default function PlantsPage() {
   }
 
   async function addPlant(result: SearchResult) {
-    // if already in garden, just increment
     const existing = plants.find(p => p.perenual_id === result.id)
     if (existing) {
       await updateQuantity(existing.id, existing.quantity + 1)
@@ -149,14 +142,6 @@ export default function PlantsPage() {
     })
   }
 
-  function toxicityLabel(pets: number | null, humans: number | null) {
-    const parts = []
-    if (pets === 1) parts.push('⚠ toxic to pets')
-    else if (pets === 0) parts.push('✓ pet safe')
-    if (humans === 1) parts.push('⚠ toxic to humans')
-    return parts.join(' · ') || null
-  }
-
   return (
     <div>
       <div className="page-header">
@@ -191,38 +176,28 @@ export default function PlantsPage() {
 
           {searchResults.length > 0 && (
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--white)' }}>
-              {searchResults.map(r => {
-                const toxic = toxicityLabel(r.poisonous_to_pets, r.poisonous_to_humans)
-                const alreadyAdded = plants.some(p => p.perenual_id === r.id)
-                return (
-                  <div
-                    key={r.id}
-                    onClick={() => addPlant(r)}
-                    style={{
-                      padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.12s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{r.name}</div>
-                        {r.scientific_name && <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{r.scientific_name}</div>}
-                        <div style={{ fontSize: '0.75rem', color: 'var(--ink-soft)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          {r.watering && <span>💧 {r.watering}</span>}
-                          {r.sunlight?.[0] && <span>☀️ {r.sunlight[0]}</span>}
-                          {r.cycle && <span>🔄 {r.cycle}</span>}
-                          {toxic && <span style={{ color: r.poisonous_to_pets ? '#b91c1c' : 'var(--green-dark)' }}>{toxic}</span>}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: alreadyAdded ? 'var(--green-dark)' : 'var(--citrus-blue)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {alreadyAdded ? '+ add another' : '+ add'}
-                      </span>
+              {searchResults.map(r => (
+                <div
+                  key={r.id}
+                  onClick={() => addPlant(r)}
+                  style={{
+                    padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{r.name}</div>
+                      {r.scientific_name && <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{r.scientific_name}</div>}
                     </div>
+                    <span style={{ fontSize: '0.75rem', color: plants.some(p => p.perenual_id === r.id) ? 'var(--green-dark)' : 'var(--citrus-blue)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {plants.some(p => p.perenual_id === r.id) ? '+ add another' : '+ add'}
+                    </span>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>
