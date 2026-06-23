@@ -10,7 +10,6 @@ export default async function handler(req, res) {
     const results = searchData.data ?? []
 
     const mapped = results
-      .filter((plant) => plant.id <= 3000)
       .slice(0, 5)
       .map((plant) => ({
         id: plant.id,
