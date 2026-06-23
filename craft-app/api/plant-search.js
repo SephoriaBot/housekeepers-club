@@ -11,26 +11,18 @@ export default async function handler(req, res) {
 
     if (!results.length) return res.status(200).json([])
 
-    const detailed = await Promise.all(
-      results.slice(0, 5).map(async (plant) => {
-        const detailRes = await fetch(
-          `https://perenual.com/api/species/details/${plant.id}?key=${process.env.PERENUAL_KEY}`
-        )
-        const detail = await detailRes.json()
-        return {
-          id: detail.id,
-          name: detail.common_name,
-          scientific_name: detail.scientific_name?.[0] ?? null,
-          watering: detail.watering ?? null,
-          sunlight: detail.sunlight ?? [],
-          cycle: detail.cycle ?? null,
-          poisonous_to_pets: detail.poisonous_to_pets ?? null,
-          poisonous_to_humans: detail.poisonous_to_humans ?? null,
-        }
-      })
-    )
+    const mapped = results.slice(0, 5).map((plant) => ({
+      id: plant.id,
+      name: plant.common_name,
+      scientific_name: plant.scientific_name?.[0] ?? null,
+      watering: plant.watering ?? null,
+      sunlight: plant.sunlight ?? [],
+      cycle: plant.cycle ?? null,
+      poisonous_to_pets: plant.poisonous_to_pets ?? null,
+      poisonous_to_humans: plant.poisonous_to_humans ?? null,
+    }))
 
-    return res.status(200).json(detailed)
+    return res.status(200).json(mapped)
   } catch (e) {
     console.error('plant-search error:', e)
     return res.status(500).json([])
