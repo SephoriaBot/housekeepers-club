@@ -2,7 +2,7 @@ import { supabase } from "../src/lib/supabase";
 
 export async function searchIngredient(ingredient: string) {
   const { data, error } = await supabase.functions.invoke(
-    "ingredient-search",
+    "swift-responder",
     {
       body: { ingredient },
     }
