@@ -78,8 +78,6 @@ export default function IngredientsPage() {
 
  return (
   <div>
-    return (
-  <div>
     <div className="page-header">
       <div>
         <h2>Ingredients 🧪</h2>
