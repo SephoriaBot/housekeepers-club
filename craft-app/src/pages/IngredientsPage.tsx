@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { searchIngredient } from "../lib/ingredientApi";
+
 
 interface CraftIngredient {
   id: string;
@@ -16,7 +18,8 @@ export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState<CraftIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-
+  const [apiResult, setApiResult] = useState<any>(null);
+  const [loadingApi, setLoadingApi] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<CraftIngredient | null>(null);
   const [form, setForm] = useState({ name: '', category: 'Other', notes: '' });
@@ -84,6 +87,20 @@ export default function IngredientsPage() {
         <button className="btn btn-primary" onClick={openAdd}>
           <Plus size={14} /> Add Ingredient
         </button>
+
+<button
+  className="btn btn-primary"
+  onClick={async () => {
+    if (!search) return;
+    setLoadingApi(true);
+    const res = await searchIngredient(search);
+    setApiResult(res);
+    setLoadingApi(false);
+  }}
+>
+  AI Lookup
+</button>
+
       </div>
 
       <div className="page-body">
@@ -91,6 +108,25 @@ export default function IngredientsPage() {
           <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }} />
           <input className="form-input" style={{ paddingLeft: 32 }} placeholder="Search ingredients…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+
+{apiResult && (
+  <div className="card" style={{ marginBottom: 16 }}>
+    <h3>{apiResult.ingredient_name}</h3>
+
+    <p>{apiResult.description}</p>
+
+    <p>
+      <b>Benefits:</b> {apiResult.benefits?.join(", ")}
+    </p>
+
+    <p>
+      <b>Best for:</b> {apiResult.best_for?.join(", ")}
+    </p>
+
+    <p>
+      <b>Usage:</b> {apiResult.usage_rate}</p>
+  </div>
+)}
 
         {loading ? (
           <div className="loading-spinner">Loading ingredients…</div>
