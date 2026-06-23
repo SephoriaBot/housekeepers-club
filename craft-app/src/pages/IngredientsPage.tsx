@@ -133,7 +133,6 @@ export default function IngredientsPage() {
       <b>Usage:</b> {apiResult.usage_rate}</p>
   </div>
 )}
-
         {loading ? (
           <div className="loading-spinner">Loading ingredients…</div>
         ) : filtered.length === 0 ? (
