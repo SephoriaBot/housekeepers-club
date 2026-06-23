@@ -90,15 +90,19 @@ export default function IngredientsPage() {
 <button
   className="btn btn-primary"
   onClick={async () => {
-    if (!search) return;
-    setLoadingApi(true);
-    const res = await searchIngredient(search);
-    setApiResult(res);
-    setLoadingApi(false);
-  }}
+  console.log("clicked");
+  if (!search) return;
+  setLoadingApi(true);
+  const res = await searchIngredient(search);
+  console.log(res);
+  setApiResult(res);
+  setLoadingApi(false);
+}}
 >
   AI Lookup
 </button>
+
+
 
       </div>
 
