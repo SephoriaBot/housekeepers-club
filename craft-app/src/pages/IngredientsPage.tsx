@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, X, Pencil, Trash2 } from 'lucide-react';
-import { searchIngredient } from "../../api/ingredientApi";
 import { supabase } from '../lib/supabase';
 
 interface CraftIngredient {
@@ -11,13 +10,24 @@ interface CraftIngredient {
   created_at: string;
 }
 
+interface IngredientInfo {
+  ingredient_name: string;
+  description: string;
+  benefits: string[];
+  best_for: string[];
+  usage_rate: string;
+  category: string;
+  ph_notes: string | null;
+  cautions: string | null;
+}
+
 const CATEGORY_OPTIONS = ['Skincare', 'Soap', 'Laundry', 'Other'];
 
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState<CraftIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [apiResult, setApiResult] = useState<any>(null);
+  const [apiResult, setApiResult] = useState<IngredientInfo | null>(null);
   const [loadingApi, setLoadingApi] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<CraftIngredient | null>(null);
@@ -72,72 +82,139 @@ export default function IngredientsPage() {
     setIngredients(prev => prev.filter(i => i.id !== id));
   }
 
+  async function lookupIngredient() {
+    if (!search.trim()) return;
+    setLoadingApi(true);
+    setApiResult(null);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a cosmetic formulation expert. Give me detailed ingredient info for: "${search.trim()}". Respond ONLY with a JSON object, no markdown, no backticks, no extra text:
+{
+  "ingredient_name": "full INCI or common name",
+  "description": "what it is and where it comes from in 2-3 sentences",
+  "benefits": ["benefit 1", "benefit 2", "benefit 3"],
+  "best_for": ["skin type or concern 1", "skin type or concern 2"],
+  "usage_rate": "typical usage percentage range e.g. 2-5%",
+  "category": "e.g. Emollient, Humectant, Preservative, Active, Surfactant, Occlusive",
+  "ph_notes": "any pH considerations as a string, or null",
+  "cautions": "any safety or formulation notes as a string, or null"
+}`
+          }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text ?? '';
+      const parsed: IngredientInfo = JSON.parse(text.replace(/```json|```/g, '').trim());
+      setApiResult(parsed);
+    } catch {
+      setApiResult({
+        ingredient_name: search.trim(),
+        description: 'Could not load info for this ingredient. Check the spelling and try again.',
+        benefits: [],
+        best_for: [],
+        usage_rate: '',
+        category: '',
+        ph_notes: null,
+        cautions: null,
+      });
+    }
+    setLoadingApi(false);
+  }
+
   const filtered = ingredients.filter(i =>
     !search || i.name.toLowerCase().includes(search.toLowerCase())
   );
 
- return (
-  <div>
-    <div className="page-header">
-      <div>
-        <h2>Ingredients 🧪</h2>
-        <p>
-          {ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} in your pantry
-        </p>
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h2>Ingredients 🧪</h2>
+          <p>{ingredients.length} ingredient{ingredients.length !== 1 ? 's' : ''} in your pantry</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={openAdd}>
+            <Plus size={14} /> Add Ingredient
+          </button>
+          <button className="btn btn-primary" onClick={lookupIngredient} disabled={loadingApi || !search.trim()}>
+            {loadingApi ? 'Looking up…' : '🔬 AI Lookup'}
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary" onClick={openAdd}>
-          <Plus size={14} /> Add Ingredient
-        </button>
-
-        <button
-          className="btn btn-primary"
-          onClick={async () => {
-  console.log("clicked");
-
-  if (!search) return;
-
-  setLoadingApi(true);
-
-  const res = await searchIngredient(search);
-
-  console.log("API RESULT:", res);
-
-  if (!res) {
-    setLoadingApi(false);
-    return;
-  }
-
-  setApiResult(res);
-
-  setLoadingApi(false);
-}}
-        >
-          AI Lookup
-        </button>
-      </div>
-    </div>
-
-    <div className="page-body">
+      <div className="page-body">
         <div style={{ position: 'relative', maxWidth: 360, marginBottom: 24 }}>
           <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }} />
-          <input className="form-input" style={{ paddingLeft: 32 }} placeholder="Search ingredients…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input
+            className="form-input"
+            style={{ paddingLeft: 32 }}
+            placeholder="Search or look up an ingredient…"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setApiResult(null); }}
+            onKeyDown={e => e.key === 'Enter' && lookupIngredient()}
+          />
         </div>
 
-{apiResult?.ingredient_name && (
-  <div className="card" style={{ marginBottom: 16 }}>
-    <h3>{apiResult.ingredient_name}</h3>
+        {apiResult && (
+          <div className="card" style={{ marginBottom: 24 }}>
+            <div className="card-body">
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)', marginBottom: 4 }}>{apiResult.ingredient_name}</div>
+                  {apiResult.category && <span className="badge badge-pink">{apiResult.category}</span>}
+                </div>
+                <button onClick={() => setApiResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0 }}>
+                  <X size={16} />
+                </button>
+              </div>
 
-    <p>{apiResult.description}</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 14 }}>{apiResult.description}</p>
 
-    <p><b>Benefits:</b> {apiResult.benefits?.join(", ")}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                {apiResult.benefits?.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Benefits</div>
+                    {apiResult.benefits.map((b, i) => (
+                      <div key={i} style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', marginBottom: 3 }}>• {b}</div>
+                    ))}
+                  </div>
+                )}
+                {apiResult.best_for?.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Best For</div>
+                    {apiResult.best_for.map((b, i) => (
+                      <div key={i} style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', marginBottom: 3 }}>• {b}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-    <p><b>Best for:</b> {apiResult.best_for?.join(", ")}</p>
+              {apiResult.usage_rate && (
+                <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600 }}>Usage rate:</span> {apiResult.usage_rate}
+                </div>
+              )}
+              {apiResult.ph_notes && (
+                <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600 }}>pH notes:</span> {apiResult.ph_notes}
+                </div>
+              )}
+              {apiResult.cautions && (
+                <div style={{ fontSize: '0.82rem', color: '#b45309', background: '#fef3c7', borderRadius: 8, padding: '8px 12px', marginTop: 8 }}>
+                  ⚠ {apiResult.cautions}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-    <p><b>Usage:</b> {apiResult.usage_rate}</p>
-  </div>
-)}
         {loading ? (
           <div className="loading-spinner">Loading ingredients…</div>
         ) : filtered.length === 0 ? (
