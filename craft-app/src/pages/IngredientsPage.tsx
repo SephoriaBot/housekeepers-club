@@ -99,11 +99,15 @@ export default function IngredientsPage() {
             if (!search) return;
 
             setLoadingApi(true);
-           const res = await searchIngredient(search);
 
-alert(JSON.stringify(res));
+            const { data, error } = await searchIngredient(search);
 
-setApiResult(res);
+if (error) {
+  console.log(error);
+  return;
+}
+
+setApiResult(data);
 
             setLoadingApi(false);
           }}
