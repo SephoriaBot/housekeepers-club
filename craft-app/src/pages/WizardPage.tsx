@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Wand2, RotateCcw, X, Clock, ChevronRight, BookmarkPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeCategory } from '../types';
+import { INGREDIENT_DB } from '../../api/ingredientDatabase';
 
 const CATEGORY_META: Record<RecipeCategory, { label: string; emoji: string; className: string; badge: string }> = {
   skincare: { label: 'Skincare', emoji: '🌸', className: 'cat-skincare', badge: 'badge-pink' },
@@ -535,34 +536,66 @@ export default function WizardPage() {
 
   const selectedGoals = answers.goal as string[];
 
-  const ingredientMap = [
-    {
-      name: 'Glycerin',
-      goals: ['Moisturizing & hydration'],
-      reasons: ['Excellent humectant']
-    },
-    {
-      name: 'Aloe Vera',
-      goals: ['Moisturizing & hydration', 'Soothing sensitive skin'],
-      reasons: ['Hydrating', 'Calms irritation']
-    },
-    {
-      name: 'Niacinamide',
-      goals: ['Acne-prone skin', 'Brightening', 'Anti-aging'],
-      reasons: ['Barrier support', 'Sebum control']
-    },
-    {
-      name: 'Colloidal Oatmeal',
-      goals: ['Soothing sensitive skin'],
-      reasons: ['Reduces itching and redness']
-    },
-    {
-      name: 'Panthenol',
-      goals: ['Soothing sensitive skin', 'Moisturizing & hydration'],
-      reasons: ['Skin repair']
-    },
-  ];
+  const scored = Object.values(INGREDIENT_DB)
+  .map(ingredient => {
+    let score = 0;
+    const reasons: string[] = [];
 
+    selectedGoals.forEach(goal => {
+      const text = [
+        ingredient.description,
+        ingredient.category,
+        ...ingredient.benefits,
+        ...ingredient.best_for
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      if (
+        goal === 'Moisturizing & hydration' &&
+        (
+          text.includes('moistur') ||
+          text.includes('hydrat') ||
+          text.includes('humectant')
+        )
+      ) {
+        score++;
+        reasons.push('Supports hydration');
+      }
+
+      if (
+        goal === 'Soothing sensitive skin' &&
+        (
+          text.includes('soothing') ||
+          text.includes('sensitive') ||
+          text.includes('anti-inflammatory')
+        )
+      ) {
+        score++;
+        reasons.push('Helps calm irritation');
+      }
+
+      if (
+        goal === 'Acne-prone skin' &&
+        (
+          text.includes('acne') ||
+          text.includes('sebum') ||
+          text.includes('oil')
+        )
+      ) {
+        score++;
+        reasons.push('Helpful for acne-prone skin');
+      }
+    });
+
+    return {
+      name: ingredient.ingredient_name,
+      score,
+      reasons
+    };
+  })
+  .filter(i => i.score > 0)
+  .sort((a, b) => b.score - a.score);
   const scored = ingredientMap
     .map(item => ({
       name: item.name,
