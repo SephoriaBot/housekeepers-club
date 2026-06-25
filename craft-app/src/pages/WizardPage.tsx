@@ -9,16 +9,6 @@ const CATEGORY_META: Record<RecipeCategory, { label: string; emoji: string; clas
   laundry:  { label: 'Laundry & Cleaning', emoji: '🧺', className: 'cat-laundry', badge: 'badge-green' },
 };
 
-const DIFF_BADGE: Record<string, string> = {
-  easy: 'badge-green', medium: 'badge-amber', advanced: 'badge-pink',
-  Beginner: 'badge-green', Intermediate: 'badge-amber', Advanced: 'badge-pink',
-};
-
-const DIFF_NORMALIZE: Record<string, 'easy' | 'medium' | 'advanced'> = {
-  Beginner: 'easy', Intermediate: 'medium', Advanced: 'advanced',
-  easy: 'easy', medium: 'medium', advanced: 'advanced',
-};
-
 interface WizardStep {
   id: string;
   question: string;
@@ -410,21 +400,6 @@ const FLOW: WizardStep[] = [
     type: 'single',
     key: 'type',
   },
-  {
-    id: 'difficulty',
-    question: 'How comfortable are you with this type of crafting?',
-    subtitle: 'We\'ll match the formula to your experience level.',
-    options: ['Beginner — keep it simple', 'Some experience — ready for more steps', 'Experienced — bring on the complexity'],
-    type: 'single',
-    key: 'difficulty',
-  },
-  {
-    id: 'time',
-    question: 'How much time do you have?',
-    options: ['Under 30 minutes', '30–60 minutes', 'I have all the time I need'],
-    type: 'single',
-    key: 'time',
-  },
 ];
 
 const GOAL_OPTIONS: Record<string, string[]> = {
@@ -445,11 +420,11 @@ const CAT_MAP: Record<string, RecipeCategory> = {
   'Laundry & Cleaning': 'laundry',
 };
 
-const DIFF_MAP: Record<string, string[]> = {
-  'Beginner — keep it simple': ['easy'],
-  'Some experience — ready for more steps': ['easy', 'medium'],
-  'Experienced — bring on the complexity': ['easy', 'medium', 'advanced'],
-};
+interface IngredientMatch {
+  name: string;
+  score: number;
+  reasons: string[];
+}
 
 export default function WizardPage() {
   const [step, setStep] = useState(0);
@@ -459,7 +434,7 @@ export default function WizardPage() {
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
   const [recipeSteps, setRecipeSteps] = useState<RecipeStep[]>([]);
-  const [formula, setFormula] = useState<Formula | null>(null);
+  const [matches, setMatches] = useState<IngredientMatch[]>([]);
   const [activeTab, setActiveTab] = useState<'library' | 'formula'>('formula');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -556,27 +531,53 @@ export default function WizardPage() {
   }
 
   async function runSearch() {
-    setLoading(true);
-    setSaved(false);
+  setLoading(true);
 
-    const goals = answers['goal'] as string[];
-    const goal = Array.isArray(goals) ? goals[0] : goals;
-    const type = answers['type'] as string;
-    const cat = answers['category'] as string;
-    const result = getFormula(CAT_MAP[cat] || cat, goal, type);
-    setFormula(result);
+  const selectedGoals = answers.goal as string[];
 
-    const dbCat = CAT_MAP[answers['category'] as string];
-    const diffs = DIFF_MAP[answers['difficulty'] as string] || ['easy', 'medium', 'advanced'];
-    const timeLimit = answers['time'] as string;
-    let query = supabase.from('recipes').select('*').eq('category', dbCat).in('difficulty', diffs);
-    if (timeLimit === 'Under 30 minutes') query = query.or('prep_time_min.is.null,prep_time_min.lte.30');
-    else if (timeLimit === '30–60 minutes') query = query.or('prep_time_min.is.null,prep_time_min.lte.60');
-    const { data } = await query.limit(6);
-    setResults(data || []);
-    setActiveTab(result ? 'formula' : 'library');
-    setLoading(false);
-  }
+  const ingredientMap = [
+    {
+      name: 'Glycerin',
+      goals: ['Moisturizing & hydration'],
+      reasons: ['Excellent humectant']
+    },
+    {
+      name: 'Aloe Vera',
+      goals: ['Moisturizing & hydration', 'Soothing sensitive skin'],
+      reasons: ['Hydrating', 'Calms irritation']
+    },
+    {
+      name: 'Niacinamide',
+      goals: ['Acne-prone skin', 'Brightening', 'Anti-aging'],
+      reasons: ['Barrier support', 'Sebum control']
+    },
+    {
+      name: 'Colloidal Oatmeal',
+      goals: ['Soothing sensitive skin'],
+      reasons: ['Reduces itching and redness']
+    },
+    {
+      name: 'Panthenol',
+      goals: ['Soothing sensitive skin', 'Moisturizing & hydration'],
+      reasons: ['Skin repair']
+    },
+  ];
+
+  const scored = ingredientMap
+    .map(item => ({
+      name: item.name,
+      score: item.goals.filter(g =>
+        selectedGoals.includes(g)
+      ).length,
+      reasons: item.reasons
+    }))
+    .filter(i => i.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  setMatches(scored);
+  setResults([]);
+  setLoading(false);
+}
 
   async function openRecipe(recipe: Recipe) {
     setSelected(recipe);
@@ -596,7 +597,7 @@ export default function WizardPage() {
     setSaved(false);
   }
 
-  if (results !== null) {
+  if (matches.length > 0) {
     return (
       <div>
         <div className="page-header">
@@ -619,73 +620,45 @@ export default function WizardPage() {
           </div>
 
           {/* Formula tab */}
-          {activeTab === 'formula' && (
-            formula ? (
-              <div className="card" style={{ maxWidth: 680 }}>
-                <div className="card-body">
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.15rem', color: 'var(--ink)', marginBottom: 6 }}>{formula.name}</h3>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 10px', fontStyle: 'italic' }}>{formula.description}</p>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <span className={`badge ${DIFF_BADGE[formula.difficulty] ?? 'badge-green'}`}>{formula.difficulty}</span>
-                        {formula.prep_time_min && <span className="badge badge-lavender"><Clock size={10} style={{ marginRight: 2 }} />{formula.prep_time_min} min</span>}
-                      </div>
-                    </div>
-                    <button
-                      className={`btn btn-sm ${saved ? 'btn-green' : 'btn-secondary'}`}
-                      onClick={saveFormulaToLibrary}
-                      disabled={saving || saved}
-                      style={{ flexShrink: 0 }}
-                    >
-                      <BookmarkPlus size={13} />
-                      {saving ? 'Saving…' : saved ? 'Saved!' : 'Save to Library'}
-                    </button>
-                  </div>
+          <div className="card">
+  <div className="card-body">
+    <h3>Recommended Ingredients</h3>
 
-                  <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Ingredients</div>
-                  <div style={{ marginBottom: 24 }}>
-                    {formula.ingredients.map((ing, i) => (
-                      <div key={i} className="ingredient-row">
-                        <span className="ingredient-amount">{ing.amount}{ing.unit ? ` ${ing.unit}` : ''}</span>
-                        <span style={{ flex: 1 }}>{ing.name}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{ing.function}</span>
-                      </div>
-                    ))}
-                  </div>
+    {matches.map((item, i) => (
+      <div
+        key={i}
+        style={{
+          padding: 12,
+          borderBottom: '1px solid var(--border)'
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            marginBottom: 4
+          }}
+        >
+          {item.name}
+        </div>
 
-                  <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Steps</div>
-                  <div style={{ marginBottom: 24 }}>
-                    {formula.steps.map((s, i) => (
-                      <div key={i} className="step-row">
-                        <div className="step-number">{i + 1}</div>
-                        <div className="step-text">{s}</div>
-                      </div>
-                    ))}
-                  </div>
+        <div
+          style={{
+            fontSize: '.85rem',
+            color: 'var(--ink-muted)'
+          }}
+        >
+          Match Score: {item.score}
+        </div>
 
-                  {formula.tips?.length > 0 && (
-                    <>
-                      <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Pro Tips</div>
-                      <div style={{ background: 'var(--lavender-light)', borderRadius: 10, padding: '12px 16px' }}>
-                        {formula.tips.map((tip, i) => (
-                          <div key={i} style={{ fontSize: '0.875rem', color: 'var(--lavender-dark)', marginBottom: i < formula.tips.length - 1 ? 8 : 0, lineHeight: 1.5 }}>
-                            💡 {tip}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="empty-state">
-                <div className="empty-icon">⚗️</div>
-                <h3>No formula yet for this combo</h3>
-                <p>Try a different goal or product type, or check your library.</p>
-              </div>
-            )
-          )}
+        {item.reasons.map((reason, r) => (
+          <div key={r}>
+            • {reason}
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+</div>
 
           {/* Library tab */}
           {activeTab === 'library' && (
