@@ -534,57 +534,37 @@ export default function WizardPage() {
   async function runSearch() {
   setLoading(true);
 
-  const selectedGoals = answers.goal as string[];
+  const selectedGoals = (answers.goal as string[]) ?? [];
+if (selectedGoals.length === 0) {
+  setLoading(false);
+  setMatches([]);
+  return;
+}
+  const all = Object.values(INGREDIENT_DB ?? {});
 
-  const scored = Object.values(INGREDIENT_DB)
-  .map(ingredient => {
+  const scored = all.map(ingredient => {
     let score = 0;
     const reasons: string[] = [];
 
+    const text = [
+      ingredient.description,
+      ingredient.category,
+      ...(ingredient.benefits ?? []),
+      ...(ingredient.best_for ?? [])
+    ].join(' ').toLowerCase();
+
     selectedGoals.forEach(goal => {
-      const text = [
-        ingredient.description,
-        ingredient.category,
-        ...ingredient.benefits,
-        ...ingredient.best_for
-      ]
-        .join(' ')
-        .toLowerCase();
+      const match =
+        (goal === 'Moisturizing & hydration' &&
+          (text.includes('moistur') || text.includes('hydrat') || text.includes('humectant'))) ||
+        (goal === 'Soothing sensitive skin' &&
+          (text.includes('soothing') || text.includes('sensitive') || text.includes('anti-inflammatory'))) ||
+        (goal === 'Acne-prone skin' &&
+          (text.includes('acne') || text.includes('sebum') || text.includes('oil')));
 
-      if (
-        goal === 'Moisturizing & hydration' &&
-        (
-          text.includes('moistur') ||
-          text.includes('hydrat') ||
-          text.includes('humectant')
-        )
-      ) {
+      if (match) {
         score++;
-        reasons.push('Supports hydration');
-      }
-
-      if (
-        goal === 'Soothing sensitive skin' &&
-        (
-          text.includes('soothing') ||
-          text.includes('sensitive') ||
-          text.includes('anti-inflammatory')
-        )
-      ) {
-        score++;
-        reasons.push('Helps calm irritation');
-      }
-
-      if (
-        goal === 'Acne-prone skin' &&
-        (
-          text.includes('acne') ||
-          text.includes('sebum') ||
-          text.includes('oil')
-        )
-      ) {
-        score++;
-        reasons.push('Helpful for acne-prone skin');
+        reasons.push(`Matches ${goal}`);
       }
     });
 
@@ -593,11 +573,22 @@ export default function WizardPage() {
       score,
       reasons
     };
-  })
-  .filter(i => i.score > 0)
-  .sort((a, b) => b.score - a.score);
-  setMatches(scored);
-  setResults([]);
+  });
+
+  const sorted = scored.sort((a, b) => b.score - a.score);
+
+  const filtered = sorted.filter(i => i.score > 0);
+
+  const finalMatches =
+    filtered.length > 0
+      ? filtered
+      : sorted.slice(0, 5).map(i => ({
+          ...i,
+          score: 0,
+          reasons: ['No direct match — showing closest options']
+        }));
+
+  setMatches(finalMatches);
   setLoading(false);
 }
 
@@ -619,7 +610,7 @@ export default function WizardPage() {
     setSaved(false);
   }
 
-  if (matches.length > 0) {
+  if (matches) {
     return (
       <div>
         <div className="page-header">
