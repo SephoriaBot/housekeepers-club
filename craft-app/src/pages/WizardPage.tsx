@@ -610,7 +610,7 @@ if (selectedGoals.length === 0) {
     setSaved(false);
   }
 
-  if (matches) {
+  if (matches.length > 0) {
     return (
       <div>
         <div className="page-header">
@@ -675,7 +675,7 @@ if (selectedGoals.length === 0) {
 
           {/* Library tab */}
           {activeTab === 'library' && (
-            results.length === 0 ? (
+            (results?.length ?? 0) === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📖</div>
                 <h3>No matches in your library</h3>
