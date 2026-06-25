@@ -596,18 +596,7 @@ export default function WizardPage() {
   })
   .filter(i => i.score > 0)
   .sort((a, b) => b.score - a.score);
-  const scoredResult = ingredientMap
-    .map(item => ({
-      name: item.name,
-      score: item.goals.filter(g =>
-        selectedGoals.includes(g)
-      ).length,
-      reasons: item.reasons
-    }))
-    .filter(i => i.score > 0)
-    .sort((a, b) => b.score - a.score);
-
-  setMatches(scoredResult);
+  setMatches(scored);
   setResults([]);
   setLoading(false);
 }
