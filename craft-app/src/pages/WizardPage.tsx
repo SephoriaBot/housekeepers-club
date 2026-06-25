@@ -596,7 +596,7 @@ export default function WizardPage() {
   })
   .filter(i => i.score > 0)
   .sort((a, b) => b.score - a.score);
-  const scored = ingredientMap
+  const scoredResult = ingredientMap
     .map(item => ({
       name: item.name,
       score: item.goals.filter(g =>
@@ -607,7 +607,7 @@ export default function WizardPage() {
     .filter(i => i.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  setMatches(scored);
+  setMatches(scoredResult);
   setResults([]);
   setLoading(false);
 }
