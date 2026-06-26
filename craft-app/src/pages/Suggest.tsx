@@ -97,9 +97,16 @@ if (mealType) params.set('type', mealType)
       // if this fails, we still save the meal without ingredients
     }
 
-    const { error } = await supabase.from('meals').upsert(
-      { name: m.title, time: `${m.readyInMinutes} min`, tags, ingredients },
-      { onConflict: 'name' }
+   const { error } = await supabase.from('meals').upsert(
+  {
+    spoonacular_id: m.id,
+    name: m.title,
+    time: `${m.readyInMinutes} min`,
+    tags,
+    ingredients,
+  },
+  { onConflict: 'name' }
+)
     )
     if (!error) setSaved(s => new Set([...s, m.id]))
     setSavingId(null)
