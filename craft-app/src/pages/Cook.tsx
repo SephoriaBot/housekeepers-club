@@ -53,7 +53,7 @@ function parseMeal(raw: Record<string, string>): MealData {
 export default function Cook() {
   const initialMeal = null
   const [search, setSearch] = useState(initialMeal ?? '')
-const [savedMeals, setSavedMeals] = useState<{ name: string }[]>([])
+const [savedMeals, setSavedMeals] = useState<{ id: number; name: string }[]>([])
   const [meal, setMeal] = useState<MealData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -71,31 +71,44 @@ const [savedMeals, setSavedMeals] = useState<{ name: string }[]>([])
 async function loadSavedMeals() {
   const { data } = await supabase
     .from('meals')
-    .select('name')
+    .select('id, name')
     .order('name')
 
   setSavedMeals(data ?? [])
 }
 
-  async function fetchMeal(query: string) {
-    if (!query.trim()) return
-    setLoading(true)
-    setError('')
-    setMeal(null)
-    setStep(0)
-    try {
-      const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`)
-      const data = await res.json()
-      if (!data.meals?.length) {
-        setError(`No recipe found for "${query}" — try a different search`)
-      } else {
-        setMeal(parseMeal(data.meals[0]))
-      }
-    } catch {
-      setError('Could not load recipe — check your connection')
-    }
-    setLoading(false)
+  async function fetchMeal(id: number) {
+  setLoading(true)
+  setError('')
+  setMeal(null)
+  setStep(0)
+
+  try {
+    const res = await fetch(
+      `https://api.spoonacular.com/recipes/${id}/information?apiKey=${import.meta.env.VITE_SPOONACULAR_API_KEY}`
+    )
+
+    const data = await res.json()
+
+    setMeal({
+      id: String(data.id),
+      title: data.title,
+      thumb: data.image,
+      category: data.dishTypes?.join(', ') || '',
+      ingredients: (data.extendedIngredients || []).map((i: any) => ({
+        name: i.name,
+        measure: i.originalMeasure || i.original || ''
+      })),
+      steps:
+        data.analyzedInstructions?.[0]?.steps?.map((s: any) => s.step) ??
+        ['No instructions available']
+    })
+  } catch {
+    setError('Could not load recipe.')
   }
+
+  setLoading(false)
+}
 
   const progressPct = meal
     ? meal.steps.length > 1 ? Math.round((step / (meal.steps.length - 1)) * 100) : 100
@@ -112,7 +125,7 @@ async function loadSavedMeals() {
       <button
         key={m.name}
         className={`${styles.chip} ${meal?.title === m.name ? styles.active : ''}`}
-        onClick={() => fetchMeal(m.name)}
+        onClick={() => fetchMeal(m.id)}
       >
         {m.name}
       </button>
