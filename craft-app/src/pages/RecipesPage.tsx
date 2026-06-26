@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, X, ChevronRight, Clock, Wand2 } from 'lucide-react';
+import { Search, X, ChevronRight, Clock, Wand2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Recipe, RecipeIngredient, RecipeStep, RecipeCategory } from '../types';
 
@@ -45,6 +45,14 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
     setSteps(stepRes.data || []);
   }
 
+  async function deleteRecipe(id: string) {
+    await supabase.from('recipe_ingredients').delete().eq('recipe_id', id);
+    await supabase.from('recipe_steps').delete().eq('recipe_id', id);
+    await supabase.from('recipes').delete().eq('id', id);
+    setRecipes(prev => prev.filter(r => r.id !== id));
+    setSelected(null);
+  }
+
   const filtered = recipes.filter(r => {
     const matchesCat = filterCat === 'all' || r.category === filterCat;
     const matchesSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || (r.description || '').toLowerCase().includes(search.toLowerCase());
@@ -64,7 +72,6 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
       </div>
 
       <div className="page-body">
-        {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 22, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-muted)' }} />
@@ -118,7 +125,6 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
         )}
       </div>
 
-      {/* Recipe Detail Modal */}
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
@@ -140,7 +146,6 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
               {selected.description && (
                 <p style={{ fontSize: '0.9rem', color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 20, fontStyle: 'italic' }}>{selected.description}</p>
               )}
-
               {ingredients.length > 0 && (
                 <>
                   <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 10, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -157,7 +162,6 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
                   </div>
                 </>
               )}
-
               {steps.length > 0 && (
                 <>
                   <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 14, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -171,14 +175,19 @@ export default function RecipesPage({ onNavigate }: RecipesPageProps) {
                   ))}
                 </>
               )}
-
               {selected.tags && selected.tags.length > 0 && (
                 <div className="tag-row" style={{ marginTop: 16 }}>
                   {selected.tags.map(tag => <span key={tag} className="badge badge-lavender">{tag}</span>)}
                 </div>
               )}
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => { if (confirm('Delete this recipe?')) deleteRecipe(selected.id); }}
+              >
+                <Trash2 size={13} /> Delete Recipe
+              </button>
               <button className="btn btn-ghost" onClick={() => setSelected(null)}>Close</button>
             </div>
           </div>
