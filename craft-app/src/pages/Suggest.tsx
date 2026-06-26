@@ -107,7 +107,7 @@ if (mealType) params.set('type', mealType)
   },
   { onConflict: 'name' }
 )
-    )
+    
     if (!error) setSaved(s => new Set([...s, m.id]))
     setSavingId(null)
   }
