@@ -269,6 +269,7 @@ export default function PlantsPage() {
       <PlantTroubleshooter plant={selectedPlant} />
     </div>
   </div>
+)
           </div>
 
           {/* Watering */}
