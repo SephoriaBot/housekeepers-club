@@ -163,9 +163,10 @@ export default function Planner({ onNavigate }: PlannerProps) {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>this week</h1>
-        <button className="btn-primary" onClick={() => onNavigate('suggest')}>
-          <i className="ti ti-sparkles" aria-hidden="true" /> get meal ideas
-        </button>
+        <button className="btn btn-primary" onClick={() => onNavigate('suggest')}>
+  <i className="ti ti-sparkles" aria-hidden="true" /> get meal ideas
+</button>
+
       </div>
 
       {loading ? <p style={{color:'var(--ink-muted)',fontSize:13}}>loading...</p> : (
