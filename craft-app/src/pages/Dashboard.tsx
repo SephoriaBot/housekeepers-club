@@ -35,7 +35,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
         supabase.from('pantry_items').select('id', { count: 'exact', head: true }),
         supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
-        supabase.from('appointments').select('id, title, date_time');
+        supabase.from('appointments').select('id, title, date_time'),
       ]);
 
       const pets = petsRes.data || [];
