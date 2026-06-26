@@ -12,6 +12,7 @@ import Pantry from './pages/Pantry';
 import Planner from './pages/Planner';
 import Suggest from './pages/Suggest';
 import Pets from './pages/Pets';
+import DailyPlanner from './pages/DailyPlanner';
 import { ToastProvider } from './hooks/useToast';
 
 type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'bread';
@@ -39,6 +40,8 @@ export default function App() {
           {page === 'planner' && <Planner onNavigate={navigate} />}
           {page === 'suggest'      && <Suggest />}
           {page === 'pets'         && <Pets />}
+          {page === 'dailyplanner' && <DailyPlanner />}
+
     
         </main>
       </div>
