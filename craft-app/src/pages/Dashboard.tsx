@@ -27,14 +27,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [laterReminders, setLaterReminders] = useState<ReminderItem[]>([]);
 
   useEffect(() => {
-    async function loadStats() {
-      const [plantsRes, recipesRes, petsRes, groceryRes, pantryRes, vaccinationsRes] = await Promise.all([
+    async function loadStats() { 
+      const [apptsRes, plantsRes, recipesRes, petsRes, groceryRes, pantryRes, vaccinationsRes] = await Promise.all([
         supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
         supabase.from('recipes').select('id', { count: 'exact', head: true }),
         supabase.from('pets').select('id, name'),
         supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
         supabase.from('pantry_items').select('id', { count: 'exact', head: true }),
         supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
+        supabase.from('appointments').select('id, title, date_time');
       ]);
 
       const pets = petsRes.data || [];
@@ -63,6 +64,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           emoji: '💉',
         });
       });
+
+    (apptsRes.data ?? []).forEach(a => {
+  allReminders.push({
+    id: `appt-${a.id}`,
+    label: a.title,
+    detail: 'appointment',
+    dueDate: new Date(a.date_time),
+    page: 'dailyplanner',
+    emoji: '📅',
+  });
+});
+
 
       const soon = allReminders
         .filter(r => {
