@@ -257,17 +257,6 @@ export default function PlantsPage() {
                 </div>
               )}
             </div>
-          
-    <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
-      <button
-        onClick={() => setSelectedPlant(null)}
-        style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
-      >
-        <X size={16} />
-      </button>
-
-      //<PlantTroubleshooter plant={selectedPlant} />
-    </div>
   </div>
 
           </div>
