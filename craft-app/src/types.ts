@@ -54,3 +54,12 @@ export interface PantryItem {
   level: 'full' | 'ok' | 'low'
   created_at?: string
 }
+
+export interface GardenPlant {
+  id: string
+  name: string
+  scientific_name: string | null
+  perenual_id: number | null
+  quantity: number
+  created_at: string
+}
