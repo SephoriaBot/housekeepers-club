@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2,
   UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb,
-  PawPrint, Sandwich, ChefHat, ChevronDown, ChevronRight
+  PawPrint, Sandwich, ChefHat, CalendarCheck, ChevronDown, ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +30,8 @@ const SECTIONS = [
     items: [
       { id: 'plants', label: 'My Plants', icon: Leaf },
       { id: 'pets', label: 'My Pets', icon: PawPrint },
+      { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
+
     ],
   },
   {
