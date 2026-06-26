@@ -216,7 +216,7 @@ export default function PlantsPage() {
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink)' }}>{p.name}</div>
                         {p.scientific_name && <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{p.scientific_name}</div>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                         <button
                           onClick={() => updateQuantity(p.id, p.quantity - 1)}
                           style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -236,40 +236,28 @@ export default function PlantsPage() {
                         >
                           <Trash2 size={13} />
                         </button>
-
-                                          <button
-                    onClick={() => setSelectedPlant(p)}
-                    style={{
-                      background: 'none',
-                      border: '1px solid var(--border)',
-                      borderRadius: 8,
-                      padding: '4px 8px',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      color: 'var(--ink-soft)'
-                    }}
-                  >
-                    Troubleshoot
-                  </button>
+<button
+  onClick={() => setSelectedPlant(p)}
+  style={{
+    background: 'none',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: '4px 8px',
+    fontSize: '0.75rem',
+    cursor: 'pointer',
+    color: 'var(--ink-soft)',
+    marginLeft: 6
+  }}
+>
+  Troubleshoot
+</button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-          {selectedPlant && (
-  <div
-    style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}
-  >
+          
     <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
       <button
         onClick={() => setSelectedPlant(null)}
@@ -335,6 +323,28 @@ export default function PlantsPage() {
           </div>
         </div>
       </div>
+
+{selectedPlant && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}
+  >
+    <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
+      <button
+        onClick={() => setSelectedPlant(null)}
+        style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
+      >
+        <X size={16} />
+      </button>
+
+      <PlantTroubleshooter plant={selectedPlant} />
     </div>
-  )
-}
+  </div>
+)}
