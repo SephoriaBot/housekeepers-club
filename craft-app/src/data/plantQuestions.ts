@@ -61,3 +61,51 @@ export const FOLLOW_UP_QUESTIONS: TroubleshootQuestion[] = [
     ]
   }
 ];
+
+export const PLANT_PROBLEMS = [
+  {
+    symptom: 'yellow_leaves',
+    diagnosis: 'Overwatering',
+    description: 'Roots staying too wet causing stress.',
+    fix: [
+      'Let soil dry out before next watering',
+      'Check drainage holes',
+      'Remove damaged leaves'
+    ],
+    prevention: [
+      'Water only when top 2 inches are dry',
+      'Use well-draining soil'
+    ],
+    confidence: 80,
+    severity: 'medium'
+  },
+  {
+    symptom: 'yellow_leaves',
+    diagnosis: 'Underwatering',
+    description: 'Plant not receiving enough moisture.',
+    fix: [
+      'Water deeply until soil is fully moist',
+      'Soak if soil is hydrophobic'
+    ],
+    prevention: [
+      'Check soil weekly',
+      'Don’t let it fully dry out too often'
+    ],
+    confidence: 70,
+    severity: 'medium'
+  },
+  {
+    symptom: 'drooping',
+    diagnosis: 'Water stress',
+    description: 'Either too much or too little water.',
+    fix: [
+      'Check soil moisture first',
+      'Adjust watering schedule accordingly'
+    ],
+    prevention: [
+      'Monitor soil before watering'
+    ],
+    confidence: 75,
+    severity: 'low'
+  }
+]
