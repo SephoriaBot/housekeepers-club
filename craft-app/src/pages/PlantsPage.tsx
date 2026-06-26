@@ -322,6 +322,7 @@ export default function PlantsPage() {
             </div>
           </div>
         </div>
+      </div>
     
 {selectedPlant && (
   <div
