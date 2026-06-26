@@ -1,15 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, Plus, Minus, Droplets, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-
-interface GardenPlant {
-  id: string
-  name: string
-  scientific_name: string | null
-  perenual_id: number | null
-  quantity: number
-  created_at: string
-}
+import PlantTroubleshooter from '../components/PlantTroubleshooter'
+import type { GardenPlant } from '../types'
 
 interface WateringEntry {
   id: string
@@ -28,11 +21,11 @@ export default function PlantsPage() {
   const [loading, setLoading] = useState(true)
   const [wateringLoading, setWateringLoading] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
+  const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -243,12 +236,52 @@ export default function PlantsPage() {
                         >
                           <Trash2 size={13} />
                         </button>
+
+                                          <button
+                    onClick={() => setSelectedPlant(p)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      padding: '4px 8px',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      color: 'var(--ink-soft)'
+                    }}
+                  >
+                    Troubleshoot
+                  </button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+          {selectedPlant && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}
+  >
+    <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
+      <button
+        onClick={() => setSelectedPlant(null)}
+        style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
+      >
+        <X size={16} />
+      </button>
+
+      <PlantTroubleshooter plant={selectedPlant} />
+    </div>
+  </div>
+)}
           </div>
 
           {/* Watering */}
