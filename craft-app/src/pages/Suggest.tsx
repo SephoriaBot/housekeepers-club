@@ -11,6 +11,13 @@ const MAX_TIMES = [
   { label: 'under 45 min', value: '45' },
 ]
 
+const MEAL_TYPES = [
+  { label: 'any meal', value: '' },
+  { label: 'breakfast', value: 'breakfast' },
+  { label: 'lunch', value: 'lunch' },
+  { label: 'dinner', value: 'main course' },
+]
+
 interface SpoonRecipe {
   id: number
   title: string
@@ -32,6 +39,7 @@ export default function Suggest() {
   const [selectedDiets, setSelectedDiets] = useState<Set<string>>(new Set(['vegetarian']))
   const [selectedIntolerances, setSelectedIntolerances] = useState<Set<string>>(new Set())
   const [maxTime, setMaxTime] = useState('')
+const [mealType, setMealType] = useState('')
   const [loading, setLoading] = useState(false)
   const [meals, setMeals] = useState<SpoonRecipe[]>([])
   const [saved, setSaved] = useState<Set<number>>(new Set())
@@ -56,6 +64,7 @@ export default function Suggest() {
     if (selectedDiets.size) params.set('diet', [...selectedDiets].join(','))
     if (selectedIntolerances.size) params.set('intolerances', [...selectedIntolerances].join(','))
     if (maxTime) params.set('maxReadyTime', maxTime)
+if (mealType) params.set('type', mealType)
 
     try {
       const res = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${params}`)
@@ -128,9 +137,24 @@ export default function Suggest() {
             {MAX_TIMES.map(t => (
               <button key={t.value} className={`${styles.chip} ${maxTime === t.value ? styles.active : ''}`}
                 onClick={() => setMaxTime(t.value)}>{t.label}</button>
-            ))}
+            ))} no
           </div>
         </div>
+
+<div className={styles.filterSection}>
+  <div className={styles.filterLabel}>meal</div>
+  <div className={styles.chips}>
+    {MEAL_TYPES.map(m => (
+      <button
+        key={m.value}
+        className={`${styles.chip} ${mealType === m.value ? styles.active : ''}`}
+        onClick={() => setMealType(m.value)}
+      >
+        {m.label}
+      </button>
+    ))}
+  </div>
+</div>
 
         <button className="btn-primary" onClick={fetchRecipes} disabled={loading} style={{marginTop:'0.75rem'}}>
           {loading
