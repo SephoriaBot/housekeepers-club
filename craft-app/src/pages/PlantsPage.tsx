@@ -310,30 +310,32 @@ export default function PlantsPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
- )   
-{selectedPlant && (
-  <div
-    style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}
-  >
-    <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
-      <button
-        onClick={() => setSelectedPlant(null)}
-        style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
-      >
-        <X size={16} />
-      </button>
+              </div>
 
-      <PlantTroubleshooter plant={selectedPlant} />
+      {selectedPlant && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
+            <button
+              onClick={() => setSelectedPlant(null)}
+              style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={16} />
+            </button>
+            <PlantTroubleshooter plant={selectedPlant} />
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}}
+  )
+}
+
