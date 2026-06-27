@@ -42,6 +42,7 @@ export default function App() {
           {page === 'suggest'      && <Suggest />}
           {page === 'pets'         && <Pets />}
           {page === 'dailyplanner' && <DailyPlanner />}
+          {page === 'maidwizard' && <MaidWizard />}
 
     
         </main>
