@@ -124,8 +124,9 @@ export default function PlantTroubleshooter({ plant }: Props) {
         </div>
       )}
 
-      {/* RESULT */}
-      {step > FOLLOW_UP_QUESTIONS.length && bestMatch && (
+            {/* RESULT */}
+      {step > FOLLOW_UP_QUESTIONS.length && (
+
         <div style={{ marginTop: 10 }}>
           <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6 }}>
             {bestMatch.diagnosis}
@@ -156,6 +157,13 @@ export default function PlantTroubleshooter({ plant }: Props) {
           <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
             Confidence: {bestMatch.confidence}% • Severity: {bestMatch.severity}
           </div>
+
+          {!bestMatch && (
+            <div style={{ color: 'var(--ink-muted)', fontSize: '0.85rem', marginBottom: 10 }}>
+              No specific diagnosis found for those symptoms. Try checking for pests, root rot, or environmental stress.
+            </div>
+          )}
+
 
           <button
             onClick={reset}
