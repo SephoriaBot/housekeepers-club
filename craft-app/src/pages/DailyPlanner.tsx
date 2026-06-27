@@ -67,7 +67,6 @@ export default function DailyPlanner() {
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: newDone } : t));
 
     if (newDone) {
-      // fire celebration sparks from click position
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
@@ -87,22 +86,14 @@ export default function DailyPlanner() {
     setTasks(prev => prev.filter(t => t.id !== id));
   }
 
- async function resetAll() {
-  const { error } = await supabase
-    .from('daily_tasks')
-    .update({ done: false })
-    .in(
-      'id',
-      tasks.map(t => t.id)
-    );
-
-  if (error) {
-    console.error(error);
-    return;
+  async function resetAll() {
+    const { error } = await supabase
+      .from('daily_tasks')
+      .update({ done: false })
+      .in('id', tasks.map(t => t.id));
+    if (error) { console.error(error); return; }
+    setTasks(prev => prev.map(t => ({ ...t, done: false })));
   }
-
-  setTasks(prev => prev.map(t => ({ ...t, done: false })));
-}
 
   async function addAppointment() {
     const title = newApptTitle.trim();
@@ -130,10 +121,10 @@ export default function DailyPlanner() {
   }
 
   const doneCount = tasks.filter(t => t.done).length;
+  const allDone = tasks.length > 0 && doneCount === tasks.length;
 
   return (
     <div>
-      {/* Celebration sparks */}
       {sparks.map(spark => (
         <SparkParticle key={spark.id} x={spark.x} y={spark.y} color={spark.color} />
       ))}
@@ -141,29 +132,61 @@ export default function DailyPlanner() {
       <div className="page-header">
         <div>
           <h2>Daily Planner ✨</h2>
-          <p>{doneCount}/{tasks.length} done today</p>
+          <p style={{ color: allDone ? 'var(--green-dark)' : undefined }}>
+            {allDone ? '🌸 All done! What a day~' : `${doneCount} of ${tasks.length} done today`}
+          </p>
         </div>
         {tasks.length > 0 && (
           <button className="btn btn-ghost" onClick={resetAll}>
-            <RotateCcw size={14} /> Reset All
+            <RotateCcw size={14} /> Reset
           </button>
         )}
       </div>
 
       <div className="page-body">
+
+        {/* Progress bar */}
+        {tasks.length > 0 && (
+          <div style={{ marginBottom: 24, maxWidth: 560 }}>
+            <div style={{
+              height: 10,
+              borderRadius: 99,
+              background: 'var(--border)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${(doneCount / tasks.length) * 100}%`,
+                background: allDone
+                  ? 'linear-gradient(90deg, #8FE0B8, #C9A6F0)'
+                  : 'linear-gradient(90deg, #C9A6F0, #FF8FC4)',
+                borderRadius: 99,
+                transition: 'width 0.4s ease',
+              }} />
+            </div>
+          </div>
+        )}
+
         <div className="grid-2" style={{ alignItems: 'start' }}>
 
           {/* Dailies checklist */}
-          <div className="card">
+          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
             <div className="card-body">
-              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 16 }}>
-                My Dailies
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>🌿</span>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  My Dailies
+                </span>
               </div>
 
               {loading ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>Loading…</p>
               ) : tasks.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16 }}>No tasks yet — add your first daily below.</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+                  No tasks yet — add your first daily below 🌱
+                </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   {tasks.map(task => (
@@ -171,35 +194,44 @@ export default function DailyPlanner() {
                       key={task.id}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px', borderRadius: 10,
-                        background: task.done ? 'var(--green-light)' : 'var(--cream)',
-                        border: `1.5px solid ${task.done ? 'var(--green-dark)' : 'var(--border)'}`,
+                        padding: '10px 14px', borderRadius: 14,
+                        background: task.done
+                          ? 'linear-gradient(135deg, #f0faf5, #faf0ff)'
+                          : 'var(--cream)',
+                        border: `1.5px solid ${task.done ? '#C9A6F0' : 'var(--border)'}`,
                         transition: 'all 0.2s ease',
+                        boxShadow: task.done ? '0 1px 6px rgba(201,166,240,0.15)' : 'none',
                       }}
                     >
+                      {/* Checkbox */}
                       <button
                         onClick={e => toggleTask(task, e)}
                         style={{
                           width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${task.done ? 'var(--green-dark)' : 'var(--border)'}`,
-                          background: task.done ? 'var(--green-dark)' : 'var(--white)',
+                          border: `2px solid ${task.done ? '#C9A6F0' : 'var(--border)'}`,
+                          background: task.done
+                            ? 'linear-gradient(135deg, #C9A6F0, #FF8FC4)'
+                            : 'var(--white)',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'all 0.15s ease',
+                          boxShadow: task.done ? '0 1px 4px rgba(201,166,240,0.4)' : 'none',
                         }}
                       >
                         {task.done && <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>✓</span>}
                       </button>
+
                       <span style={{
                         flex: 1, fontSize: '0.88rem',
-                        color: task.done ? 'var(--green-dark)' : 'var(--ink)',
+                        color: task.done ? '#9B72CF' : 'var(--ink)',
                         textDecoration: task.done ? 'line-through' : 'none',
                         transition: 'all 0.2s ease',
                       }}>
                         {task.label}
                       </span>
+
                       <button
                         onClick={() => deleteTask(task.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.5 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
                       >
                         <X size={13} />
                       </button>
@@ -215,9 +247,13 @@ export default function DailyPlanner() {
                   value={newTask}
                   onChange={e => setNewTask(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addTask()}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, borderRadius: 12 }}
                 />
-                <button className="btn btn-primary" style={{ padding: '8px 12px' }} onClick={addTask}>
+                <button
+                  className="btn btn-primary"
+                  style={{ padding: '8px 14px', borderRadius: 12 }}
+                  onClick={addTask}
+                >
                   <Plus size={14} />
                 </button>
               </div>
@@ -225,30 +261,43 @@ export default function DailyPlanner() {
           </div>
 
           {/* Appointments */}
-          <div className="card">
+          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
             <div className="card-body">
-              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 16 }}>
-                Upcoming Appointments
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: '1.1rem' }}>🌸</span>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Upcoming
+                </span>
               </div>
 
               {appointments.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16 }}>No appointments yet.</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+                  Nothing scheduled yet 🍃
+                </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   {appointments.map(appt => (
                     <div key={appt.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 12px', borderRadius: 10,
-                      background: 'var(--cream)', border: '1.5px solid var(--border)',
+                      padding: '10px 14px', borderRadius: 14,
+                      background: 'linear-gradient(135deg, #fff8f0, #fef6ff)',
+                      border: '1.5px solid #f0d9ff',
+                      boxShadow: '0 1px 4px rgba(201,166,240,0.1)',
                     }}>
-                      <Calendar size={14} style={{ color: 'var(--citrus-blue)', flexShrink: 0 }} />
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+                        background: 'linear-gradient(135deg, #fde8f5, #e8d5ff)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Calendar size={13} style={{ color: '#9B72CF' }} />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink)' }}>{appt.title}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#9B72CF', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
                       </div>
                       <button
                         onClick={() => deleteAppointment(appt.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.5 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
                       >
                         <X size={13} />
                       </button>
@@ -263,6 +312,7 @@ export default function DailyPlanner() {
                   placeholder="Appointment title…"
                   value={newApptTitle}
                   onChange={e => setNewApptTitle(e.target.value)}
+                  style={{ borderRadius: 12 }}
                 />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -270,15 +320,20 @@ export default function DailyPlanner() {
                     type="datetime-local"
                     value={newApptDate}
                     onChange={e => setNewApptDate(e.target.value)}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, borderRadius: 12 }}
                   />
-                  <button className="btn btn-primary" style={{ padding: '8px 12px' }} onClick={addAppointment}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ padding: '8px 14px', borderRadius: 12 }}
+                    onClick={addAppointment}
+                  >
                     <Plus size={14} />
                   </button>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
