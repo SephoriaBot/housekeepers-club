@@ -16,7 +16,6 @@ const SECTIONS = [
     label: 'Open Kitchen',
     icon: ChefHat,
     items: [
-      { id: 'maidwizard', label: 'Maid Wizard', icon: Sparkles },
       { id: 'cook', label: 'Cook', icon: UtensilsCrossed },
       { id: 'suggest', label: 'Suggestions', icon: Lightbulb },
       { id: 'planner', label: 'Meal Planner', icon: CalendarDays },
@@ -29,6 +28,7 @@ const SECTIONS = [
     label: 'Home',
     icon: Home,
     items: [
+      { id: 'maidwizard', label: 'Maid Wizard', icon: Sparkles },
       { id: 'plants', label: 'My Plants', icon: Leaf },
       { id: 'pets', label: 'My Pets', icon: PawPrint },
       { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
