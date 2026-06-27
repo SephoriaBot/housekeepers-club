@@ -14,6 +14,7 @@ import Suggest from './pages/Suggest';
 import Pets from './pages/Pets';
 import DailyPlanner from './pages/DailyPlanner';
 import MaidWizard from './pages/MaidWizard';
+import Wallet from './pages/Wallet';
 import { ToastProvider } from './hooks/useToast';
 
 type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'bread' | 'dailyplanner' | 'maidwizard';
@@ -44,7 +45,7 @@ export default function App() {
           {page === 'pets'         && <Pets />}
           {page === 'dailyplanner' && <DailyPlanner />}
           {page === 'maidwizard' && <MaidWizard />}
-
+          {page === 'wallet' && <Wallet />}
     
         </main>
       </div>
