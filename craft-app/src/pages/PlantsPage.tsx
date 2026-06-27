@@ -331,7 +331,8 @@ export default function PlantsPage() {
             >
               <X size={16} />
             </button>
-            <PlantTroubleshooter plant={selectedPlant} />
+            <PlantTroubleshooter key={selectedPlant.id} plant={selectedPlant} />
+
           </div>
         </div>
       )}
