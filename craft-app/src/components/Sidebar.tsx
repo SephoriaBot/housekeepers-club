@@ -32,6 +32,7 @@ const SECTIONS = [
       { id: 'plants', label: 'My Plants', icon: Leaf },
       { id: 'pets', label: 'My Pets', icon: PawPrint },
       { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
+      { id: 'wallet', label: 'Wallet', icon: Money },
 
     ],
   },
