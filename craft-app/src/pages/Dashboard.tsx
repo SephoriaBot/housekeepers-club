@@ -176,7 +176,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <section>
           <div className="section-label">Your Home at a Glance</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            <MiniStatCard emoji="🌿" label="Plants" value={stats.plants} addLabel="+ plant" onAdd={() => onNavigate('plants')} onClick={() => onNavigate('plants')} />
+            <MiniStatCard emoji="🌿" label="Plants" value={stats.plants} onClick={() => onNavigate('plants')} />
             <MiniStatCard emoji="🐾" label="Pets" value={stats.pets} addLabel="+ pet" onAdd={() => onNavigate('pets')} onClick={() => onNavigate('pets')} />
             <MiniStatCard emoji="🫐" label="Meal Planner" value={null} addLabel="open" onAdd={() => onNavigate('planner')} onClick={() => onNavigate('planner')} />
             <MiniStatCard emoji="🛒" label="Grocery" value={stats.groceryItems} addLabel="+ item" onAdd={() => onNavigate('grocery')} onClick={() => onNavigate('grocery')} />
