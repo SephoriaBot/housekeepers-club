@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from '../lib/supabase';
-import type { CSSProperties } from "react";
-import React from "react";
 
 interface Debt {
   id: number;
@@ -66,13 +64,6 @@ interface MonthSnap {
   activeTotal: number;
   deferredTotal: number;
 }
-
-
-const { data: budgetData, error: budgetError } = await supabase
-  .from("budget")
-  .select("*")
-  .eq("id", 1)
-  .maybeSingle(); // ← use maybeSingle() instead of single()
 
 const DEFAULT_DEBTS: Debt[] = [
   { id: 1, name: "Amir",             balance: 225.00,   original_balance: 225.00,   apr: 0,    min_payment: 0,   deferred: false },
@@ -202,7 +193,6 @@ export default function Wallet() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [paidOffDebt, setPaidOffDebt] = useState<string>("");
 
-  // Daddy Wizard state
   const [wizardCost, setWizardCost] = useState("");
   const [wizardDebtId, setWizardDebtId] = useState<number | null>(null);
   const [wizardResult, setWizardResult] = useState<{ days: number; payments: number } | null>(null);
@@ -226,81 +216,54 @@ export default function Wallet() {
   useEffect(() => { localStorage.setItem("milestones", JSON.stringify(milestones)); }, [milestones]);
 
   useEffect(() => {
-  async function loadData() {
-    setLoading(true);
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [
+          { data: debtData },
+          { data: budgetData },
+          { data: billData },
+          { data: paymentData },
+          { data: logData },
+          { data: savedData },
+        ] = await Promise.all([
+          supabase.from("debts").select("*"),
+          supabase.from("budget").select("*").eq("id", 1).maybeSingle(), // ← was .single(), throws if no row
+          supabase.from("bills").select("*").order("due_day"),
+          supabase.from("bill_payments").select("*"),
+          supabase.from("daily_log").select("*").order("date", { ascending: false }).limit(30),
+          supabase.from("saved_instead").select("*").order("saved_at", { ascending: false }),
+        ]);
 
-    try {
-      const { data: debtData, error: debtError } = await supabase.from("debts").select("*");
-      if (debtError) throw debtError;
-
-      const { data: budgetData, error: budgetError } = await supabase
-        .from("budget")
-        .select("*")
-        .eq("id", 1)
-        .single();
-      if (budgetError) throw budgetError;
-
-      const { data: billData, error: billError } = await supabase
-        .from("bills")
-        .select("*")
-        .order("due_day");
-      if (billError) throw billError;
-
-      const { data: paymentData, error: paymentError } = await supabase
-        .from("bill_payments")
-        .select("*");
-      if (paymentError) throw paymentError;
-
-      const { data: logData, error: logError } = await supabase
-        .from("daily_log")
-        .select("*")
-        .order("date", { ascending: false })
-        .limit(30);
-      if (logError) throw logError;
-
-      const { data: savedData, error: savedError } = await supabase
-        .from("saved_instead")
-        .select("*")
-        .order("saved_at", { ascending: false });
-      if (savedError) throw savedError;
-
-      if (debtData && debtData.length > 0) {
-        const fixed = debtData.map((d: Debt) => ({
-          ...d,
-          original_balance: d.original_balance || d.balance,
-        }));
-
-        setDebts(fixed);
-        setNextId(Math.max(...fixed.map((d: Debt) => d.id)) + 1);
-
-        await processMonthlyMinimums(fixed);
-      } else {
-        await supabase.from("debts").insert(DEFAULT_DEBTS);
-        setDebts(DEFAULT_DEBTS);
-      }
-
-      if (budgetData) setBudget(budgetData);
-
-      if (billData) {
-        setBills(billData);
-        if (billData.length > 0) {
-          setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
+        if (debtData && debtData.length > 0) {
+          const fixed = debtData.map((d: Debt) => ({
+            ...d,
+            original_balance: d.original_balance || d.balance,
+          }));
+          setDebts(fixed);
+          setNextId(Math.max(...fixed.map((d: Debt) => d.id)) + 1);
+          await processMonthlyMinimums(fixed);
+        } else {
+          await supabase.from("debts").insert(DEFAULT_DEBTS);
+          setDebts(DEFAULT_DEBTS);
         }
+
+        if (budgetData) setBudget(budgetData); // falls back to default state if null
+        if (billData) {
+          setBills(billData);
+          if (billData.length > 0) setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
+        }
+        if (paymentData) setPayments(paymentData);
+        if (logData) setDailyLogs(logData);
+        if (savedData) setSavedInstead(savedData);
+      } catch (err) {
+        console.error("Wallet loadData failed:", err);
+      } finally {
+        setLoading(false); // ← always runs, even if something throws
       }
-
-      if (paymentData) setPayments(paymentData);
-      if (logData) setDailyLogs(logData);
-      if (savedData) setSavedInstead(savedData);
-
-    } catch (err) {
-      console.error("Error loading wallet data:", err);
-    } finally {
-      setLoading(false);
     }
-  }
-
-  loadData();
-}, []);
+    loadData();
+  }, []);
 
   useEffect(() => {
     async function ensurePaymentsExist() {
@@ -518,7 +481,6 @@ export default function Wallet() {
     }
   }
 
-  // Daddy Wizard calculations
   function runWizard() {
     const cost = parseFloat(wizardCost);
     if (!cost || !wizardDebtId) return;
@@ -602,7 +564,7 @@ export default function Wallet() {
   };
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>🍓</div>
         <div style={{ color: "#D4A5C9", fontSize: 14, fontWeight: 700 }}>Loading your sweet tracker...</div>
@@ -639,7 +601,6 @@ export default function Wallet() {
         ))}
       </div>
 
-      {/* Motivational strip */}
       <div style={{ background: "#FFF0F5", borderBottom: "2px solid #FFD4E5", padding: "10px 20px", display: "flex", gap: 12, overflowX: "auto" as const, alignItems: "center" }}>
         {[
           { icon: "🔥", label: "No-Spend Streak", val: `${streakCount} ${streakCount === 1 ? "day" : "days"}`, color: "#E85D75" },
