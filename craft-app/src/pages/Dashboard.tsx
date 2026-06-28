@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Leaf, BookOpen, PawPrint, ShoppingCart, Archive } from 'lucide-react';
+import { Leaf, BookOpen, PawPrint, ShoppingCart, Archive, Sparkles, Plus, Check, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface DashboardProps {
@@ -15,6 +15,21 @@ interface ReminderItem {
   emoji: string;
 }
 
+interface Focus {
+  id: string;
+  title: string;
+  estimated_minutes: number | null;
+  completed: boolean;
+  date: string;
+}
+
+interface MealEntry {
+  meal_type: string;
+  meal_name: string;
+}
+
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [stats, setStats] = useState({
     plants: 0,
@@ -25,77 +40,109 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   });
   const [soonReminders, setSoonReminders] = useState<ReminderItem[]>([]);
   const [laterReminders, setLaterReminders] = useState<ReminderItem[]>([]);
+  const [focuses, setFocuses] = useState<Focus[]>([]);
+  const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
+  const [newFocus, setNewFocus] = useState('');
+  const [newFocusMins, setNewFocusMins] = useState('');
+  const [addingFocus, setAddingFocus] = useState(false);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayName = DAY_NAMES[new Date().getDay()];
 
   useEffect(() => {
-    async function loadStats() { 
-      const [plantsRes, recipesRes, petsRes, groceryRes, pantryRes, vaccinationsRes, apptsRes] = await Promise.all([
-        supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
-        supabase.from('recipes').select('id', { count: 'exact', head: true }),
-        supabase.from('pets').select('id, name'),
-        supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
-        supabase.from('pantry_items').select('id', { count: 'exact', head: true }),
-        supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
-        supabase.from('appointments').select('id, title, date_time'),
-      ]);
-
-      const pets = petsRes.data || [];
-      const vaccinations = vaccinationsRes.data || [];
-      const today = new Date();
-
-      setStats({
-        plants: plantsRes.count || 0,
-        recipes: recipesRes.count || 0,
-        pets: pets.length,
-        groceryItems: groceryRes.count || 0,
-        pantryItems: pantryRes.count || 0,
-      });
-
-      const allReminders: ReminderItem[] = [];
-
-      vaccinations.forEach(v => {
-        if (!v.next_due) return;
-        const pet = pets.find(p => p.id === v.pet_id);
-        allReminders.push({
-          id: `vax-${v.id}`,
-          label: `${pet?.name ?? 'Pet'} — ${v.name}`,
-          detail: new Date(v.next_due) < today ? 'vaccine overdue' : 'vaccine due',
-          dueDate: new Date(v.next_due),
-          page: 'pets',
-          emoji: '💉',
-        });
-      });
-
-    (apptsRes.data ?? []).forEach(a => {
-  allReminders.push({
-    id: `appt-${a.id}`,
-    label: a.title,
-    detail: 'appointment',
-    dueDate: new Date(a.date_time),
-    page: 'dailyplanner',
-    emoji: '📅',
-  });
-});
-
-
-      const soon = allReminders
-        .filter(r => {
-          const diffDays = (r.dueDate.getTime() - today.getTime()) / 86400000;
-          return diffDays <= 30;
-        })
-        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-
-      const later = allReminders
-        .filter(r => {
-          const diffDays = (r.dueDate.getTime() - today.getTime()) / 86400000;
-          return diffDays > 30;
-        })
-        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-
-      setSoonReminders(soon);
-      setLaterReminders(later);
-    }
-    loadStats();
+    loadAll();
   }, []);
+
+  async function loadAll() {
+    const [
+      plantsRes, recipesRes, petsRes, groceryRes, pantryRes,
+      vaccinationsRes, apptsRes, focusRes, mealsRes,
+    ] = await Promise.all([
+      supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
+      supabase.from('recipes').select('id', { count: 'exact', head: true }),
+      supabase.from('pets').select('id, name'),
+      supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
+      supabase.from('pantry_items').select('id', { count: 'exact', head: true }),
+      supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
+      supabase.from('appointments').select('id, title, date_time'),
+      supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
+      supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
+    ]);
+
+    const pets = petsRes.data || [];
+    const vaccinations = vaccinationsRes.data || [];
+    const today = new Date();
+
+    setStats({
+      plants: plantsRes.count || 0,
+      recipes: recipesRes.count || 0,
+      pets: pets.length,
+      groceryItems: groceryRes.count || 0,
+      pantryItems: pantryRes.count || 0,
+    });
+
+    setFocuses(focusRes.data || []);
+    setTodayMeals(mealsRes.data || []);
+
+    const allReminders: ReminderItem[] = [];
+    vaccinations.forEach(v => {
+      if (!v.next_due) return;
+      const pet = pets.find(p => p.id === v.pet_id);
+      allReminders.push({
+        id: `vax-${v.id}`,
+        label: `${pet?.name ?? 'Pet'} — ${v.name}`,
+        detail: new Date(v.next_due) < today ? 'vaccine overdue' : 'vaccine due',
+        dueDate: new Date(v.next_due),
+        page: 'pets',
+        emoji: '💉',
+      });
+    });
+    (apptsRes.data ?? []).forEach(a => {
+      allReminders.push({
+        id: `appt-${a.id}`,
+        label: a.title,
+        detail: 'appointment',
+        dueDate: new Date(a.date_time),
+        page: 'dailyplanner',
+        emoji: '📅',
+      });
+    });
+
+    const soon = allReminders.filter(r => (r.dueDate.getTime() - today.getTime()) / 86400000 <= 30)
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    const later = allReminders.filter(r => (r.dueDate.getTime() - today.getTime()) / 86400000 > 30)
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+    setSoonReminders(soon);
+    setLaterReminders(later);
+  }
+
+  async function addFocus() {
+    if (!newFocus.trim()) return;
+    const { data } = await supabase.from('focuses').insert({
+      title: newFocus.trim(),
+      estimated_minutes: newFocusMins ? parseInt(newFocusMins) : null,
+      date: todayStr,
+      completed: false,
+    }).select().single();
+    if (data) setFocuses(prev => [...prev, data]);
+    setNewFocus('');
+    setNewFocusMins('');
+    setAddingFocus(false);
+  }
+
+  async function toggleFocus(focus: Focus) {
+    const { data } = await supabase.from('focuses')
+      .update({ completed: !focus.completed })
+      .eq('id', focus.id)
+      .select().single();
+    if (data) setFocuses(prev => prev.map(f => f.id === focus.id ? data : f));
+  }
+
+  async function deleteFocus(id: string) {
+    await supabase.from('focuses').delete().eq('id', id);
+    setFocuses(prev => prev.filter(f => f.id !== id));
+  }
 
   function formatDueLabel(date: Date) {
     const today = new Date();
@@ -107,44 +154,189 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
+  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const sortedMeals = [...todayMeals].sort(
+    (a, b) => MEAL_ORDER.indexOf(a.meal_type.toLowerCase()) - MEAL_ORDER.indexOf(b.meal_type.toLowerCase())
+  );
+
+  const completedFocuses = focuses.filter(f => f.completed).length;
+
   return (
     <div>
       <div className="page-header">
         <div>
-          <h2>Welcome back 🌸</h2>
-          <p>Your craft & garden sanctuary</p>
+          <h2>Welcome home ☁️ 🌸 ☀️</h2>
+          <p>{todayName} · {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</p>
         </div>
       </div>
-      <div className="page-body">
 
+      <div className="page-body" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+        {/* ── QUICK STATS ── */}
+        <section>
+          <div className="section-label">Your Home at a Glance</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <MiniStatCard emoji="🌿" label="Plants" value={stats.plants} addLabel="+ plant" onAdd={() => onNavigate('plants')} onClick={() => onNavigate('plants')} />
+            <MiniStatCard emoji="🐾" label="Pets" value={stats.pets} addLabel="+ pet" onAdd={() => onNavigate('pets')} onClick={() => onNavigate('pets')} />
+            <MiniStatCard emoji="📖" label="Recipes" value={stats.recipes} addLabel="+ recipe" onAdd={() => onNavigate('add-recipe')} onClick={() => onNavigate('recipes')} />
+            <MiniStatCard emoji="🛒" label="Grocery" value={stats.groceryItems} addLabel="+ item" onAdd={() => onNavigate('grocery')} onClick={() => onNavigate('grocery')} />
+            <MiniStatCard emoji="🫙" label="Pantry" value={stats.pantryItems} addLabel="+ item" onAdd={() => onNavigate('pantry')} onClick={() => onNavigate('pantry')} />
+            <MiniStatCard emoji="🧹" label="Clean" value={null} addLabel="wizard" onAdd={() => onNavigate('maidwizard')} onClick={() => onNavigate('maidwizard')} />
+          </div>
+        </section>
+
+        {/* ── TODAY'S FOCUS ── */}
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="section-label" style={{ marginBottom: 0 }}>
+              ✨ Today's Focus
+              {focuses.length > 0 && (
+                <span style={{ marginLeft: 8, fontWeight: 600, color: 'var(--pink-dark)', fontSize: '0.65rem' }}>
+                  {completedFocuses}/{focuses.length} done
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setAddingFocus(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 12,
+                background: 'var(--blush)', border: '1.5px solid var(--border)',
+                color: 'var(--pink-dark)', fontSize: '0.7rem', fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+              }}
+            >
+              <Plus size={11} /> Add
+            </button>
+          </div>
+
+          {addingFocus && (
+            <div style={{
+              background: 'var(--white)', border: '1.5px solid var(--border)',
+              borderRadius: 18, padding: 14, marginBottom: 10,
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              <input
+                className="form-input"
+                placeholder="What's the focus? e.g. Bathroom Reset"
+                value={newFocus}
+                onChange={e => setNewFocus(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addFocus()}
+                style={{ fontSize: '0.85rem' }}
+              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  className="form-input"
+                  placeholder="Est. minutes (optional)"
+                  value={newFocusMins}
+                  onChange={e => setNewFocusMins(e.target.value)}
+                  style={{ fontSize: '0.82rem', flex: 1 }}
+                  type="number"
+                />
+                <button className="btn btn-primary btn-sm" onClick={addFocus}>Save</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setAddingFocus(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {focuses.length === 0 && !addingFocus ? (
+            <div style={{
+              background: 'var(--white)', border: '1.5px dashed var(--border)',
+              borderRadius: 18, padding: '18px 16px', textAlign: 'center',
+              color: 'var(--ink-muted)', fontSize: '0.82rem',
+            }}>
+              No focuses set for today — add one to get started 🌸
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {focuses.map(f => (
+                <div
+                  key={f.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: f.completed ? 'var(--blush)' : 'var(--white)',
+                    border: `1.5px solid ${f.completed ? 'var(--pink-light)' : 'var(--border)'}`,
+                    borderRadius: 18, padding: '12px 14px',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <button
+                    onClick={() => toggleFocus(f)}
+                    style={{
+                      width: 22, height: 22, borderRadius: '50%',
+                      border: `2px solid ${f.completed ? 'var(--pink-dark)' : 'var(--border)'}`,
+                      background: f.completed ? 'var(--pink-dark)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', flexShrink: 0,
+                    }}
+                  >
+                    {f.completed && <Check size={12} color="white" />}
+                  </button>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: '0.88rem', fontWeight: 600,
+                      color: f.completed ? 'var(--ink-muted)' : 'var(--ink)',
+                      textDecoration: f.completed ? 'line-through' : 'none',
+                    }}>
+                      {f.title}
+                    </div>
+                    {f.estimated_minutes && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--ink-muted)', marginTop: 2 }}>
+                        <Clock size={10} /> Est. {f.estimated_minutes} min
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => deleteFocus(f.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: '0.75rem', padding: '2px 4px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── TODAY'S MEALS ── */}
+        {sortedMeals.length > 0 && (
+          <section>
+            <div className="section-label">Today's Meals</div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              {sortedMeals.map((m, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flexShrink: 0,
+                    background: 'var(--white)', border: '1.5px solid var(--border)',
+                    borderRadius: 18, padding: '10px 14px', minWidth: 120,
+                  }}
+                >
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)', marginBottom: 4 }}>
+                    {m.meal_type}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
+                    {m.meal_name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── UPCOMING REMINDERS ── */}
         {(soonReminders.length > 0 || laterReminders.length > 0) && (
-          <div style={{ marginBottom: 32 }}>
+          <section>
+            <div className="section-label">Upcoming</div>
 
             {soonReminders.length > 0 && (
-              <div style={{ marginBottom: laterReminders.length > 0 ? 14 : 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--pink-dark)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                   Soon
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {soonReminders.map(r => (
-                    <div
-                      key={r.id}
-                      onClick={() => onNavigate(r.page)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'var(--white)', border: '1px solid var(--border)',
-                        borderRadius: 12, padding: '10px 14px', cursor: 'pointer',
-                        fontSize: '0.85rem', flexShrink: 0,
-                      }}
-                    >
-                      <span style={{ fontSize: '1.05rem' }}>{r.emoji}</span>
-                      <span style={{ flex: 1, color: 'var(--ink)' }}>
-                        {r.label} <span style={{ color: 'var(--ink-muted)' }}>· {r.detail}</span>
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
-                        {formatDueLabel(r.dueDate)}
-                      </span>
-                    </div>
+                    <ReminderRow key={r.id} r={r} onNavigate={onNavigate} formatDueLabel={formatDueLabel} muted={false} />
                   ))}
                 </div>
               </div>
@@ -152,89 +344,85 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
             {laterReminders.length > 0 && (
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                   Later
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {laterReminders.map(r => (
-                    <div
-                      key={r.id}
-                      onClick={() => onNavigate(r.page)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'var(--cream)', border: '1px solid var(--border)',
-                        borderRadius: 12, padding: '8px 14px', cursor: 'pointer',
-                        fontSize: '0.82rem', opacity: 0.8, flexShrink: 0,
-                      }}
-                    >
-                      <span style={{ fontSize: '0.95rem' }}>{r.emoji}</span>
-                      <span style={{ flex: 1, color: 'var(--ink-soft)' }}>
-                        {r.label} <span style={{ color: 'var(--ink-muted)' }}>· {r.detail}</span>
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
-                        {formatDueLabel(r.dueDate)}
-                      </span>
-                    </div>
+                    <ReminderRow key={r.id} r={r} onNavigate={onNavigate} formatDueLabel={formatDueLabel} muted={true} />
                   ))}
                 </div>
               </div>
             )}
-
-          </div>
+          </section>
         )}
-
-        <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-          Open Kitchen
-        </div>
-        <div className="grid-2" style={{ marginBottom: 28 }}>
-          <StatCard icon={<ShoppingCart size={22} />} label="Grocery Items" value={stats.groceryItems} color="amber" onClick={() => onNavigate('grocery')} />
-          <StatCard icon={<Archive size={22} />} label="Pantry Items" value={stats.pantryItems} color="green" onClick={() => onNavigate('pantry')} />
-        </div>
-
-        <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-          Home
-        </div>
-        <div className="grid-2" style={{ marginBottom: 28 }}>
-          <StatCard icon={<Leaf size={22} />} label="Plants" value={stats.plants} color="green" onClick={() => onNavigate('plants')} />
-          <StatCard icon={<PawPrint size={22} />} label="Pets" value={stats.pets} color="pink" onClick={() => onNavigate('pets')} />
-        </div>
-
-        <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-          Craft Table
-        </div>
-        <div className="grid-2">
-          <StatCard icon={<BookOpen size={22} />} label="Recipes" value={stats.recipes} color="lavender" onClick={() => onNavigate('recipes')} />
-        </div>
 
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, color, onClick }: { icon: React.ReactNode; label: string; value: number; color: string; onClick: () => void }) {
-  const colorMap: Record<string, string> = {
-    green: 'var(--green-light)',
-    amber: 'var(--amber-light)',
-    lavender: 'var(--lavender-light)',
-    pink: 'var(--blush)',
-  };
-  const iconColorMap: Record<string, string> = {
-    green: 'var(--green-dark)',
-    amber: 'var(--amber)',
-    lavender: 'var(--lavender-dark)',
-    pink: 'var(--pink-dark)',
-  };
+// ── MINI STAT CARD ──
+function MiniStatCard({ emoji, label, value, addLabel, onAdd, onClick }: {
+  emoji: string; label: string; value: number | null;
+  addLabel: string; onAdd: () => void; onClick: () => void;
+}) {
   return (
-    <div className="card" style={{ cursor: 'pointer' }} onClick={onClick}>
-      <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 10, background: colorMap[color], display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColorMap[color], flexShrink: 0 }}>
-          {icon}
+    <div
+      className="card"
+      style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+      onClick={onClick}
+    >
+      <div className="card-body" style={{ padding: '12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: '1.3rem' }}>{emoji}</span>
+          {value !== null && (
+            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{value}</span>
+          )}
         </div>
-        <div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--ink)' }}>{value}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+          {label}
         </div>
+        <button
+          onClick={e => { e.stopPropagation(); onAdd(); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 8px', borderRadius: 10,
+            background: 'var(--blush)', border: '1px solid var(--border)',
+            color: 'var(--pink-dark)', fontSize: '0.65rem', fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          <Plus size={9} /> {addLabel}
+        </button>
       </div>
+    </div>
+  );
+}
+
+// ── REMINDER ROW ──
+function ReminderRow({ r, onNavigate, formatDueLabel, muted }: {
+  r: ReminderItem; onNavigate: (p: string) => void;
+  formatDueLabel: (d: Date) => string; muted: boolean;
+}) {
+  return (
+    <div
+      onClick={() => onNavigate(r.page)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: muted ? 'var(--blush)' : 'var(--white)',
+        border: '1.5px solid var(--border)',
+        borderRadius: 14, padding: '9px 13px', cursor: 'pointer',
+        fontSize: '0.82rem', opacity: muted ? 0.8 : 1,
+      }}
+    >
+      <span style={{ fontSize: '1rem' }}>{r.emoji}</span>
+      <span style={{ flex: 1, color: muted ? 'var(--ink-soft)' : 'var(--ink)' }}>
+        {r.label} <span style={{ color: 'var(--ink-muted)' }}>· {r.detail}</span>
+      </span>
+      <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
+        {formatDueLabel(r.dueDate)}
+      </span>
     </div>
   );
 }
