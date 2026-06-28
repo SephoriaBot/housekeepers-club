@@ -66,6 +66,13 @@ interface MonthSnap {
   deferredTotal: number;
 }
 
+
+const { data: budgetData, error: budgetError } = await supabase
+  .from("budget")
+  .select("*")
+  .eq("id", 1)
+  .maybeSingle(); // ← use maybeSingle() instead of single()
+
 const DEFAULT_DEBTS: Debt[] = [
   { id: 1, name: "Amir",             balance: 225.00,   original_balance: 225.00,   apr: 0,    min_payment: 0,   deferred: false },
   { id: 2, name: "Midland (Ulta)",   balance: 713.57,   original_balance: 713.57,   apr: 0,    min_payment: 20,  deferred: false },
