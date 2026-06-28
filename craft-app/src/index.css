@@ -624,3 +624,12 @@ h1, h2, h3 {
   background: #C4AEED;
   border-radius: 10px;
 }
+
+.section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
