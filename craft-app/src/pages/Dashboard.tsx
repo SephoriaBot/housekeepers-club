@@ -178,10 +178,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             <MiniStatCard emoji="🌿" label="Plants" value={stats.plants} addLabel="+ plant" onAdd={() => onNavigate('plants')} onClick={() => onNavigate('plants')} />
             <MiniStatCard emoji="🐾" label="Pets" value={stats.pets} addLabel="+ pet" onAdd={() => onNavigate('pets')} onClick={() => onNavigate('pets')} />
-            <MiniStatCard emoji="📖" label="Recipes" value={stats.recipes} addLabel="+ recipe" onAdd={() => onNavigate('add-recipe')} onClick={() => onNavigate('recipes')} />
+            <MiniStatCard emoji="📅" label="Meal Planner" value={null} addLabel="open" onAdd={() => onNavigate('planner')} onClick={() => onNavigate('planner')} />
             <MiniStatCard emoji="🛒" label="Grocery" value={stats.groceryItems} addLabel="+ item" onAdd={() => onNavigate('grocery')} onClick={() => onNavigate('grocery')} />
-            <MiniStatCard emoji="🫙" label="Pantry" value={stats.pantryItems} addLabel="+ item" onAdd={() => onNavigate('pantry')} onClick={() => onNavigate('pantry')} />
-            <MiniStatCard emoji="🧹" label="Clean" value={null} addLabel="wizard" onAdd={() => onNavigate('maidwizard')} onClick={() => onNavigate('maidwizard')} />
+            <MiniStatCard emoji="🗓️" label="Daily Planner" value={null} addLabel="open" onAdd={() => onNavigate('dailyplanner')} onClick={() => onNavigate('dailyplanner')} />
+            <MiniStatCard emoji="🍓" label="Wallet" value={null} addLabel="open" onAdd={() => onNavigate('wallet')} onClick={() => onNavigate('wallet')} />
           </div>
         </section>
 
