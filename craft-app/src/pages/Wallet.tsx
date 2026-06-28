@@ -218,41 +218,81 @@ export default function Wallet() {
   useEffect(() => { localStorage.setItem("milestones", JSON.stringify(milestones)); }, [milestones]);
 
   useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      const { data: debtData } = await supabase.from("debts").select("*");
-      const { data: budgetData } = await supabase.from("budget").select("*").eq("id", 1).single();
-      const { data: billData } = await supabase.from("bills").select("*").order("due_day");
-      const { data: paymentData } = await supabase.from("bill_payments").select("*");
-      const { data: logData } = await supabase.from("daily_log").select("*").order("date", { ascending: false }).limit(30);
-      const { data: savedData } = await supabase.from("saved_instead").select("*").order("saved_at", { ascending: false });
+  async function loadData() {
+    setLoading(true);
+
+    try {
+      const { data: debtData, error: debtError } = await supabase.from("debts").select("*");
+      if (debtError) throw debtError;
+
+      const { data: budgetData, error: budgetError } = await supabase
+        .from("budget")
+        .select("*")
+        .eq("id", 1)
+        .single();
+      if (budgetError) throw budgetError;
+
+      const { data: billData, error: billError } = await supabase
+        .from("bills")
+        .select("*")
+        .order("due_day");
+      if (billError) throw billError;
+
+      const { data: paymentData, error: paymentError } = await supabase
+        .from("bill_payments")
+        .select("*");
+      if (paymentError) throw paymentError;
+
+      const { data: logData, error: logError } = await supabase
+        .from("daily_log")
+        .select("*")
+        .order("date", { ascending: false })
+        .limit(30);
+      if (logError) throw logError;
+
+      const { data: savedData, error: savedError } = await supabase
+        .from("saved_instead")
+        .select("*")
+        .order("saved_at", { ascending: false });
+      if (savedError) throw savedError;
 
       if (debtData && debtData.length > 0) {
-        // Ensure original_balance is set for any debt that doesn't have it
         const fixed = debtData.map((d: Debt) => ({
           ...d,
           original_balance: d.original_balance || d.balance,
         }));
+
         setDebts(fixed);
         setNextId(Math.max(...fixed.map((d: Debt) => d.id)) + 1);
-        // Process monthly minimums after loading
+
         await processMonthlyMinimums(fixed);
       } else {
         await supabase.from("debts").insert(DEFAULT_DEBTS);
         setDebts(DEFAULT_DEBTS);
       }
+
       if (budgetData) setBudget(budgetData);
+
       if (billData) {
         setBills(billData);
-        if (billData.length > 0) setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
+        if (billData.length > 0) {
+          setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
+        }
       }
+
       if (paymentData) setPayments(paymentData);
       if (logData) setDailyLogs(logData);
       if (savedData) setSavedInstead(savedData);
+
+    } catch (err) {
+      console.error("Error loading wallet data:", err);
+    } finally {
       setLoading(false);
     }
-    loadData();
-  }, []);
+  }
+
+  loadData();
+}, []);
 
   useEffect(() => {
     async function ensurePaymentsExist() {
