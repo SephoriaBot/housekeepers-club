@@ -553,7 +553,7 @@ export default function Wallet() {
   };
 
   if (loading) return (
-    <div style={{ ...s.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>🍓</div>
         <div style={{ color: "#D4A5C9", fontSize: 14, fontWeight: 700 }}>Loading your sweet tracker...</div>
@@ -562,7 +562,7 @@ export default function Wallet() {
   );
 
   return (
-    <div style={s.app}>
+    <div>
       {showConfetti && <Confetti />}
 
       <div style={s.header}>
