@@ -972,6 +972,7 @@ export default function Wallet() {
               </div>
             </div>
           ))}
+</div>
 
             <div className="card">
               <div className="card-body">
