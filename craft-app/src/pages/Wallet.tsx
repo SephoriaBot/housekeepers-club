@@ -954,13 +954,11 @@ export default function Wallet() {
           </>
         )}
 
-        {/* ── DEBTS TAB ── */}
+                {/* ── DEBTS TAB ── */}
         {tab === "debts" && (
           <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
 
-{/* ── STAT CARDS ── */}
-      <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
           {[
             { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
             { label: "Active Debt", val: fmt(activeTotal), color: "var(--ink)" },
@@ -974,7 +972,6 @@ export default function Wallet() {
               </div>
             </div>
           ))}
-        </div>
 
             <div className="card">
               <div className="card-body">
