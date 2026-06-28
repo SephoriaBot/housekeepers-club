@@ -1171,8 +1171,98 @@ export default function Wallet() {
           </>
         )}
 
-        {/* ── SCHEDULE TAB ── */}
+                {/* ── SCHEDULE TAB ── */}
         {tab === "schedule" && (
           <>
             {snowballExtra < 0 && (
               <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 600 }}>
+                ⚠️ Snowball extra is negative — minimums exceed your budget!
+              </div>
+            )}
+
+            <div className="card">
+              <div className="card-body">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div className="section-label" style={{ marginBottom: 0 }}>Month-by-Month Payoff</div>
+                  <span className="badge badge-green">Done in {payoffMonth} months</span>
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px", textAlign: "left", borderBottom: "1.5px solid var(--border)", fontWeight: 700 }}>Mo.</th>
+                        {activeDebts.filter(d => !d.paid_off).map(d => (
+                          <th key={d.id} style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px", textAlign: "right", borderBottom: "1.5px solid var(--border)", fontWeight: 700, minWidth: 90 }}>{d.name}</th>
+                        ))}
+                        <th style={{ fontSize: 10, color: "var(--pink-dark)", textTransform: "uppercase", padding: "8px", textAlign: "left", borderBottom: "1.5px solid var(--border)", fontWeight: 700 }}>Target</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {months.map((snap, mi) => (
+                        <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                          <td style={{ padding: "8px", color: "var(--ink-muted)", fontWeight: 700 }}>{snap.month}</td>
+                          {activeDebts.filter(d => !d.paid_off).map(d => {
+                            const bal = snap.balances[d.id] ?? 0;
+                            const paid = bal < 0.01;
+                            const isTgt = snap.target === d.name;
+                            const origBal = d.original_balance || d.balance;
+                            const paidPct = origBal > 0 ? Math.min(100, ((origBal - bal) / origBal) * 100) : 0;
+                            return (
+                              <td key={d.id} style={{ padding: "8px", background: paid ? "var(--green-light)" : isTgt ? "var(--blush)" : "transparent", color: paid ? "var(--green-dark)" : isTgt ? "var(--pink-dark)" : "var(--ink-muted)", fontWeight: isTgt ? 700 : 400, textAlign: "right" }}>
+                                <div>{paid ? "PAID ✓" : fmt(bal)}</div>
+                                {!paid && (
+                                  <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginTop: 3 }}>
+                                    <div style={{ height: "100%", width: `${paidPct}%`, background: isTgt ? "var(--pink-dark)" : "var(--green-dark)", borderRadius: 99 }} />
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td style={{ padding: "8px", color: "var(--pink-dark)", fontWeight: 700, fontSize: 11 }}>{snap.target}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {deferredDebts.length > 0 && (
+              <div className="card">
+                <div className="card-body">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div className="section-label" style={{ marginBottom: 0 }}>Deferred Loans (accruing)</div>
+                    <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>At payoff: {fmt(finalDeferred)}</span>
+                  </div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px", textAlign: "left", borderBottom: "1.5px solid var(--border)", fontWeight: 700 }}>Mo.</th>
+                          {deferredDebts.map(d => (
+                            <th key={d.id} style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px", textAlign: "right", borderBottom: "1.5px solid var(--border)", fontWeight: 700, minWidth: 110 }}>{d.name}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {months.filter((_, i) => i % 3 === 0 || i === months.length - 1).map((snap, mi) => (
+                          <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                            <td style={{ padding: "8px", color: "var(--ink-muted)", fontWeight: 700 }}>{snap.month}</td>
+                            {deferredDebts.map(d => (
+                              <td key={d.id} style={{ padding: "8px", color: "var(--ink-soft)", textAlign: "right", fontWeight: 600 }}>{fmt(snap.deferredBalances[d.id] ?? d.balance)}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
