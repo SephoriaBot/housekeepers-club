@@ -21,7 +21,16 @@ const SECTIONS = [
       { id: 'planner', label: 'Meal Planner', icon: CalendarDays },
       { id: 'grocery', label: 'Grocery List', icon: ShoppingCart },
       { id: 'pantry', label: 'Pantry', icon: Archive },
-    ],
+    {
+  id: 'money',
+  label: 'Money',
+  icon: Wallet, // import Wallet from lucide-react
+  items: [
+    { id: 'wallet', label: 'Wallet', icon: PiggyBank },
+  ],
+},
+
+],
   },
   {
     id: 'home',
