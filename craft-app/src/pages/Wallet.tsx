@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from '../lib/supabase';
 
 interface Debt {
   id: number;
