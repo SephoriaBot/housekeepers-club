@@ -21,7 +21,18 @@ const SECTIONS = [
       { id: 'planner', label: 'Meal Planner', icon: CalendarDays },
       { id: 'grocery', label: 'Grocery List', icon: ShoppingCart },
       { id: 'pantry', label: 'Pantry', icon: Archive },
-    {
+    
+  {
+    id: 'home',
+    label: 'Home',
+    icon: Home,
+    items: [
+      { id: 'maidwizard', label: 'Maid Wizard', icon: Sparkles },
+      { id: 'plants', label: 'My Plants', icon: Leaf },
+      { id: 'pets', label: 'My Pets', icon: PawPrint },
+      { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
+      { id: 'wallet', label: 'Wallet', icon: PiggyBank },
+{
   id: 'money',
   label: 'Money',
   icon: Wallet, // import Wallet from lucide-react
@@ -32,17 +43,6 @@ const SECTIONS = [
 
 ],
   },
-  {
-    id: 'home',
-    label: 'Home',
-    icon: Home,
-    items: [
-      { id: 'maidwizard', label: 'Maid Wizard', icon: Sparkles },
-      { id: 'plants', label: 'My Plants', icon: Leaf },
-      { id: 'pets', label: 'My Pets', icon: PawPrint },
-      { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
-      { id: 'wallet', label: 'Wallet', icon: Money },
-
     ],
   },
   {
