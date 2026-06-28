@@ -558,8 +558,7 @@ export default function Wallet() {
       {/* ── HEADER ── */}
       <div className="page-header">
         <div>
-          <h2>🍓 Snowball Tracker</h2>
-          <p>Syncs across all devices</p>
+          <h2>Look in PiggyBank</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
