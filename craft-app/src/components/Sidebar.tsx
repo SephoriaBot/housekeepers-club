@@ -70,8 +70,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <h1>Housekeepers Club</h1>
-        <p>Your creative sanctuary</p>
+        <h1>Homebody</h1>
       </div>
 
       <div className="sidebar-section">
