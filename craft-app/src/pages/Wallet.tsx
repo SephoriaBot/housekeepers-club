@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from '../lib/supabase';
+import type { CSSProperties } from "react";
 
 interface Debt {
   id: number;
