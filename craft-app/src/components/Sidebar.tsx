@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Leaf, FlaskConical, Sparkles, BookOpen, Home, Wand2,
   UtensilsCrossed, ShoppingCart, Archive, CalendarDays, Lightbulb,
-  PawPrint, Sandwich, ChefHat, CalendarCheck, ChevronDown, ChevronRight
+  PawPrint, Sandwich, ChefHat, PiggyBank, CalendarCheck, ChevronDown, ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
