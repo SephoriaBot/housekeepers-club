@@ -547,7 +547,7 @@ export default function Wallet() {
   if (loading) return (
     <div className="loading-spinner" style={{ minHeight: "60vh" }}>
       <span style={{ fontSize: 32 }}>🍓</span>
-      <span>Loading your wallet...</span>
+      <span>Loading your tracker...</span>
     </div>
   );
 
@@ -558,16 +558,19 @@ export default function Wallet() {
       {/* ── HEADER ── */}
       <div className="page-header">
         <div>
-          <h2>Look in PiggyBank</h2>
+          <h2>🍓 Snowball Tracker</h2>
+          <p>Syncs across all devices</p>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-
+      {/* ── STAT CARDS ── */}
+      <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
           {[
             { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
             { label: "Active Debt", val: fmt(activeTotal), color: "var(--ink)" },
+            { label: "Snowball Extra / mo", val: fmt(snowballExtra), color: snowballExtra >= 0 ? "var(--green-dark)" : "#C0404A" },
             { label: "Payoff", val: `${payoffMonth} months`, color: "var(--green-dark)" },
             { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
           ].map(({ label, val, color }) => (
@@ -578,6 +581,7 @@ export default function Wallet() {
               </div>
             </div>
           ))}
+        </div>
 
         {/* ── MOTIVATIONAL STRIP ── */}
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
@@ -968,7 +972,7 @@ export default function Wallet() {
           </>
         )}
 
-                {/* ── DEBTS TAB ── */}
+        {/* ── DEBTS TAB ── */}
         {tab === "debts" && (
           <>
             <div className="card">
