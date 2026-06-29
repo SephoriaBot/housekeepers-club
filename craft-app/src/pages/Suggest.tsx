@@ -92,7 +92,14 @@ if (mealType) params.set('type', mealType)
       const params = new URLSearchParams({ apiKey: import.meta.env.VITE_SPOONACULAR_API_KEY })
       const res = await fetch(`https://api.spoonacular.com/recipes/${m.id}/information?${params}`)
       const data = await res.json()
-      ingredients = (data.extendedIngredients || []).map((ing: any) => ing.original as string)
+      ingredients = (data.extendedIngredients || []).map((ing: any) => {
+  const name = ing.name || ing.originalName || ing.original || ''
+  return name
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/[^a-z\s]/g, '')
+    .trim()
+})
     } catch {
       // if this fails, we still save the meal without ingredients
     }
