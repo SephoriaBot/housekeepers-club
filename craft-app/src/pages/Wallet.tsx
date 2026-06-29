@@ -571,8 +571,8 @@ export default function Wallet() {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 10,
-        height: auto }}
+        gap: 10
+ }}
     >
       {[
         { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
