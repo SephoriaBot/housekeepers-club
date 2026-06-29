@@ -557,8 +557,8 @@ export default function Wallet() {
 
       {/* ── HEADER ── */}
       <div className="page-header">
-        <div style={{ display: "flex", textAlign: "center" }}>
-          <h2>Welcome to Your PiggyBank</h2>
+        <div>
+          <h2 style="text-align: center;">Welcome to Your Piggybank🌻</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
@@ -571,7 +571,9 @@ export default function Wallet() {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 10
+        gap: 10,
+        height: auto,
+        min-height: 200px
       }}
     >
       {[
@@ -581,7 +583,7 @@ export default function Wallet() {
         { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
       ].map(({ label, val, color }) => (
         <div key={label} className="card" style={{ cursor: "default" }}>
-          <div className="card-body" style={{ padding: "16px 20px" }}>
+          <div className="card-body" style={{ padding: "12px 16px" }}>
             <div className="section-label" style={{ marginBottom: 4 }}>
               {label}
             </div>
