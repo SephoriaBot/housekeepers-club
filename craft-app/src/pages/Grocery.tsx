@@ -73,24 +73,61 @@ export default function Grocery() {
     setNewQty('')
   }
 
-  async function buildSmartCart() {
-    const needItems = items.filter(i => !i.checked)
-    setLoadingCart(true)
-    setCart([])
-    const results = await Promise.all(
-      needItems.map(async (item) => {
-        const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}&zip=${encodeURIComponent(location)}`)
-        const data = await res.json()
-        return {
-          item: item.name,
-          results: Array.isArray(data) ? data : []
-        }
-      })
-    )
-    setCart(results)
+async function buildSmartCart() {
+  const needItems = items.filter(i => !i.checked)
+
+  setLoadingCart(true)
+  setCart([])
+
+  const results = []
+  const cache = new Map()
+
+  try {
+    for (let i = 0; i < needItems.length; i += 3) {
+      const batch = needItems.slice(i, i + 3)
+
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          if (cache.has(item.name)) {
+            return cache.get(item.name)
+          }
+
+          const controller = new AbortController()
+
+const timeout = setTimeout(() => controller.abort(), 4000)
+
+let data = []
+
+try {
+  const res = await fetch(
+    `/api/product-search?q=${encodeURIComponent(item.name)}`,
+    { signal: controller.signal }
+  )
+
+  data = await res.json()
+} catch (e) {
+  data = []
+} finally {
+  clearTimeout(timeout)
+}
+
+          const result = {
+            item: item.name,
+            results: Array.isArray(data) ? data : []
+          }
+
+          cache.set(item.name, result)
+          return result
+        })
+      )
+
+      results.push(...batchResults)
+      setCart(prev => [...prev, ...batchResults])
+    }
+  } finally {
     setLoadingCart(false)
   }
-
+}
   function refreshSmartCart() {
     buildSmartCart()
   }
