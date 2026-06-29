@@ -122,27 +122,10 @@
 
 @media (max-width: 700px) {
   .grid {
-    grid-template-columns: repeat(7, minmax(90px, 1fr));
-    overflow-x: auto;
-    padding-bottom: 8px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
   }
 
-  .slot {
-    font-size: 10px;
-    min-height: 36px;
-    padding: 6px 4px;
-  }
-
-  .slotMeal {
-    font-size: 10px;
-    word-break: break-word;
-  }
-
-  .mealsGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .mealMeta {
-    gap: 4px;
-  }
+  /* 5th item (Fri) starts a new visual row but needs centering — 
+     easiest is just let it flow and accept 4+3 */
 }
