@@ -28,9 +28,9 @@ export default function App() {
   }
   return (
     <ToastProvider>
-      <div className="app-layout">
+      <div className="app-shell">
         <Sidebar currentPage={page} onNavigate={navigate} />
-        <main className="main-content">
+        <main className="main">
           {page === 'dashboard'    && <Dashboard onNavigate={navigate} />}
           {page === 'plants'       && <PlantsPage />}
           {page === 'recipes'      && <RecipesPage onNavigate={navigate} />}
