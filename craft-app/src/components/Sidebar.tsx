@@ -91,9 +91,18 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             </button>
 
             {isOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 10, marginTop: 2 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  paddingLeft: 10,
+                  marginTop: 2
+                }}
+              >
                 {section.items.map(item => {
                   const ItemIcon = item.icon;
+
                   return (
                     <button
                       key={item.id}
@@ -102,15 +111,14 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                       onClick={() => onNavigate(item.id)}
                     >
                       <ItemIcon size={14} /> {item.label}
-</button>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </nav>
+        </div>
+      );
+    })}
+  </div>
 );
-})}
-</div>
-)}
-</nav>
-</div>
-);
-})}
-</aside>
-);
-}
