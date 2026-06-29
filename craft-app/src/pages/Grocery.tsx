@@ -73,23 +73,41 @@ export default function Grocery() {
     setNewQty('')
   }
 
-  async function buildSmartCart() {
-    const needItems = items.filter(i => !i.checked)
-    setLoadingCart(true)
-    setCart([])
+async function buildSmartCart() {
+  const needItems = items.filter(i => !i.checked)
+
+  setLoadingCart(true)
+  setCart([])
+
+  try {
     const results = await Promise.all(
       needItems.map(async (item) => {
-        const res = await fetch(`/api/product-search?q=${encodeURIComponent(item.name)}&zip=${encodeURIComponent(location)}`)
-        const data = await res.json()
-        return {
-          item: item.name,
-          results: Array.isArray(data) ? data : []
+        try {
+          const res = await fetch(
+            `/api/product-search?q=${encodeURIComponent(item.name)}&zip=${encodeURIComponent(location)}`
+          )
+
+          const data = await res.json()
+
+          return {
+            item: item.name,
+            results: Array.isArray(data) ? data : []
+          }
+        } catch (err) {
+          console.error("product-search failed for:", item.name, err)
+          return {
+            item: item.name,
+            results: []
+          }
         }
       })
     )
+
     setCart(results)
+  } finally {
     setLoadingCart(false)
   }
+}
 
   function refreshSmartCart() {
     buildSmartCart()
