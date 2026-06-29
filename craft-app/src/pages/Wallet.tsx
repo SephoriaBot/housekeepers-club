@@ -566,22 +566,35 @@ export default function Wallet() {
 
       {/* ── STAT CARDS ── */}
       <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-          {[
-            { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
-            { label: "Active Debt", val: fmt(activeTotal), color: "var(--ink)" },
-            { label: "Snowball Extra / mo", val: fmt(snowballExtra), color: snowballExtra >= 0 ? "var(--green-dark)" : "#C0404A" },
-            { label: "Payoff", val: `${payoffMonth} months`, color: "var(--green-dark)" },
-            { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
-          ].map(({ label, val, color }) => (
-            <div key={label} className="card" style={{ cursor: "default" }}>
-              <div className="card-body" style={{ padding: "12px 16px" }}>
-                <div className="section-label" style={{ marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color }}>{val}</div>
-              </div>
+        <div className="card">
+  <div className="card-body">
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 10
+      }}
+    >
+      {[
+        { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
+        { label: "Active Debt", val: fmt(activeTotal), color: "var(--ink)" },
+        { label: "Payoff", val: `${payoffMonth} months`, color: "var(--green-dark)" },
+        { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
+      ].map(({ label, val, color }) => (
+        <div key={label} className="card" style={{ cursor: "default" }}>
+          <div className="card-body" style={{ padding: "12px 16px" }}>
+            <div className="section-label" style={{ marginBottom: 4 }}>
+              {label}
             </div>
-          ))}
+            <div style={{ fontSize: 18, fontWeight: 800, color }}>
+              {val}
+            </div>
+          </div>
         </div>
+      ))}
+    </div>
+  </div>
+</div>
 
         {/* ── MOTIVATIONAL STRIP ── */}
         <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
@@ -975,14 +988,17 @@ export default function Wallet() {
         {/* ── DEBTS TAB ── */}
         {tab === "debts" && (
           <>
-            <div className="card">
-              <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div className="section-label" style={{ marginBottom: 0 }}>Active Debts — Snowball Order</div>
-                  <button className="btn btn-primary btn-sm" onClick={() => addDebt(false)}>+ Add</button>
-                </div>
+          <div className="card">
+  <div className="card-body">
+
+    <div className="section-header">
+      <div className="section-label">Active Debts — Snowball Order</div>
+      <button className="btn btn-primary btn-sm" onClick={() => addDebt(false)}>
+        + Add
+      </button>
+    </div>
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+  <table className="table">
                     <thead>
                       <tr>
                         {["#","Name","Balance","Progress","APR%","Min/Mo","",""].map(h => (
@@ -1027,10 +1043,10 @@ export default function Wallet() {
             </div>
 
             {activeDebts.filter(d => d.paid_off).length > 0 && (
-              <div className="card" style={{ border: "1.5px solid var(--green)" }}>
+              <div className="card" style={{ opacity: 0.9 }}>
                 <div className="card-body">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div className="section-label" style={{ marginBottom: 0, color: "var(--green-dark)" }}>🎉 Paid Off</div>
+                   <div className="section-label" style={{ marginBottom: 0 }}>🎉 Paid Off</div>
                     <span style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>Amazing work!</span>
                   </div>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -1052,9 +1068,9 @@ export default function Wallet() {
               </div>
             )}
 
-            <div className="card">
+           <div className="card" style={{ opacity: 0.85 }}>
               <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showDeferred ? 12 : 0 }}>
+               <div className="section-header">
                   <div className="section-label" style={{ marginBottom: 0 }}>Deferred Debts</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => setShowDeferred(v => !v)}>{showDeferred ? "Hide" : "Show"}</button>
