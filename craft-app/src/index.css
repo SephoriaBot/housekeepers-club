@@ -1,40 +1,58 @@
 :root {
-  --cream: #F5F0FF;
-  --blush: #EDE6FF;
-  --pink: #C4AEED;
-  --pink-light: #D8CAFE;
-  --pink-dark: #9B72CF;
-  --lavender: #FEFBE8;
-  --lavender-light: #FEFDE8;
-  --lavender-dark: #E8D94A;
-  --ink: #4A3570;
-  --ink-soft: #6B52A0;
-  --ink-muted: #9B82C0;
-  --white: #F8F3FF;
-  --border: #DDD0F8;
-  --shadow: rgba(155, 114, 207, 0.08);
-  --shadow-md: rgba(155, 114, 207, 0.14);
-  --green: #8FE0B8;
-  --green-light: #E3F9EE;
-  --green-dark: #4FBF85;
-  --amber: #FEFBE8;
-  --amber-light: #FEFDE8;
+  /* Backgrounds */
+  --cream: #FCFBFF;
+  --white: #FFFFFF;
+  --blush: #F7F2FF;
 
-  --citrus-orange: #9B72CF;
-  --citrus-yellow: #FEFBE8;
-  --citrus-blue: #C4AEED;
-  --citrus-lavender: #EDE6FF;
-  --citrus-lavender-text: #6B52A0;
-  --bevel-light: #F8F3FF;
-  --bevel-dark: #DDD0F8;
-  --bevel-darker: #C4AEED;
+  /* Lilac */
+  --pink: #CDB8F6;
+  --pink-light: #E8DEFF;
+  --pink-dark: #A98BE7;
+
+  /* Butter Yellow */
+  --lavender: #FFF7C8;
+  --lavender-light: #FFFCEF;
+  --lavender-dark: #EFD96D;
+
+  /* Text */
+  --ink: #5A477A;
+  --ink-soft: #77629A;
+  --ink-muted: #A192C4;
+
+  /* Borders */
+  --border: #E9DFFF;
+
+  /* Shadows */
+  --shadow: rgba(169, 139, 231, 0.08);
+  --shadow-md: rgba(169, 139, 231, 0.15);
+
+  /* Mint */
+  --green: #B7EECF;
+  --green-light: #F1FFF7;
+  --green-dark: #74C99A;
+
+  /* Peach */
+  --amber: #FFE6C8;
+  --amber-light: #FFF4E8;
+
+  /* Accent colors */
+  --citrus-orange: #FFC6A5;
+  --citrus-yellow: #FFF4B5;
+  --citrus-blue: #BEE8FF;
+  --citrus-lavender: #EFE6FF;
+  --citrus-lavender-text: #6A5793;
+
+  /* Bevel */
+  --bevel-light: #FFFFFF;
+  --bevel-dark: #E8DDFF;
+  --bevel-darker: #D4C1F8;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'DM Sans', 'Arial', sans-serif;
-  background-color: #D8CAFE;
+  background-color: #FCFBFF;
   color: var(--ink);
   min-height: 100vh;
 }
@@ -54,7 +72,7 @@ h1, h2, h3 {
 
 .sidebar {
   width: 100%;
-  background: #D8CAFE;
+  background: #F7F2FF;
   border-right: none;
   border-bottom: 2px solid #C4AEED;
   display: block;
@@ -83,7 +101,7 @@ h1, h2, h3 {
 
 .sidebar-logo {
   padding: 16px 18px 14px;
-  background: #C4AEED;
+  background: #FCFBFF;
   border-bottom: 2px solid #DDD0F8;
 }
 
@@ -91,13 +109,13 @@ h1, h2, h3 {
   font-family: 'Bricolage Grotesque', sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
-  color: #4A3570;
+  color: #77629A;
   line-height: 1.2;
 }
 
 .sidebar-logo p {
   font-size: 0.62rem;
-  color: #6B52A0;
+  color: #77629A;
   opacity: 0.9;
   margin-top: 3px;
   letter-spacing: 0.1em;
@@ -112,7 +130,7 @@ h1, h2, h3 {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6B52A0;
+  color: #77629A;
   padding: 0 6px;
   margin-bottom: 4px;
   font-weight: 700;
@@ -126,7 +144,7 @@ h1, h2, h3 {
   gap: 8px;
   padding: 7px 13px;
   border-radius: 20px;
-  color: #4A3570;
+  color: #77629A;
   cursor: pointer;
   transition: all 0.15s ease;
   font-size: 0.82rem;
