@@ -135,7 +135,7 @@ a {
 
   padding: 16px;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* subtle envelope/lace feel */
