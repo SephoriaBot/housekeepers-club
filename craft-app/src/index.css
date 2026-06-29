@@ -186,6 +186,7 @@ h1, h2, h3 {
 
 .page-header h2 {
   font-size: 1.4rem;
+  text-align: center;
   color: var(--pink-dark);
   font-weight: 700;
 }
@@ -254,6 +255,8 @@ h1, h2, h3 {
   overflow: hidden;
   box-shadow: 0 6px 28px rgba(155,114,207,0.10), 0 2px 8px rgba(155,114,207,0.06);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+  height: auto;
+  min-height: 200px;
 }
 
 .card:hover {
@@ -261,7 +264,9 @@ h1, h2, h3 {
   transform: translateY(-3px);
 }
 
-.card-body { padding: 18px; }
+.card-body { 
+  padding: 18px;
+    }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 
