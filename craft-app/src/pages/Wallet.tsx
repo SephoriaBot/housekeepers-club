@@ -570,8 +570,9 @@ export default function Wallet() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 10
+gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+        gap: 10,
+width: "100%"
  }}
     >
       {[
