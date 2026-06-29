@@ -557,10 +557,8 @@ export default function Wallet() {
 
       {/* ── HEADER ── */}
       <div className="page-header">
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <div>
-          <h2>Welcome to PiggyBank</h2>
-        </div>
+        <div style={{ display: "flex", textAlign: "center" }}>
+          <h2>Welcome to Your PiggyBank</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
@@ -583,11 +581,11 @@ export default function Wallet() {
         { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
       ].map(({ label, val, color }) => (
         <div key={label} className="card" style={{ cursor: "default" }}>
-          <div className="card-body" style={{ padding: "12px 16px" }}>
+          <div className="card-body" style={{ padding: "16px 20px" }}>
             <div className="section-label" style={{ marginBottom: 4 }}>
               {label}
             </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color }}>
               {val}
             </div>
           </div>
@@ -756,38 +754,6 @@ export default function Wallet() {
                 </div>
               </div>
             )}
-
-            <div className="card">
-              <div className="card-body">
-                
-                {showHistory && (
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                      <thead>
-                        <tr>
-                          {["Date","Amount","Bills","Buffer","Spending","Snowball","Notes"].map(h => (
-                            <th key={h} style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px 8px", textAlign: "left", borderBottom: "1.5px solid var(--border)", fontWeight: 700 }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dailyLogs.map((log, i) => (
-                          <tr key={log.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--blush)" }}>
-                            <td style={{ padding: "8px", color: "var(--ink-muted)", fontWeight: 700 }}>{log.date}</td>
-                            <td style={{ padding: "8px", color: "var(--ink)", fontWeight: 700 }}>{fmt(log.anytime_pay_amount)}</td>
-                            <td style={{ padding: "8px", color: "var(--pink-dark)" }}>{fmt(log.bills_allocation)}</td>
-                            <td style={{ padding: "8px", color: "var(--ink-soft)" }}>{fmt(log.buffer_allocation)}</td>
-                            <td style={{ padding: "8px", color: "var(--green-dark)" }}>{fmt(log.spending_allocation)}</td>
-                            <td style={{ padding: "8px", color: "#6BBFD4" }}>{fmt(log.snowball_allocation)}</td>
-                            <td style={{ padding: "8px", color: "var(--ink-muted)", fontSize: 11 }}>{log.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
           </>
         )}
 
