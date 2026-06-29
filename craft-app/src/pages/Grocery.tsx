@@ -92,11 +92,24 @@ async function buildSmartCart() {
             return cache.get(item.name)
           }
 
-          const res = await fetch(
-            `/api/product-search?q=${encodeURIComponent(item.name)}`
-          )
+          const controller = new AbortController()
 
-          const data = await res.json()
+const timeout = setTimeout(() => controller.abort(), 4000)
+
+let data = []
+
+try {
+  const res = await fetch(
+    `/api/product-search?q=${encodeURIComponent(item.name)}`,
+    { signal: controller.signal }
+  )
+
+  data = await res.json()
+} catch (e) {
+  data = []
+} finally {
+  clearTimeout(timeout)
+}
 
           const result = {
             item: item.name,
@@ -109,7 +122,7 @@ async function buildSmartCart() {
       )
 
       results.push(...batchResults)
-      setCart([...results]) // updates progressively
+      setCart(prev => [...prev, ...batchResults])
     }
   } finally {
     setLoadingCart(false)
