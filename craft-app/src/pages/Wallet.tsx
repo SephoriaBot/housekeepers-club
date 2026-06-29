@@ -152,7 +152,7 @@ function EditableCell({ value, onChange, type = "number" }: { value: string | nu
 
 export default function Wallet() {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [budget, setBudget] = useState<Budget>({ take_home: 3800, fixed_expenses: 2630 });
+  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0 });
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
@@ -992,7 +992,7 @@ width: "100%"
                 <div className="section-label">Monthly Budget</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {[
-                    { label: "Monthly Take-Home (est.)", val: budget.take_home, field: "take_home" as keyof Budget, note: "~$3,800 — after taxes + other deductions" },
+                    { label: "Monthly Take-Home (est.)", val: budget.take_home, field: "take_home" as keyof Budget, note: "~after taxes + other deductions" },
                     { label: "Fixed Expenses", val: budget.fixed_expenses, field: "fixed_expenses" as keyof Budget, note: "rent + transport + bills + groceries" },
                   ].map(({ label, val, field, note }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
