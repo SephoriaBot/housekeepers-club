@@ -572,9 +572,7 @@ export default function Wallet() {
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
         gap: 10,
-        height: auto,
-        min-height: 200px;
-      }}
+        height: auto }}
     >
       {[
         { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
