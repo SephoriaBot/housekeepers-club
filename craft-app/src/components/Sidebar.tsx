@@ -102,15 +102,15 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                       onClick={() => onNavigate(item.id)}
                     >
                       <ItemIcon size={14} /> {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </nav>
-        </div>
-      );
-    })}
+</button>
+);
+})}
+</div>
+)}
+</nav>
+</div>
+);
+})}
 </aside>
-  );
+);
 }
