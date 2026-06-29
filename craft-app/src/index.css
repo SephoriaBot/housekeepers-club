@@ -1,35 +1,44 @@
+/* ================= TOKENS ================= */
+
 :root {
-  --bg: #faf7ff;
-  --panel: #ffffff;
-  --text: #2c2a33;
+  --bg: #fff8f5;
+  --surface: #fffdfc;
+  --text: #3a2f2a;
 
-  --primary: #cdb4ff;
-  --secondary: #ffcad4;
-  --accent: #bde0fe;
-  --mint: #caffbf;
-  --warning: #ffe5b4;
+  --primary: #e7c6ff;
+  --secondary: #ffd6e0;
+  --accent: #cde7ff;
+  --mint: #d9f7d6;
 
-  --shadow: 0 10px 25px rgba(0,0,0,0.08);
-  --radius: 18px;
+  --border: rgba(220, 190, 210, 0.6);
+
+  --shadow: 0 14px 30px rgba(60, 30, 40, 0.10);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 22px;
 }
 
-/* ================= BASE ================= */
+/* ================= BASE RESET ================= */
+
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: radial-gradient(circle at top, #fffdfc, #fff3ef);
   color: var(--text);
   font-family: ui-sans-serif, system-ui;
 }
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
 img {
   max-width: 100%;
-  object-fit: cover;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* ================= APP LAYOUT ================= */
@@ -37,12 +46,12 @@ img {
 .app-shell {
   display: grid;
   grid-template-columns: 240px 1fr;
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
 }
 
 .main {
-  height: 100vh;
+  padding: 20px;
   overflow-y: auto;
 }
 
@@ -51,69 +60,105 @@ img {
 .sidebar {
   height: 100%;
   padding: 16px;
-  background: linear-gradient(180deg, var(--primary), var(--accent));
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
-  justify-content: flex-start;
+  gap: 8px;
+
+  background: linear-gradient(180deg, #f7eaff, #eaf4ff);
+  border-right: 1px solid var(--border);
 }
 
 .sidebar-title {
   font-size: 18px;
   font-weight: 700;
-  margin: 0 0 10px 0;
+  margin-bottom: 8px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
+
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
+
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.8);
+
   cursor: pointer;
   transition: 0.15s ease;
-  background: rgba(255,255,255,0.15);
 }
 
 .nav-item:hover {
-  background: rgba(255,255,255,0.28);
-  transform: translateX(2px);
+  transform: translateX(3px);
+  background: rgba(255,255,255,0.85);
 }
 
 .nav-item.active {
-  background: rgba(255,255,255,0.35);
+  background: white;
   box-shadow: var(--shadow);
 }
 
 .nav-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.25);
+  width: 32px;
+  height: 32px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.7);
 }
 
 .nav-label {
-  font-size: 14px;
   font-weight: 600;
+  font-size: 14px;
 }
 
-/* ================= CARDS ================= */
+/* ================= CARD SYSTEM (UNIFIED) ================= */
 
 .card,
 .stat-card,
 .pet-card,
 .plant-card,
-.list-item {
-  background: var(--panel);
-  border-radius: var(--radius);
+.list-item,
+.wizard-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Dashboard */
+/* subtle envelope/lace feel */
+.card::before,
+.stat-card::before,
+.pet-card::before,
+.plant-card::before,
+.list-item::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: calc(var(--radius-lg) - 6px);
+  border: 1px dashed rgba(200,150,200,0.35);
+  pointer-events: none;
+}
+
+/* hover lift */
+.card:hover,
+.stat-card:hover,
+.pet-card:hover,
+.plant-card:hover {
+  transform: translateY(-3px);
+  transition: 0.2s ease;
+}
+
+/* ================= DASHBOARD ================= */
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -121,7 +166,6 @@ img {
 }
 
 .stat-card {
-  padding: 16px;
   border-left: 6px solid var(--primary);
 }
 
@@ -129,16 +173,13 @@ img {
 .stat-card:nth-child(3) { border-left-color: var(--accent); }
 .stat-card:nth-child(4) { border-left-color: var(--mint); }
 
-/* Generic card */
-.card {
-  padding: 16px;
-  border: 1px solid rgba(0,0,0,0.04);
-}
+/* slight scrapbook feel */
+.stat-card:nth-child(odd) { transform: rotate(-0.2deg); }
+.stat-card:nth-child(even) { transform: rotate(0.2deg); }
 
 /* ================= PETS ================= */
 
 .pet-card {
-  padding: 14px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -147,14 +188,13 @@ img {
 .pet-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 14px;
   background: var(--secondary);
 }
 
 /* ================= PLANTS ================= */
 
 .plant-card {
-  padding: 14px;
   border-top: 4px solid var(--mint);
 }
 
@@ -164,10 +204,9 @@ img {
   margin-top: 10px;
 }
 
-/* ================= LISTS ================= */
+/* ================= LIST ITEMS ================= */
 
 .list-item {
-  padding: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -180,243 +219,55 @@ img {
   background: var(--accent);
 }
 
-/* ================= WIZARD ================= */
-
-.wizard-box {
-  background: var(--panel);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.wizard-progress {
-  height: 8px;
-  background: #eee;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.wizard-progress > div {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-}
-
 /* ================= INPUTS ================= */
 
 input,
-select,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 10px;
-  border-radius: 12px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
+
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fffdfc;
+
   outline: none;
 }
 
 input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(205,180,255,0.3);
+  box-shadow: 0 0 0 3px rgba(231, 198, 255, 0.3);
 }
 
 /* ================= BUTTONS ================= */
 
 button {
   border: none;
-  border-radius: 12px;
+  border-radius: 999px;
   padding: 10px 14px;
+
   font-weight: 600;
+  cursor: pointer;
+
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
-  cursor: pointer;
-}
 
-button:hover {
-  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
   transition: 0.15s ease;
 }
 
-/* ================= HEADINGS ================= */
+button:hover {
+  transform: translateY(-2px);
+}
+
+/* ================= TYPOGRAPHY ================= */
 
 h1, h2, h3 {
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
 }
 
 h1 {
   background: linear-gradient(90deg, var(--primary), var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-/* ================= THEME OVERRIDE ================= */
-
-:root {
-  --bg: #fff8f5;
-  --panel: #fffdfc;
-
-  --text: #3a2f2a;
-
-  --primary: #e7c6ff;
-  --secondary: #ffd6e0;
-  --accent: #cde7ff;
-  --mint: #d9f7d6;
-
-  --shadow: 0 14px 30px rgba(60, 30, 40, 0.10);
-  --radius: 22px;
-}
-
-/* soft paper background */
-body {
-  background: radial-gradient(circle at top, #fffdfc, #fff3ef);
-}
-
-/* ================= SIDEBAR (soft stationery panel) ================= */
-
-.sidebar {
-  background: linear-gradient(180deg, #f7eaff, #eaf4ff);
-  border-right: 1px solid rgba(255, 200, 220, 0.3);
-}
-
-.nav-item {
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(255,255,255,0.8);
-  backdrop-filter: blur(8px);
-}
-
-.nav-item.active {
-  background: white;
-  box-shadow: var(--shadow);
-}
-
-/* ================= ENVELOPE CARDS ================= */
-
-.card,
-.stat-card,
-.pet-card,
-.plant-card,
-.list-item {
-  position: relative;
-  background: var(--panel);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-
-  border: 1px solid rgba(230, 200, 210, 0.6);
-
-  overflow: hidden;
-  padding: 18px;
-}
-
-/* envelope flap */
-.card::before,
-.stat-card::before,
-.pet-card::before,
-.plant-card::before,
-.list-item::before {
-  content: "";
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-
-  width: 80px;
-  height: 80px;
-
-  background: linear-gradient(135deg, #ffe5ec, #e7ddff);
-  opacity: 0.6;
-
-  border-radius: 10px;
-}
-
-/* envelope fold line */
-.card::after,
-.stat-card::after,
-.pet-card::after,
-.plant-card::after,
-.list-item::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(200,150,200,0.4), transparent);
-}
-
-/* hover lift */
-.card:hover,
-.stat-card:hover,
-.pet-card:hover,
-.plant-card:hover {
-  transform: translateY(-4px);
-  transition: 0.2s ease;
-}
-
-/* ================= STAMPS (top-right accent) ================= */
-
-.stat-card::marker { display: none; }
-
-.stat-card {
-  position: relative;
-}
-
-.stat-card::marker {
-  display: none;
-}
-
-/* stamp badge */
-.stat-card span.stamp {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: 999px;
-
-  background: #fff;
-  border: 1px dashed rgba(180,120,180,0.5);
-}
-
-/* ================= PET / PLANT ICON STICKERS ================= */
-
-.pet-avatar,
-.nav-icon {
-  border-radius: 14px;
-  background: rgba(255,255,255,0.7);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.8);
-}
-
-/* ================= DASHBOARD GRID (more scrapbook feel) ================= */
-
-.dashboard-grid {
-  gap: 18px;
-}
-
-/* slight “paper tilt” randomness */
-.stat-card:nth-child(odd) {
-  transform: rotate(-0.3deg);
-}
-
-.stat-card:nth-child(even) {
-  transform: rotate(0.3deg);
-}
-
-/* ================= BUTTONS (seal-style) ================= */
-
-button {
-  background: linear-gradient(135deg, #e7c6ff, #ffd6e0);
-  border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-}
-
-/* ================= INPUTS (soft paper fields) ================= */
-
-input,
-textarea,
-select {
-  background: #fffdfc;
-  border: 1px solid rgba(220, 190, 210, 0.6);
 }
