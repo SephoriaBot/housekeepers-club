@@ -137,6 +137,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                     background: 'linear-gradient(135deg, var(--cream), #fef6ff)',
                     transition: 'all 0.15s ease',
                     textAlign: 'left',
+                    color: 'var(--ink-soft)',
                     boxShadow: '0 1px 4px rgba(201,166,240,0.08)',
                   }}
                   onMouseEnter={e => {
