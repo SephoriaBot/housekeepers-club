@@ -1,18 +1,19 @@
 /* ================= TOKENS ================= */
 
 :root {
-  --bg: #fff8f5;
-  --surface: #fffdfc;
-  --text: #3a2f2a;
+  --bg: #fff7f0;
+  --surface: #fffdf9;
+  --text: #3b2f2a;
 
-  --primary: #e7c6ff;
-  --secondary: #ffd6e0;
-  --accent: #cde7ff;
-  --mint: #d9f7d6;
+  --primary: #ffd6a5;   /* peach */
+  --secondary: #ffe5b4; /* warm cream */
+  --accent: #fff1c1;    /* soft yellow */
+  --mint: #d8f3dc;      /* soft green accent */
 
-  --border: rgba(220, 190, 210, 0.6);
+  --border: rgba(210, 180, 140, 0.35);
 
-  --shadow: 0 14px 30px rgba(60, 30, 40, 0.10);
+  --shadow: 0 14px 30px rgba(60, 30, 20, 0.10);
+
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 22px;
