@@ -165,7 +165,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div>
       <div className="page-header">
         <div>
-          <h2>Welcome home ☁️ 🌸 ☀️</h2>
           <p>{todayName} · {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</p>
         </div>
       </div>
