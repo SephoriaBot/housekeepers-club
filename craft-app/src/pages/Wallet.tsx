@@ -646,10 +646,6 @@ export default function Wallet() {
               </div>
             )}
 
-            <div style={{ background: isWeeklyMode ? "var(--green-light)" : "var(--blush)", border: `1.5px solid ${isWeeklyMode ? "var(--green)" : "var(--border)"}`, borderRadius: 16, padding: "10px 16px", fontSize: 13, color: isWeeklyMode ? "var(--green-dark)" : "var(--ink-soft)", fontWeight: 600 }}>
-              {isWeeklyMode ? "🎉 Buffer goal reached! Now in weekly paycheck mode.";}
-            </div>
-
             <div className="card">
               <div className="card-body">
                 <div className="section-label">{isWeeklyMode ? "This Week's Paycheck" : "Today's Anytime Pay"}</div>
