@@ -111,7 +111,6 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         </div>
       );
     })}
-  </div>
 </aside>
   );
 }
