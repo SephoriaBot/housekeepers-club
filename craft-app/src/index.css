@@ -633,3 +633,21 @@ h1, h2, h3 {
   color: var(--ink-muted);
   margin-bottom: 10px;
 }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 8px;
+}
