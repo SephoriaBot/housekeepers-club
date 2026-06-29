@@ -219,3 +219,10 @@
   min-width: 36px;
   text-align: right;
 }
+
+@media (max-width: 700px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
