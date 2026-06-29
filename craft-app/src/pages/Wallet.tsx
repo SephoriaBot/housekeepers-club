@@ -558,7 +558,7 @@ export default function Wallet() {
       {/* ── HEADER ── */}
       <div className="page-header">
         <div>
-          <h2 style="text-align: center;">Welcome to Your Piggybank🌻</h2>
+          <h2>Welcome to Your Piggybank</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
