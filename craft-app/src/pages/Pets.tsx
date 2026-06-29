@@ -322,7 +322,7 @@ export default function Pets() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Catsitter Info</div>
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Petsitter Info</div>
               <div className="form-group">
                 <label className="form-label">Feeding Routine</label>
                 <textarea className="form-textarea" value={petForm.feeding_routine} onChange={e => setPetForm(f => ({ ...f, feeding_routine: e.target.value }))} placeholder="e.g. 1/4 cup dry in the morning, half a can wet at night" />
