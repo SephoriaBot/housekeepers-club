@@ -557,9 +557,10 @@ export default function Wallet() {
 
       {/* ── HEADER ── */}
       <div className="page-header">
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         <div>
-          <h2>🍓 Snowball Tracker</h2>
-          <p>Syncs across all devices</p>
+          <h2>Welcome to PiggyBank</h2>
+        </div>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
