@@ -79,19 +79,16 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-
   padding: 10px 12px;
   border-radius: var(--radius-md);
-
   background: rgba(255,255,255,0.6);
   border: 1px solid rgba(255,255,255,0.8);
-
   cursor: pointer;
   transition: 0.15s ease;
   color: #5a463a;
-  max-height: 40vh;
-  overflow-y: auto;
+  /* removed max-height and overflow-y */
 }
+
 
 .nav-item:hover {
   transform: translateX(3px);
@@ -225,18 +222,16 @@ a {
 
 /* ================= INPUTS ================= */
 
-input,
-textarea,
-select {
-  width: 100%;
+input, textarea, select {
   padding: 10px;
-
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: #fffdfc;
-
   outline: none;
+  min-width: 0;  /* allows flex shrinking */
+  /* width: 100% ← remove this */
 }
+
 
 input:focus {
   border-color: var(--primary);
