@@ -271,3 +271,20 @@ h1 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    height: auto;
+    max-height: 40vh;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .main {
+    height: auto;
+  }
+}
