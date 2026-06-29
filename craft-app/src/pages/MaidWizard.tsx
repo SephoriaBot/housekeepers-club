@@ -132,8 +132,9 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   onClick={() => generatePlan(r.value)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '14px 18px', borderRadius: 16, cursor: 'pointer',
-                    border: '1.5px dashed var(--border)',
+                    padding: '14px 18px', borderRadius: calc(var(--radius-lg) - 6px), cursor: 'pointer',
+                    inset: 6px,
+                    border: 1px dashed rgba(200,150,200,0.35),
                     background: 'linear-gradient(135deg, var(--white), #fef6ff)',
                     transition: 'all 0.15s ease',
                     textAlign: 'left',
