@@ -59,17 +59,19 @@
 .item {
   display: flex;
   align-items: center;
-  overflow-y: auto;
   padding: 7px 6px;
   border-radius: 6px;
   font-size: 12px;
   transition: background 0.1s;
+  overflow: hidden;   /* clips nothing but prevents blowout */
+  gap: 6px;           /* cleaner than relying on individual margins */
 }
+
+.itemName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .item:hover { background: var(--cream); }
 .item input[type="checkbox"] { accent-color: var(--pink); cursor: pointer; flex-shrink: 0; }
 .item.checked .itemName { text-decoration: line-through; color: var(--ink-muted); }
-
-.itemName { flex: 1; }
 .itemQty { font-size: 11px; color: var(--ink-muted); white-space: nowrap; }
 
 .removeBtn {
