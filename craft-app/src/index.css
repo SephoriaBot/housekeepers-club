@@ -3,7 +3,7 @@
 :root {
   --bg: #fff7f0;
   --surface: #fffdf9;
-  --text: #d8f3dc;
+  --text: #3b2f2a;
 
   --primary: #ffd6a5;   /* peach */
   --secondary: #ffe5b4; /* warm cream */
@@ -88,6 +88,7 @@ a {
 
   cursor: pointer;
   transition: 0.15s ease;
+  color: #5a463a;
 }
 
 .nav-item:hover {
