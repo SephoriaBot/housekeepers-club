@@ -59,8 +59,7 @@ a {
 /* ================= SIDEBAR ================= */
 
 .sidebar {
-  height: auto;
-  min-height: 100vh;
+  height: 100vh;
   padding: 16px;
   display: flex;
   flex-direction: column;
