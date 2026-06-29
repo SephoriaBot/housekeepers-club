@@ -65,7 +65,7 @@ a {
   flex-direction: column;
   gap: 8px;
 
-  background: linear-gradient(180deg, #f7eaff, #eaf4ff);
+  background: linear-gradient(180deg, #fff1e6, #fff7e0);
   border-right: 1px solid var(--border);
 }
 
