@@ -59,12 +59,12 @@ a {
 /* ================= SIDEBAR ================= */
 
 .sidebar {
-  height: 100%;
+  height: 100vh;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-
+  overflow-y: auto;
   background: linear-gradient(180deg, #fff1e6, #fff7e0);
   border-right: 1px solid var(--border);
 }
@@ -89,6 +89,8 @@ a {
   cursor: pointer;
   transition: 0.15s ease;
   color: #5a463a;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 
 .nav-item:hover {
