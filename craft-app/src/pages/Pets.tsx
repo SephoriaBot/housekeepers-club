@@ -6,6 +6,7 @@ interface Pet {
   id: string
   name: string
   species: string
+  icon_color: string | null
   breed: string
   age: number
   weight: number
@@ -51,8 +52,18 @@ const SPECIES_EMOJI: Record<string, string> = {
   cat: '🐱', dog: '🐶', bird: '🐦', rabbit: '🐰', fish: '🐠', other: '🐾'
 }
 
+const COLOR_OPTIONS = [
+  { name: 'natural', filter: 'none' },
+  { name: 'black',   filter: 'brightness(0.35) saturate(1.2)' },
+  { name: 'white',   filter: 'brightness(1.6) saturate(0.3)' },
+  { name: 'grey',    filter: 'grayscale(1) brightness(1.1)' },
+  { name: 'brown',   filter: 'sepia(0.6) saturate(1.5) brightness(0.9)' },
+  { name: 'orange',  filter: 'hue-rotate(-20deg) saturate(1.8)' },
+  { name: 'multi',   filter: 'saturate(2) contrast(1.2)' },
+]
+
 const EMPTY_PET_FORM = {
-  name: '', species: 'cat', breed: '', age: '', weight: '', notes: '',
+  name: '', species: 'cat', icon_color: 'natural', breed: '', age: '', weight: '', notes: '',
   vet_name: '', vet_phone: '', insurance_provider: '', insurance_policy: '',
   feeding_routine: '', personality: '', hiding_spots: ''
 }
@@ -120,6 +131,7 @@ export default function Pets() {
       name: pet.name,
       species: pet.species ?? 'cat',
       breed: pet.breed ?? '',
+      icon_color: pet.icon_color ?? 'natural',
       age: pet.age != null ? String(pet.age) : '',
       weight: pet.weight != null ? String(pet.weight) : '',
       notes: pet.notes ?? '',
@@ -140,6 +152,7 @@ export default function Pets() {
       name: petForm.name.trim(),
       species: petForm.species,
       breed: petForm.breed.trim(),
+      icon_color: petForm.icon_color || 'natural',
       age: petForm.age ? parseFloat(petForm.age) : null,
       weight: petForm.weight ? parseFloat(petForm.weight) : null,
       notes: petForm.notes.trim(),
@@ -243,6 +256,10 @@ export default function Pets() {
     if (!dateStr) return false
     return new Date(dateStr) < new Date()
   }
+
+  function getFilter(colorName: string | null) {
+  return COLOR_OPTIONS.find(c => c.name === colorName)?.filter ?? 'none'
+}
 
   function formatDateTime(isoStr: string) {
     return new Date(isoStr).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -366,7 +383,9 @@ export default function Pets() {
                 className={`${styles.petCard} ${selectedPet?.id === pet.id ? styles.petCardActive : ''}`}
                 onClick={() => setSelectedPet(pet)}
               >
-                <span className={styles.petEmoji}>{SPECIES_EMOJI[pet.species] ?? '🐾'}</span>
+                <span className={styles.petEmoji} style={{ filter: `hue-rotate(${getHue(pet.icon_color)}deg) saturate(1.4)` }}>
+  {SPECIES_EMOJI[pet.species] ?? '🐾'}
+</span>
                 <div className={styles.petInfo}>
                   <div className={styles.petName}>{pet.name}</div>
                   <div className={styles.petMeta}>{pet.breed || pet.species}</div>
@@ -455,6 +474,31 @@ export default function Pets() {
                   ))}
                 </div>
               )}
+
+              <div className="form-group">
+  <label className="form-label">Icon Color</label>
+  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+    {COLOR_OPTIONS.map(c => (
+      <button
+        key={c.name}
+        type="button"
+        onClick={() => setPetForm(f => ({ ...f, icon_color: c.name }))}
+        title={c.name}
+        style={{
+          fontSize: '1.5rem',
+          padding: '6px 10px',
+          borderRadius: 8,
+          border: petForm.icon_color === c.name ? '2px solid var(--pink)' : '1.5px dashed var(--border)',
+          background: petForm.icon_color === c.name ? 'var(--blush)' : '#fff',
+          cursor: 'pointer',
+          filter: getFilter(pet.icon_color) }}
+        }}
+      >
+        {SPECIES_EMOJI[petForm.species] ?? '🐾'}
+      </button>
+    ))}
+  </div>
+</div>          
 
               {/* Vaccinations */}
               {tab === 'vaccinations' && (
