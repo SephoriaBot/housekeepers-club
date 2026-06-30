@@ -56,10 +56,7 @@ const COLOR_OPTIONS = [
   { name: 'natural', filter: 'none' },
   { name: 'black',   filter: 'brightness(0.35) saturate(1.2)' },
   { name: 'white',   filter: 'brightness(1.6) saturate(0.3)' },
-  { name: 'grey',    filter: 'grayscale(1) brightness(1.1)' },
-  { name: 'brown',   filter: 'sepia(0.6) saturate(1.5) brightness(0.9)' },
-  { name: 'orange',  filter: 'hue-rotate(-20deg) saturate(1.8)' },
-  { name: 'multi',   filter: 'saturate(2) contrast(1.2)' },
+  { name: 'grey',    filter: 'grayscale(1) brightness(1.1)' }
 ]
 
 const EMPTY_PET_FORM = {
