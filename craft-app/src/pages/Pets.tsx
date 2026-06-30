@@ -258,8 +258,8 @@ export default function Pets() {
   }
 
   function getFilter(colorName: string | null) {
-  return COLOR_OPTIONS.find(c => c.name === colorName)?.filter ?? 'none'
-}
+    return COLOR_OPTIONS.find(c => c.name === colorName)?.filter ?? 'none'
+  }
 
   function formatDateTime(isoStr: string) {
     return new Date(isoStr).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -306,6 +306,32 @@ export default function Pets() {
                   <input className="form-input" value={petForm.breed} onChange={e => setPetForm(f => ({ ...f, breed: e.target.value }))} placeholder="e.g. Domestic Shorthair" />
                 </div>
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Icon Color</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {COLOR_OPTIONS.map(c => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => setPetForm(f => ({ ...f, icon_color: c.name }))}
+                      title={c.name}
+                      style={{
+                        fontSize: '1.5rem',
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        border: petForm.icon_color === c.name ? '2px solid var(--pink)' : '1.5px dashed var(--border)',
+                        background: petForm.icon_color === c.name ? 'var(--blush)' : '#fff',
+                        cursor: 'pointer',
+                        filter: c.filter,
+                      }}
+                    >
+                      {SPECIES_EMOJI[petForm.species] ?? '🐾'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 12 }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label className="form-label">Age (years)</label>
@@ -383,9 +409,9 @@ export default function Pets() {
                 className={`${styles.petCard} ${selectedPet?.id === pet.id ? styles.petCardActive : ''}`}
                 onClick={() => setSelectedPet(pet)}
               >
-                <span className={styles.petEmoji} style={{ filter: `hue-rotate(${getHue(pet.icon_color)}deg) saturate(1.4)` }}>
-  {SPECIES_EMOJI[pet.species] ?? '🐾'}
-</span>
+                <span className={styles.petEmoji} style={{ filter: getFilter(pet.icon_color) }}>
+                  {SPECIES_EMOJI[pet.species] ?? '🐾'}
+                </span>
                 <div className={styles.petInfo}>
                   <div className={styles.petName}>{pet.name}</div>
                   <div className={styles.petMeta}>{pet.breed || pet.species}</div>
@@ -403,7 +429,9 @@ export default function Pets() {
               {/* Pet summary */}
               <div className={`card ${styles.petSummary}`}>
                 <div className={styles.summaryLeft}>
-                  <span className={styles.summaryEmoji}>{SPECIES_EMOJI[selectedPet.species] ?? '🐾'}</span>
+                  <span className={styles.summaryEmoji} style={{ filter: getFilter(selectedPet.icon_color) }}>
+                    {SPECIES_EMOJI[selectedPet.species] ?? '🐾'}
+                  </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                       <h2 className={styles.summaryName}>{selectedPet.name}</h2>
@@ -474,31 +502,6 @@ export default function Pets() {
                   ))}
                 </div>
               )}
-
-              <div className="form-group">
-  <label className="form-label">Icon Color</label>
-  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-    {COLOR_OPTIONS.map(c => (
-      <button
-        key={c.name}
-        type="button"
-        onClick={() => setPetForm(f => ({ ...f, icon_color: c.name }))}
-        title={c.name}
-        style={{
-          fontSize: '1.5rem',
-          padding: '6px 10px',
-          borderRadius: 8,
-          border: petForm.icon_color === c.name ? '2px solid var(--pink)' : '1.5px dashed var(--border)',
-          background: petForm.icon_color === c.name ? 'var(--blush)' : '#fff',
-          cursor: 'pointer',
-          filter: getFilter(pet.icon_color) }}
-        }}
-      >
-        {SPECIES_EMOJI[petForm.species] ?? '🐾'}
-      </button>
-    ))}
-  </div>
-</div>          
 
               {/* Vaccinations */}
               {tab === 'vaccinations' && (
