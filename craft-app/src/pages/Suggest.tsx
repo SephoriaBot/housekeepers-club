@@ -16,7 +16,20 @@ const MEAL_TYPES = [
   { label: 'breakfast', value: 'breakfast' },
   { label: 'lunch', value: 'lunch' },
   { label: 'dinner', value: 'main course' },
+  { label: 'drink', value: 'drink' },
 ]
+
+const ALCOHOL_KEYWORDS = [
+  'vodka','rum','gin','tequila','whiskey','whisky','bourbon','wine','beer',
+  'champagne','prosecco','liqueur','brandy','cocktail','sangria','mojito',
+  'margarita','martini','daiquiri','spritz','cider','mead','sake','schnapps',
+]
+
+function isAlcoholic(m: { title: string; summary?: string }) {
+  const text = `${m.title} ${m.summary ?? ''}`.toLowerCase()
+  return ALCOHOL_KEYWORDS.some(kw => text.includes(kw))
+}
+
 
 interface SpoonRecipe {
   id: number
@@ -45,6 +58,8 @@ const [mealType, setMealType] = useState('')
   const [saved, setSaved] = useState<Set<number>>(new Set())
   const [savingId, setSavingId] = useState<number | null>(null)
   const [error, setError] = useState('')
+const [nonAlcoholicOnly, setNonAlcoholicOnly] = useState(false)
+
 
   function toggleSet(setFn: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) {
     setFn(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
@@ -70,8 +85,13 @@ if (mealType) params.set('type', mealType)
       const res = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${params}`)
       const data = await res.json()
       if (data.code === 402) { setError('Spoonacular daily limit reached — try again tomorrow'); setLoading(false); return }
-      setMeals(data.results || [])
-      if (!data.results?.length) setError('No recipes found for those filters — try adjusting them')
+let results: SpoonRecipe[] = data.results || []
+if (mealType === 'drink' && nonAlcoholicOnly) {
+  results = results.filter(m => !isAlcoholic(m))
+}
+setMeals(results)
+if (!results.length) setError('No recipes found for those filters — try adjusting them')
+
     } catch {
       setError('Could not load recipes — check your connection')
     }
