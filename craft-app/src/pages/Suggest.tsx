@@ -30,7 +30,6 @@ function isAlcoholic(m: { title: string; summary?: string }) {
   return ALCOHOL_KEYWORDS.some(kw => text.includes(kw))
 }
 
-
 interface SpoonRecipe {
   id: number
   title: string
@@ -52,14 +51,13 @@ export default function Suggest() {
   const [selectedDiets, setSelectedDiets] = useState<Set<string>>(new Set(['vegetarian']))
   const [selectedIntolerances, setSelectedIntolerances] = useState<Set<string>>(new Set())
   const [maxTime, setMaxTime] = useState('')
-const [mealType, setMealType] = useState('')
+  const [mealType, setMealType] = useState('')
+  const [nonAlcoholicOnly, setNonAlcoholicOnly] = useState(false)
   const [loading, setLoading] = useState(false)
   const [meals, setMeals] = useState<SpoonRecipe[]>([])
   const [saved, setSaved] = useState<Set<number>>(new Set())
   const [savingId, setSavingId] = useState<number | null>(null)
   const [error, setError] = useState('')
-const [nonAlcoholicOnly, setNonAlcoholicOnly] = useState(false)
-
 
   function toggleSet(setFn: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) {
     setFn(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
@@ -79,19 +77,20 @@ const [nonAlcoholicOnly, setNonAlcoholicOnly] = useState(false)
     if (selectedDiets.size) params.set('diet', [...selectedDiets].join(','))
     if (selectedIntolerances.size) params.set('intolerances', [...selectedIntolerances].join(','))
     if (maxTime) params.set('maxReadyTime', maxTime)
-if (mealType) params.set('type', mealType)
+    if (mealType) params.set('type', mealType)
 
     try {
       const res = await fetch(`https://api.spoonacular.com/recipes/complexSearch?${params}`)
       const data = await res.json()
       if (data.code === 402) { setError('Spoonacular daily limit reached — try again tomorrow'); setLoading(false); return }
-let results: SpoonRecipe[] = data.results || []
-if (mealType === 'drink' && nonAlcoholicOnly) {
-  results = results.filter(m => !isAlcoholic(m))
-}
-setMeals(results)
-if (!results.length) setError('No recipes found for those filters — try adjusting them')
 
+      let results: SpoonRecipe[] = data.results || []
+      if (mealType === 'drink' && nonAlcoholicOnly) {
+        results = results.filter(m => !isAlcoholic(m))
+      }
+
+      setMeals(results)
+      if (!results.length) setError('No recipes found for those filters — try adjusting them')
     } catch {
       setError('Could not load recipes — check your connection')
     }
@@ -113,28 +112,28 @@ if (!results.length) setError('No recipes found for those filters — try adjust
       const res = await fetch(`https://api.spoonacular.com/recipes/${m.id}/information?${params}`)
       const data = await res.json()
       ingredients = (data.extendedIngredients || []).map((ing: any) => {
-  const name = ing.name || ing.originalName || ing.original || ''
-  return name
-    .toLowerCase()
-    .replace(/\(.*?\)/g, '')
-    .replace(/[^a-z\s]/g, '')
-    .trim()
-})
+        const name = ing.name || ing.originalName || ing.original || ''
+        return name
+          .toLowerCase()
+          .replace(/\(.*?\)/g, '')
+          .replace(/[^a-z\s]/g, '')
+          .trim()
+      })
     } catch {
       // if this fails, we still save the meal without ingredients
     }
 
-   const { error } = await supabase.from('meals').upsert(
-  {
-    spoonacular_id: m.id,
-    name: m.title,
-    time: `${m.readyInMinutes} min`,
-    tags,
-    ingredients,
-  },
-  { onConflict: 'name' }
-)
-    
+    const { error } = await supabase.from('meals').upsert(
+      {
+        spoonacular_id: m.id,
+        name: m.title,
+        time: `${m.readyInMinutes} min`,
+        tags,
+        ingredients,
+      },
+      { onConflict: 'name' }
+    )
+
     if (!error) setSaved(s => new Set([...s, m.id]))
     setSavingId(null)
   }
@@ -171,24 +170,38 @@ if (!results.length) setError('No recipes found for those filters — try adjust
             {MAX_TIMES.map(t => (
               <button key={t.value} className={`${styles.chip} ${maxTime === t.value ? styles.active : ''}`}
                 onClick={() => setMaxTime(t.value)}>{t.label}</button>
-            ))} no
+            ))}
           </div>
         </div>
 
-<div className={styles.filterSection}>
-  <div className={styles.filterLabel}>meal</div>
-  <div className={styles.chips}>
-    {MEAL_TYPES.map(m => (
-      <button
-        key={m.value}
-        className={`${styles.chip} ${mealType === m.value ? styles.active : ''}`}
-        onClick={() => setMealType(m.value)}
-      >
-        {m.label}
-      </button>
-    ))}
-  </div>
-</div>
+        <div className={styles.filterSection}>
+          <div className={styles.filterLabel}>meal</div>
+          <div className={styles.chips}>
+            {MEAL_TYPES.map(m => (
+              <button
+                key={m.value}
+                className={`${styles.chip} ${mealType === m.value ? styles.active : ''}`}
+                onClick={() => setMealType(m.value)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {mealType === 'drink' && (
+          <div className={styles.filterSection}>
+            <div className={styles.filterLabel}>type</div>
+            <div className={styles.chips}>
+              <button
+                className={`${styles.chip} ${nonAlcoholicOnly ? styles.active : ''}`}
+                onClick={() => setNonAlcoholicOnly(v => !v)}
+              >
+                non-alcoholic only
+              </button>
+            </div>
+          </div>
+        )}
 
         <button className="btn-primary" onClick={fetchRecipes} disabled={loading} style={{marginTop:'0.75rem'}}>
           {loading
