@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import styles from './Pets.module.css'
+import DrGroq from './DrGroq'
 
 interface Pet {
   id: string
@@ -68,7 +69,7 @@ const EMPTY_PET_FORM = {
 export default function Pets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
-  const [tab, setTab] = useState<'feeding' | 'vaccinations' | 'weight' | 'sitter'>('feeding')
+  const [tab, setTab] = useState<'feeding' | 'vaccinations' | 'weight' | 'sitter' | 'troubleshoot'>('feeding')
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([])
   const [weights, setWeights] = useState<WeightEntry[]>([])
   const [feedings, setFeedings] = useState<FeedingEntry[]>([])
@@ -458,9 +459,9 @@ export default function Pets() {
 
               {/* Tabs */}
               <div className={styles.tabs}>
-                {(['feeding', 'vaccinations', 'weight', 'sitter'] as const).map(t => (
+                {(['feeding', 'vaccinations', 'weight', 'sitter', 'troubleshoot'] as const).map(t => (
                   <button key={t} className={`${styles.tabBtn} ${tab === t ? styles.tabActive : ''}`} onClick={() => setTab(t)}>
-                    {t === 'sitter' ? '🏠 catsitter' : t === 'feeding' ? '🍽 feeding' : t === 'vaccinations' ? '💉 vaccines' : '⚖️ weight'}
+                    {t === 'sitter' ? '🏠 catsitter' : t === 'feeding' ? '🍽 feeding' : t === 'vaccinations' ? '💉 vaccines' : t === 'weight' ? '⚖️ weight' : '🩺 ask dr. groq'}
                   </button>
                 ))}
               </div>
@@ -619,6 +620,13 @@ export default function Pets() {
                       <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)' }}>No catsitter info yet — edit this pet to add feeding routine, personality, and hiding spots.</p>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Ask Dr. Groq */}
+              {tab === 'troubleshoot' && (
+                <div className={styles.section}>
+                  <DrGroq pet={selectedPet} />
                 </div>
               )}
 
