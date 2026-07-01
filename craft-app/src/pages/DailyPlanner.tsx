@@ -205,7 +205,7 @@ export default function DailyPlanner() {
                         background: task.done
                           ? 'linear-gradient(135deg, #FFE1B3, #EFD3A2)'
                           : 'var(--cream)',
-                        border: `1.5px solid ${task.done ? '#C9A6F0' : 'var(--border)'}`,
+                        border: `1.5px solid ${task.done ? '#EFD3A2' : 'var(--border)'}`,
                         transition: 'all 0.2s ease',
                         boxShadow: task.done ? '0 1px 6px rgba(201,166,240,0.15)' : 'none',
                       }}
@@ -215,9 +215,9 @@ export default function DailyPlanner() {
                         onClick={e => toggleTask(task, e)}
                         style={{
                           width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${task.done ? '#C9A6F0' : 'var(--border)'}`,
+                          border: `2px solid ${task.done ? '#EFD3A2' : 'var(--border)'}`,
                           background: task.done
-                            ? 'linear-gradient(135deg, #C9A6F0, #FF8FC4)'
+                            ? 'linear-gradient(135deg, #EFD3A2, #FFE8A3)'
                             : 'var(--white)',
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'all 0.15s ease',
@@ -229,7 +229,7 @@ export default function DailyPlanner() {
 
                       <span style={{
                         flex: 1, fontSize: '0.88rem',
-                        color: task.done ? '#9B72CF' : 'var(--ink-muted)',
+                        color: task.done ? '#B98A5A' : 'var(--ink-muted)',
                         textDecoration: task.done ? 'line-through' : 'none',
                         transition: 'all 0.2s ease',
                       }}>
@@ -296,11 +296,11 @@ export default function DailyPlanner() {
                         background: 'linear-gradient(135deg, #F7D7A8, #FFD6A5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <Calendar size={13} style={{ color: '#9B72CF' }} />
+                        <Calendar size={13} style={{ color: '#B98A5A' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink-muted)' }}>{appt.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#9B72CF', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#B98A5A', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
                       </div>
                       <button
                         onClick={() => deleteAppointment(appt.id)}
