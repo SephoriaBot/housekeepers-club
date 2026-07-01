@@ -16,6 +16,8 @@
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 22px;
+
+  --flap-height: 30px;
 }
 
 /* ================= BASE RESET ================= */
@@ -115,43 +117,102 @@ a {
   font-size: 14px;
 }
 
-/* ================= CARD SYSTEM ================= */
+/* ================= CARD SYSTEM — ENVELOPE STYLE ================= */
+/*
+  Each card is styled like a little folded envelope:
+  - ::after draws a triangular flap across the top edge, in the warm
+    peach/cream gradient, with a soft "wax seal" dot glowing where the
+    flap's point meets the body (all done with layered backgrounds —
+    no extra markup needed in any component).
+  - ::before keeps the original dashed border, now tucked below the
+    flap, reading as the envelope's interior stitching.
+*/
 
 .card,
 .stat-card,
 .pet-card,
 .plant-card,
-.list-item,
 .wizard-box {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   padding: 16px;
+  padding-top: calc(var(--flap-height) + 14px);
   position: relative;
-  overflow: hidden; /* ← changed from visible to hidden */
-  min-width: 0;     /* ← prevents card from overflowing grid */
+  overflow: hidden;
+  min-width: 0;
+}
+
+.list-item {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .card::before,
 .stat-card::before,
 .pet-card::before,
 .plant-card::before,
+.wizard-box::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--flap-height) + 4px) 6px 6px 6px;
+  border-radius: calc(var(--radius-lg) - 6px);
+  border: 1px dashed rgba(200,150,200,0.35);
+  pointer-events: none;
+}
+
 .list-item::before {
   content: "";
   position: absolute;
   inset: 6px;
-  border-radius: calc(var(--radius-lg) - 6px);
-  border: 1px dashed rgba(200,150,200,0.35);
+  border-radius: calc(var(--radius-md) - 6px);
+  border: 1px dashed rgba(200,150,200,0.28);
+  pointer-events: none;
+}
+
+.card::after,
+.stat-card::after,
+.pet-card::after,
+.plant-card::after,
+.wizard-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--flap-height);
+  background:
+    radial-gradient(circle at 50% 100%, var(--mint) 0 5px, rgba(216,243,220,0.5) 6px, transparent 8px),
+    linear-gradient(135deg, var(--secondary), var(--primary));
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 2px 2px rgba(60, 30, 20, 0.12));
+  transition: transform 0.2s ease, filter 0.2s ease;
   pointer-events: none;
 }
 
 .card:hover,
 .stat-card:hover,
 .pet-card:hover,
-.plant-card:hover {
+.plant-card:hover,
+.wizard-box:hover {
   transform: translateY(-3px);
   transition: 0.2s ease;
+}
+
+.card:hover::after,
+.stat-card:hover::after,
+.pet-card:hover::after,
+.plant-card:hover::after,
+.wizard-box:hover::after {
+  transform: translateY(-1px) scaleY(1.05);
+  filter: drop-shadow(0 3px 3px rgba(60, 30, 20, 0.16));
 }
 
 /* ================= DASHBOARD ================= */
@@ -170,8 +231,8 @@ a {
 .stat-card:nth-child(3) { border-left-color: var(--accent); }
 .stat-card:nth-child(4) { border-left-color: var(--mint); }
 
-.stat-card:nth-child(odd) { transform: rotate(-0.2deg); }
-.stat-card:nth-child(even) { transform: rotate(0.2deg); }
+.stat-card:nth-child(odd) { transform: rotate(-0.4deg); }
+.stat-card:nth-child(even) { transform: rotate(0.4deg); }
 
 /* ================= PETS ================= */
 
@@ -279,5 +340,9 @@ h1 {
   .main {
     height: auto;
     padding: 8px;
+  }
+
+  :root {
+    --flap-height: 24px;
   }
 }
