@@ -132,11 +132,9 @@ a {
 .plant-card,
 .wizard-box {
   container-type: inline-size;
-  --flap: clamp(22px, 16cqw, 54px);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) var(--flap)),
-    var(--surface);
-  border: 1px solid var(--border);
+  --flap: clamp(30px, 20cqw, 64px);
+  background: var(--surface);
+  border: 1.5px solid rgba(180, 140, 100, 0.45);
   padding: 16px;
   padding-top: calc(var(--flap) + 14px);
   position: relative;
@@ -194,13 +192,14 @@ a {
   content: "";
   position: absolute;
   top: 0;
-  left: 50%;
-  width: 18px;
-  height: 18px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: var(--mint);
-  border: 1px solid rgba(59, 47, 42, 0.25);
+  left: 0;
+  right: 0;
+  height: var(--flap);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background:
+    radial-gradient(circle at 50% 66%, var(--mint) 0 8px, rgba(216,243,220,0.7) 9px, transparent 11px),
+    linear-gradient(135deg, var(--secondary), var(--primary));
+  filter: drop-shadow(0 2px 1px rgba(59,47,42,0.18));
   pointer-events: none;
 }
 
