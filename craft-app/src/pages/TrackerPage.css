@@ -1,0 +1,295 @@
+/* ============================================================
+   Tracker Page — cottagecore styling
+   Uses var(--token, fallback) so it inherits Homebody's existing
+   CSS variables automatically if the names match, and otherwise
+   falls back to a self-contained palette.
+   ============================================================ */
+
+.tracker-page {
+  --tp-cream: var(--color-cream, #fbf5ec);
+  --tp-sage: var(--color-sage, #97a97c);
+  --tp-peach: var(--color-peach, #f3c6a5);
+  --tp-lavender: var(--color-lavender, #c9b6db);
+  --tp-ink: var(--color-ink, #4a3f35);
+  --tp-line: var(--color-border, #e4d9c8);
+
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+  color: var(--tp-ink);
+  font-family: var(--font-body, 'Quicksand', system-ui, sans-serif);
+}
+
+.tracker-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.tracker-page__title {
+  font-family: var(--font-display, 'Fredoka', sans-serif);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.tracker-page__manage-btn {
+  border: 1px solid var(--tp-line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  color: var(--tp-ink);
+  cursor: pointer;
+}
+
+/* ---------- Picker (empty state / manage trackers) ---------- */
+
+.tracker-picker {
+  background: var(--tp-cream);
+  border: 1px dashed var(--tp-line);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+}
+
+.tracker-picker__prompt {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.tracker-picker__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tracker-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 2px solid var(--tp-line);
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.tracker-option:active {
+  transform: scale(0.97);
+}
+
+.tracker-option--selected {
+  border-color: var(--tp-sage);
+  background: #f4f8ef;
+}
+
+.tracker-option__emoji {
+  font-size: 1.6rem;
+}
+
+.tracker-option__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.tracker-picker__save {
+  border: none;
+  background: var(--tp-sage);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tracker-picker__save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Envelope-style tracker cards ---------- */
+
+.tracker-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--tp-line);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(74, 63, 53, 0.06);
+}
+
+/* the envelope "flap" */
+.tracker-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 46px;
+  background: linear-gradient(135deg, var(--tp-flap, var(--tp-peach)) 50%, transparent 50.5%),
+              linear-gradient(45deg, var(--tp-flap, var(--tp-peach)) 50%, transparent 50.5%);
+  background-size: 50% 100%;
+  background-position: left top, right top;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.tracker-card--sleep { --tp-flap: var(--tp-lavender); }
+.tracker-card--period { --tp-flap: var(--tp-peach); }
+.tracker-card--weight { --tp-flap: var(--tp-sage); }
+
+.tracker-card__body {
+  position: relative;
+  padding: 20px 18px 18px;
+}
+
+.tracker-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.tracker-card__title {
+  font-family: var(--font-display, 'Fredoka', sans-serif);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.tracker-card__stat {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* ---------- Quick-add form ---------- */
+
+.tracker-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0;
+  padding: 12px;
+  background: var(--tp-cream);
+  border-radius: 12px;
+}
+
+.tracker-form input[type='number'],
+.tracker-form input[type='date'],
+.tracker-form select {
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: var(--tp-ink);
+  min-width: 0;
+}
+
+.tracker-form__quality {
+  display: flex;
+  gap: 2px;
+}
+
+.tracker-form__star {
+  cursor: pointer;
+  font-size: 1.1rem;
+  opacity: 0.35;
+}
+
+.tracker-form__star--active {
+  opacity: 1;
+}
+
+.tracker-form__submit {
+  border: none;
+  background: var(--tp-ink);
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.tracker-form__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tracker-card__empty {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.tracker-card__chart {
+  width: 100%;
+  height: 180px;
+}
+
+/* ---------- Correlation section ---------- */
+
+.correlation-section {
+  margin-top: 8px;
+}
+
+.correlation-section__title {
+  font-family: var(--font-display, 'Fredoka', sans-serif);
+  font-size: 1.05rem;
+  margin: 0 0 10px;
+  opacity: 0.85;
+}
+
+.correlation-card {
+  background: #fff;
+  border: 1px solid var(--tp-line);
+  border-radius: 14px;
+  padding: 14px 16px 6px;
+  margin-bottom: 14px;
+}
+
+.correlation-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.correlation-card__pair {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.correlation-card__vs {
+  font-weight: 400;
+  opacity: 0.5;
+  font-size: 0.8rem;
+}
+
+.correlation-card__r {
+  font-size: 0.82rem;
+}
+
+.correlation-card__r em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.correlation-card__r--muted {
+  opacity: 0.5;
+}
