@@ -23,7 +23,14 @@ interface Spark {
   color: string;
 }
 
-const SPARK_COLORS = ['#FF8FC4', '#FFE177', '#7FC4E8', '#C9A6F0', '#8FE0B8', '#FF6B6B'];
+const SPARK_COLORS = [
+  "#FFD6A5", // soft peach
+  "#FFE8A3", // warm cream yellow
+  "#F7D7A8", // light apricot
+  "#FFE1B3", // honey cream
+  "#EFD3A2", // muted gold
+  "#FFF1C9"  // soft buttery cream
+];
 
 export default function DailyPlanner() {
   const [tasks, setTasks] = useState<DailyTask[]>([]);
