@@ -28,18 +28,7 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.recipeHeader {
-  flex-direction: row;
-  gap: 12px;
-  align-items: center;
-  background: var(--sage-light);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.recipeTitle { font-family: 'Lora', serif; font-size: 17px; font-weight: 500; color: var(--sage-dark); }
+
 .recipeMeta { display: flex; gap: 8px; }
 .pill {
   font-size: 11px;
@@ -50,10 +39,19 @@
   padding: 3px 10px;
 }
 
-.body { display: grid; grid-template-columns: 230px 1fr; min-height: 440px; }
+.body {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  min-height: 440px;
+  width: 100%;
+}
 
 /* INGREDIENTS COL */
-.ingCol { border-right: 0.5px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 0; }
+.ingCol,
+.stepsCol {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
 
 .ingTitle {
   font-size: 11px;
@@ -121,7 +119,12 @@
 .ingRow:hover { background: var(--sage-light); }
 .ingHighlight { background: var(--sage-light); border-left: 2px solid var(--sage); }
 
-.ingName { flex: 1; color: var(--text); }
+.ingName {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .ingAmt { color: var(--sage-dark); font-weight: 500; font-size: 11px; text-align: right; min-width: 65px; }
 
 .convBox { background: var(--warm); border-radius: 8px; padding: 8px 10px; margin-top: auto; }
@@ -165,7 +168,11 @@
 }
 .active .stepNum { background: var(--sage-dark); color: #fff; border-color: var(--sage-dark); }
 
-.stepText { font-size: 13px; line-height: 1.55; color: var(--text); }
+.stepText {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .done .stepText { color: var(--text-soft); }
 
 .mark { background: rgba(122,158,126,0.25); border-radius: 3px; padding: 0 2px; font-style: normal; }
@@ -191,4 +198,15 @@
   flex-shrink: 0;
 }
 
-.recipeHeaderText { flex: 1; }
+.recipeHeader {
+  flex-wrap: wrap;
+}
+
+.recipeHeaderText {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipeTitle {
+  overflow-wrap: anywhere;
+}
