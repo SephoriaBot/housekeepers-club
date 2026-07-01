@@ -558,35 +558,6 @@ export default function Wallet() {
 
               {/* ── STAT CARDS ── */}
       <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div className="card">
-  <div className="card-body">
-    <div
-      style={{
-        display: "grid",
-gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-        gap: 10,
-width: "100%"
- }}
-    >
-      {[
-        { label: "Total Debt", val: fmt(totalDebt), color: "var(--ink)" },
-        { label: "Active Debt", val: fmt(activeTotal), color: "var(--ink)" },
-        { label: "Payoff", val: `${payoffMonth} months`, color: "var(--green-dark)" },
-        { label: "Deferred @ Done", val: fmt(finalDeferred), color: "var(--pink-dark)" },
-      ].map(({ label, val, color }) => (
-        <div key={label} className="card" style={{ cursor: "default" }}>
-          <div className="card-body" style={{ padding: "12px 16px" }}>
-            <div className="section-label" style={{ marginBottom: 4 }}>
-              {label}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color }}>
-              {val}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
 </div>
 
 
