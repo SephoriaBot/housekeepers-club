@@ -544,13 +544,6 @@ export default function Wallet() {
     );
   };
 
-  if (loading) return (
-    <div className="loading-spinner" style={{ minHeight: "60vh" }}>
-      <span style={{ fontSize: 32 }}>🍓</span>
-      <span>Loading...</span>
-    </div>
-  );
-
   return (
     <div>
       {showConfetti && <Confetti />}
