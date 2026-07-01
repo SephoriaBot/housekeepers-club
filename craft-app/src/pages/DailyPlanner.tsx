@@ -103,17 +103,22 @@ export default function DailyPlanner() {
   }
 
   async function addAppointment() {
-    const title = newApptTitle.trim();
-    if (!title || !newApptDate) return;
-    const { data } = await supabase
-      .from('appointments')
-      .insert({ title, date_time: newApptDate })
-      .select()
-      .single();
-    if (data) setAppointments(prev => [...prev, data].sort((a, b) => a.date_time.localeCompare(b.date_time)));
-    setNewApptTitle('');
-    setNewApptDate('');
-  }
+  const title = newApptTitle.trim();
+  if (!title || !newApptDate) return;
+  // newApptDate is a naive "local wall clock" string from the
+  // datetime-local input (e.g. "2026-07-01T14:00"). Convert it to a
+  // real UTC ISO string so Postgres stores the correct absolute instant.
+  const isoDateTime = new Date(newApptDate).toISOString();
+  const { data } = await supabase
+    .from('appointments')
+    .insert({ title, date_time: isoDateTime })
+    .select()
+    .single();
+  if (data) setAppointments(prev => [...prev, data].sort((a, b) => a.date_time.localeCompare(b.date_time)));
+  setNewApptTitle('');
+  setNewApptDate('');
+}
+
 
   async function deleteAppointment(id: string) {
     await supabase.from('appointments').delete().eq('id', id);
