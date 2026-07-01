@@ -558,7 +558,6 @@ export default function Wallet() {
 
               {/* ── STAT CARDS ── */}
       <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-</div>
 
 
         {/* ── MOTIVATIONAL STRIP ── */}
