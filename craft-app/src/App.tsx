@@ -15,9 +15,12 @@ import Pets from './pages/Pets';
 import DailyPlanner from './pages/DailyPlanner';
 import MaidWizard from './pages/MaidWizard';
 import Wallet from './pages/Wallet';
+import TrackerPage from './pages/TrackerPage';
+
 import { ToastProvider } from './hooks/useToast';
 
-type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'dailyplanner' | 'maidwizard' | 'wallet';
+type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'ingredients' | 'cook' | 'grocery' | 'pantry' | 'planner' | 'suggest' | 'pets' | 'dailyplanner' | 'maidwizard' | 'wallet' | 'trackers';
+
 
 
 export default function App() {
@@ -46,6 +49,9 @@ export default function App() {
           {page === 'dailyplanner' && <DailyPlanner />}
           {page === 'maidwizard' && <MaidWizard />}
           {page === 'wallet' && <Wallet />}
+          {page === 'wallet' && <Wallet />}
+          {page === 'trackers' && <TrackerPage />}
+
     
         </main>
       </div>
