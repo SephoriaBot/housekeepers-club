@@ -139,7 +139,7 @@ export default function DailyPlanner() {
       <div className="page-header">
         <div>
           <h2>Daily Planner ✨</h2>
-          <p style={{ color: allDone ? 'var(--green-dark)' : undefined }}>
+          <p style={{ color: allDone ? 'var(--cream)' : undefined }}>
             {allDone ? '🌸 All done! What a day~' : `${doneCount} of ${tasks.length} done today`}
           </p>
         </div>
@@ -165,8 +165,8 @@ export default function DailyPlanner() {
                 height: '100%',
                 width: `${(doneCount / tasks.length) * 100}%`,
                 background: allDone
-                  ? 'linear-gradient(90deg, #8FE0B8, #C9A6F0)'
-                  : 'linear-gradient(90deg, #C9A6F0, #FF8FC4)',
+                  ? 'linear-gradient(90deg, #FFF1C9, #FFD6A5)'
+                  : 'linear-gradient(90deg, #F7D7A8, #FFE8A3)',
                 borderRadius: 99,
                 transition: 'width 0.4s ease',
               }} />
@@ -203,7 +203,7 @@ export default function DailyPlanner() {
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '10px 14px', borderRadius: 14,
                         background: task.done
-                          ? 'linear-gradient(135deg, #f0faf5, #faf0ff)'
+                          ? 'linear-gradient(135deg, #FFE1B3, #EFD3A2)'
                           : 'var(--cream)',
                         border: `1.5px solid ${task.done ? '#C9A6F0' : 'var(--border)'}`,
                         transition: 'all 0.2s ease',
@@ -287,13 +287,13 @@ export default function DailyPlanner() {
                     <div key={appt.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 14px', borderRadius: 14,
-                      background: 'linear-gradient(135deg, #fff8f0, #fef6ff)',
+                      background: 'linear-gradient(135deg, #FFF1C9, #F7D7A8)',
                       border: '1.5px solid #f0d9ff',
                       boxShadow: '0 1px 4px rgba(201,166,240,0.1)',
                     }}>
                       <div style={{
                         width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #fde8f5, #e8d5ff)',
+                        background: 'linear-gradient(135deg, #F7D7A8, #FFD6A5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         <Calendar size={13} style={{ color: '#9B72CF' }} />
