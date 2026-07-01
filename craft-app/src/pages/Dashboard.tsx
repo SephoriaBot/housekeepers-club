@@ -182,6 +182,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             <MiniStatCard emoji="✔️" label="Daily Planner" value={null} onClick={() => onNavigate('dailyplanner')} />
             <MiniStatCard emoji="🐷" label="Wallet" value={null} onClick={() => onNavigate('wallet')} />
              <MiniStatCard emoji="🧼" label="Clean" value={null} onClick={() => onNavigate('maidwizard')} />
+             <MiniStatCard emoji="📊" label="Trackers" value={null} onClick={() => onNavigate('trackers')} />
  </div>
         </section>
 
@@ -365,7 +366,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 // ── MINI STAT CARD ──
 function MiniStatCard({ emoji, label, value, addLabel, onAdd, onClick }: {
   emoji: string; label: string; value: number | null;
-  addLabel: string; onAdd: () => void; onClick: () => void;
+  addLabel?: string; onAdd?: () => void; onClick: () => void;
 }) {
   return (
     <div
@@ -383,18 +384,20 @@ function MiniStatCard({ emoji, label, value, addLabel, onAdd, onClick }: {
         <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
           {label}
         </div>
-        <button
-          onClick={e => { e.stopPropagation(); onAdd(); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            padding: '3px 8px', borderRadius: 10,
-            background: 'var(--blush)', border: '1px solid var(--border)',
-            color: 'var(--pink-dark)', fontSize: '0.65rem', fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-          }}
-        >
-          <Plus size={9} /> {addLabel}
-        </button>
+        {onAdd && (
+          <button
+            onClick={e => { e.stopPropagation(); onAdd(); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 8px', borderRadius: 10,
+              background: 'var(--blush)', border: '1px solid var(--border)',
+              color: 'var(--pink-dark)', fontSize: '0.65rem', fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            <Plus size={9} /> {addLabel}
+          </button>
+        )}
       </div>
     </div>
   );
