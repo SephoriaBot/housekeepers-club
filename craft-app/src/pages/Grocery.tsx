@@ -446,7 +446,7 @@ try {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
                           padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
-                          background: '#fff',
+                          background: '#fff', color: 'var(--ink)',
                         }}
                       >
                         <span style={{ fontSize: '1.4rem' }}>{preset.emoji}</span>
@@ -481,6 +481,7 @@ try {
                             background: checked ? 'var(--cream)' : '#fff',
                             border: '1.5px solid var(--border)',
                             opacity: alreadyOnList ? 0.55 : 1,
+                            color: 'var(--ink)',
                           }}
                         >
                           <input type="checkbox" checked={checked} onChange={() => toggleBasicItem(item.name)} />
