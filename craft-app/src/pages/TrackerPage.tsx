@@ -547,14 +547,14 @@ function TrackerChart({
   return (
     <div className="tracker-card__chart">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4d9c8" />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11 }}
             interval="preserveStartEnd"
           />
-          <YAxis tick={{ fontSize: 11 }} width={40} unit={yLabel ? ` ${yLabel}` : ''} />
+          <YAxis tick={{ fontSize: 11 }} width={38} unit={yLabel ? ` ${yLabel}` : ''} allowDecimals={false} />
           <Tooltip />
           <Line
             type="monotone"
@@ -745,11 +745,11 @@ function CorrelationCard({
       {chartData.length >= 2 && (
         <div className="tracker-card__chart">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4d9c8" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-              <YAxis yAxisId="a" tick={{ fontSize: 11 }} width={34} />
-              <YAxis yAxisId="b" orientation="right" tick={{ fontSize: 11 }} width={34} />
+              <YAxis yAxisId="a" tick={{ fontSize: 11 }} width={32} allowDecimals={false} />
+              <YAxis yAxisId="b" orientation="right" tick={{ fontSize: 11 }} width={32} allowDecimals={false} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line
