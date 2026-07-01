@@ -117,12 +117,11 @@ a {
 
 /* ================= CARD SYSTEM — ENVELOPE STYLE ================= */
 /*
-  The card's own outline is shaped like the back of a closed envelope:
-  a rectangle body with a pointed triangular flap forming the top edge,
-  plus a small wax-seal dot peeking right at the point. --flap is sized
-  in container-query width units so the flap's angle stays proportional
-  whether the card is narrow or wide (a fixed-px flap looked flat and
-  stretched on wider cards). ::before is the dashed inner border,
+  Each card is a normal rounded card with a solid-color triangular
+  flap band pinned flush to the top (fixed 46px height, matching the
+  card's padding-top exactly — no formulas on either side, so there's
+  no room for the two to drift out of sync). A small wax-seal dot sits
+  where the flap points meet. ::before is the dashed inner border,
   tucked below the flap, reading as the envelope's interior stitching.
 */
 
@@ -131,24 +130,15 @@ a {
 .pet-card,
 .plant-card,
 .wizard-box {
-  container-type: inline-size;
-  --flap: clamp(30px, 20cqw, 64px);
   background: var(--surface);
-  border: 1.5px solid rgba(180, 140, 100, 0.45);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
   padding: 16px;
-  padding-top: calc(var(--flap) + 14px);
+  padding-top: 46px;
   position: relative;
+  overflow: hidden;
   min-width: 0;
-  clip-path: polygon(
-    0 var(--flap),
-    50% 0,
-    100% var(--flap),
-    100% calc(100% - 8px),
-    calc(100% - 8px) 100%,
-    8px 100%,
-    0 calc(100% - 8px)
-  );
-  filter: drop-shadow(var(--shadow));
 }
 
 .list-item {
@@ -169,7 +159,7 @@ a {
 .wizard-box::before {
   content: "";
   position: absolute;
-  inset: calc(var(--flap) + 10px) 8px 8px 8px;
+  inset: 56px 8px 8px 8px;
   border-radius: 10px;
   border: 1px dashed rgba(200,150,200,0.35);
   pointer-events: none;
@@ -194,12 +184,11 @@ a {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--flap);
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  height: 46px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
   background:
-    radial-gradient(circle at 50% 66%, var(--mint) 0 8px, rgba(216,243,220,0.7) 9px, transparent 11px),
+    radial-gradient(circle at 50% 68%, var(--mint) 0 8px, rgba(216,243,220,0.7) 9px, transparent 11px),
     linear-gradient(135deg, var(--secondary), var(--primary));
-  filter: drop-shadow(0 2px 1px rgba(59,47,42,0.18));
   pointer-events: none;
 }
 
