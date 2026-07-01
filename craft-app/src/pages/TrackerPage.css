@@ -15,7 +15,7 @@
 
   max-width: 640px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 16px 14px 40px;
   color: var(--tp-ink);
   font-family: var(--font-body, 'Quicksand', system-ui, sans-serif);
 }
@@ -118,10 +118,10 @@
   position: relative;
   background: #fff;
   border: 1px solid var(--tp-line);
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 14px;
+  margin-bottom: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(74, 63, 53, 0.06);
+  box-shadow: 0 2px 8px rgba(74, 63, 53, 0.06);
 }
 
 /* the envelope "flap" */
@@ -131,13 +131,13 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 46px;
+  height: 34px;
   background: linear-gradient(135deg, var(--tp-flap, var(--tp-peach)) 50%, transparent 50.5%),
               linear-gradient(45deg, var(--tp-flap, var(--tp-peach)) 50%, transparent 50.5%);
   background-size: 50% 100%;
   background-position: left top, right top;
   background-repeat: no-repeat;
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -146,27 +146,27 @@
 
 .tracker-card__body {
   position: relative;
-  padding: 20px 18px 18px;
+  padding: 14px 14px 12px;
 }
 
 .tracker-card__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .tracker-card__title {
   font-family: var(--font-display, 'Fredoka', sans-serif);
-  font-size: 1.1rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   margin: 0;
 }
 
 .tracker-card__stat {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0.75;
 }
 
@@ -175,11 +175,11 @@
 .tracker-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 14px 0;
-  padding: 12px;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 10px;
   background: var(--tp-cream);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .tracker-form__row {
@@ -320,7 +320,7 @@
 
 .tracker-card__chart {
   width: 100%;
-  height: 180px;
+  height: 140px;
 }
 
 /* ---------- Recent entries ---------- */
@@ -440,4 +440,65 @@
 
 .correlation-card__r--muted {
   opacity: 0.5;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 480px) {
+  .tracker-page {
+    padding: 12px 10px 32px;
+  }
+
+  .tracker-page__title {
+    font-size: 1.25rem;
+  }
+
+  .tracker-card {
+    border-radius: 12px;
+    margin-bottom: 10px;
+  }
+
+  .tracker-card__body {
+    padding: 12px 12px 10px;
+  }
+
+  .tracker-card__chart {
+    height: 120px;
+  }
+
+  .tracker-form {
+    padding: 8px;
+  }
+
+  .tracker-form__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tracker-form__row input,
+  .tracker-form__row select,
+  .tracker-form__field,
+  .tracker-form__stepper,
+  .tracker-form__submit {
+    width: 100%;
+  }
+
+  .tracker-form__quality {
+    justify-content: center;
+    padding: 2px 0;
+  }
+
+  .tracker-entry-row__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .tracker-entry-row__value {
+    text-align: left;
+  }
+
+  .correlation-card {
+    padding: 10px 12px 4px;
+  }
 }
