@@ -16,9 +16,6 @@
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 22px;
-
-  --stamp-w: 30px;
-  --stamp-h: 20px;
 }
 
 /* ================= BASE RESET ================= */
@@ -120,13 +117,13 @@ a {
 
 /* ================= CARD SYSTEM — ENVELOPE STYLE ================= */
 /*
-  Each card gets a small envelope-with-wax-seal glyph tucked in the top
-  corner, drawn as an actual little SVG icon rather than an abstract
-  CSS triangle — a shape stretched across the full card width doesn't
-  read as a fold at most card sizes, but a literal small icon reads
-  unambiguously as "envelope" no matter how wide or narrow the card is.
-  ::before keeps the dashed inner border as the envelope's interior
-  stitching.
+  The card's own outline is shaped like the back of a closed envelope:
+  a rectangle body with a pointed triangular flap forming the top edge,
+  plus a small wax-seal dot peeking right at the point. --flap is sized
+  in container-query width units so the flap's angle stays proportional
+  whether the card is narrow or wide (a fixed-px flap looked flat and
+  stretched on wider cards). ::before is the dashed inner border,
+  tucked below the flap, reading as the envelope's interior stitching.
 */
 
 .card,
@@ -134,15 +131,26 @@ a {
 .pet-card,
 .plant-card,
 .wizard-box {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  container-type: inline-size;
+  --flap: clamp(22px, 16cqw, 54px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) var(--flap)),
+    var(--surface);
   border: 1px solid var(--border);
   padding: 16px;
-  padding-top: 40px;
+  padding-top: calc(var(--flap) + 14px);
   position: relative;
-  overflow: hidden;
   min-width: 0;
+  clip-path: polygon(
+    0 var(--flap),
+    50% 0,
+    100% var(--flap),
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+  filter: drop-shadow(var(--shadow));
 }
 
 .list-item {
@@ -163,8 +171,8 @@ a {
 .wizard-box::before {
   content: "";
   position: absolute;
-  inset: 6px;
-  border-radius: calc(var(--radius-lg) - 6px);
+  inset: calc(var(--flap) + 10px) 8px 8px 8px;
+  border-radius: 10px;
   border: 1px dashed rgba(200,150,200,0.35);
   pointer-events: none;
 }
@@ -185,17 +193,15 @@ a {
 .wizard-box::after {
   content: "";
   position: absolute;
-  top: 10px;
-  left: 12px;
-  width: var(--stamp-w);
-  height: var(--stamp-h);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 20'%3E%3Crect x='1' y='1' width='26' height='18' rx='3' ry='3' fill='%23ffe5b4' stroke='%233b2f2a' stroke-width='1.4'/%3E%3Cpath d='M2 2 L14 12 L26 2' fill='none' stroke='%233b2f2a' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='11' r='2.4' fill='%23d8f3dc' stroke='%233b2f2a' stroke-width='1'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-  transform: rotate(-5deg);
-  filter: drop-shadow(0 1px 1.5px rgba(60, 30, 20, 0.15));
+  top: 0;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--mint);
+  border: 1px solid rgba(59, 47, 42, 0.25);
   pointer-events: none;
-  transition: transform 0.2s ease;
 }
 
 .card:hover,
@@ -205,14 +211,6 @@ a {
 .wizard-box:hover {
   transform: translateY(-3px);
   transition: 0.2s ease;
-}
-
-.card:hover::after,
-.stat-card:hover::after,
-.pet-card:hover::after,
-.plant-card:hover::after,
-.wizard-box:hover::after {
-  transform: rotate(2deg) scale(1.08);
 }
 
 /* ================= DASHBOARD ================= */
