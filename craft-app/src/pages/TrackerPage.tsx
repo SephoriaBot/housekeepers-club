@@ -4,7 +4,6 @@ import PeriodLogForm from '../pages/PeriodLogForm';
 import WeightLogForm from '../pages/WeightLogForm';
 import TrackerChart from '../pages/TrackerChart';
 import { TRACKER_CONFIG } from '../data/trackerConfig';
-import { TrackerType, PeriodValue } from '../types/tracker';
 import { getTrackerLogsInRange } from '../../api/trackerApi';
 
 function todayISO() {
