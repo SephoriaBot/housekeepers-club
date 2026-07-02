@@ -53,7 +53,7 @@ export default function PeriodLogForm({ date, onSaved }: Props) {
     <div className="card">
       <h3>Cycle — {date}</h3>
 
-      <label className="form-label">Mood</label>
+      <label className="card-body">Mood</label>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {MOODS.map((m) => (
           <button
@@ -68,7 +68,7 @@ export default function PeriodLogForm({ date, onSaved }: Props) {
       </div>
 
       <label
-        className="form-label"
+        className="card-body"
         style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
       >
         <input
