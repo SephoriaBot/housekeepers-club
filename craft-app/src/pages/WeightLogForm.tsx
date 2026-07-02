@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { upsertTrackerLog, getTrackerLog } from '../../api/trackerApi';
-import { WeightValue } from '../types/tracker';
 
 interface Props {
   date: string;
