@@ -301,7 +301,10 @@ export default function Wallet() {
     });
   }, [bills, payments, selectedMonth, selectedYear]);
 
+  // "Urgent" = due within a week (used for the heads-up banner + soft weighting)
   const urgentBills = monthBills.filter(b => !b.paid && b.days <= 7 && b.days >= 0);
+  // "Crisis" = late OR due within 3 days -- this is what triggers equity mode
+  const crisisBills = monthBills.filter(b => !b.paid && (b.late || (b.days <= 3 && b.days >= 0)));
   const totalMonthlyBills = bills.reduce((s, b) => s + b.amount, 0);
   const paidTotal = monthBills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const unpaidTotal = monthBills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
@@ -313,22 +316,79 @@ export default function Wallet() {
   const inputAmount = isWeeklyMode ? weekPay : pay;
 
   const urgentTotal = urgentBills.reduce((s, b) => s + b.amount, 0);
+  const crisisTotal = crisisBills.reduce((s, b) => s + b.amount, 0);
+  const isCrisis = crisisTotal > 0;
   const billsRate = totalMonthlyBills / (isWeeklyMode ? 4.33 : 30);
-  const unifiedBills = urgentTotal > 0 ? Math.min(inputAmount * 0.45, urgentTotal) : Math.min(inputAmount * 0.40, billsRate * 1.2);
-  const afterBills = Math.max(0, inputAmount - unifiedBills);
-  const unifiedSnowball = snowballExtra > 0 ? Math.min(afterBills * 0.25, isWeeklyMode ? snowballExtra / 4.33 : snowballExtra / 30) : 0;
-  const afterSnowball = Math.max(0, afterBills - unifiedSnowball);
-  const unifiedBuffer = isWeeklyMode ? 0 : Math.min(22, afterSnowball);
-  const afterBuffer = Math.max(0, afterSnowball - unifiedBuffer);
-  const unifiedNeeds = afterBuffer * 0.65;
-  const unifiedFun = afterBuffer * 0.35;
+
+  // Groceries + gas, treated as ONE protected category -- this floor gets funded
+  // right after crisis bills, before anything else (buffer/snowball/fun).
+  const NEEDS_FLOOR = isWeeklyMode ? 105 : 25; // ~$65 groceries + $40 gas/wk, or ~$15 + $10/day
+
+  let unifiedBills: number;
+  let unifiedSnowball: number;
+  let unifiedBuffer: number;
+  let unifiedNeeds: number;
+  let unifiedFun: number;
+
+  if (isCrisis) {
+    // Equity mode: bills that are late or due within 3 days get paid first --
+    // not split proportionally, just covered as fully as this pay allows.
+    unifiedBills = Math.min(inputAmount, crisisTotal);
+    const afterBills = Math.max(0, inputAmount - unifiedBills);
+    // Groceries & gas still get their floor -- you have to eat and get to work.
+    unifiedNeeds = Math.min(afterBills, NEEDS_FLOOR);
+    const leftover = Math.max(0, afterBills - unifiedNeeds);
+    // Any leftover goes back into bills (other unpaid bills / cushion),
+    // never into buffer or fun money while a crisis bill is outstanding.
+    unifiedBills += leftover;
+    unifiedSnowball = 0;
+    unifiedBuffer = 0;
+    unifiedFun = 0;
+  } else {
+    unifiedBills = urgentTotal > 0 ? Math.min(inputAmount * 0.45, urgentTotal) : Math.min(inputAmount * 0.40, billsRate * 1.2);
+    const afterBills = Math.max(0, inputAmount - unifiedBills);
+    unifiedSnowball = snowballExtra > 0 ? Math.min(afterBills * 0.25, isWeeklyMode ? snowballExtra / 4.33 : snowballExtra / 30) : 0;
+    const afterSnowball = Math.max(0, afterBills - unifiedSnowball);
+    unifiedBuffer = isWeeklyMode ? 0 : Math.min(22, afterSnowball);
+    const afterBuffer = Math.max(0, afterSnowball - unifiedBuffer);
+    // Groceries & gas floor still gets priority over fun money even outside crisis mode.
+    unifiedNeeds = Math.min(afterBuffer, Math.max(NEEDS_FLOOR, afterBuffer * 0.65));
+    unifiedFun = Math.max(0, afterBuffer - unifiedNeeds);
+  }
 
   const allocations = [
-    { label: "🏠 Bills", amount: unifiedBills, color: "var(--pink-dark)", note: urgentBills.length > 0 ? `⚠ ${urgentBills.length} bill(s) due soon!` : "bills + debt minimums" },
-    { label: "❄️ Snowball Extra", amount: unifiedSnowball, color: "#6BBFD4", note: "extra toward target debt" },
-    ...(isWeeklyMode ? [] : [{ label: "🏦 Buffer", amount: unifiedBuffer, color: "#C4933F", note: "Robinhood -- $22/day until $650" }]),
-    { label: "🛒 Needs", amount: unifiedNeeds, color: "var(--green-dark)", note: "groceries, gas, essentials" },
-    { label: "🎉 Treats", amount: unifiedFun, color: "var(--ink-soft)", note: "whimsy -- wants, not needs!" },
+    {
+      label: "🏠 Bills",
+      amount: unifiedBills,
+      color: "var(--pink-dark)",
+      note: isCrisis
+        ? `🚨 ${crisisBills.length} bill(s) late or due in ≤3 days -- covered first`
+        : urgentBills.length > 0 ? `⚠ ${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
+    },
+    {
+      label: "❄️ Snowball Extra",
+      amount: unifiedSnowball,
+      color: "#6BBFD4",
+      note: isCrisis ? "paused -- bills come first" : "extra toward target debt",
+    },
+    ...(isWeeklyMode ? [] : [{
+      label: "🏦 Buffer",
+      amount: unifiedBuffer,
+      color: "#C4933F",
+      note: isCrisis ? "paused -- bills come first" : "Robinhood -- $22/day until $650",
+    }]),
+    {
+      label: "🛒 Groceries & Gas",
+      amount: unifiedNeeds,
+      color: "var(--green-dark)",
+      note: isCrisis ? "protected floor, even in crisis mode" : "groceries + gas, one combined category",
+    },
+    {
+      label: "🎉 Treats",
+      amount: unifiedFun,
+      color: "var(--ink-soft)",
+      note: isCrisis ? "zeroed until crisis bills are caught up" : "whimsy -- wants, not needs!",
+    },
   ];
 
   async function processMonthlyMinimums(debtList: Debt[]) {
@@ -606,7 +666,13 @@ export default function Wallet() {
         {/* ── PLANNER TAB ── */}
         {tab === "planner" && (
           <>
-            {urgentBills.length > 0 && (
+            {isCrisis && (
+              <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 700 }}>
+                🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and buffer are zeroed until these are covered. Groceries & gas are still protected.
+              </div>
+            )}
+
+            {!isCrisis && urgentBills.length > 0 && (
               <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 600 }}>
                 ⚠️ Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
               </div>
