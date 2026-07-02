@@ -31,15 +31,14 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
   const [logs, setLogs] = useState<TrackerLog[]>([]);
   const config = TRACKER_CONFIG[type];
 
-  useEffect(() => {
-    let active = true;
-    getTrackerLogsInRange(type, startDate, endDate).then((data) => {
-      if (active) setLogs(data);
-    });
-    return () => {
-      active = false;
-    };
-  }, [type, startDate, endDate, refreshKey]);
+const loadLogs = async () => {
+  const data = await getTrackerLogsInRange(type, startDate, endDate);
+  setLogs(data);
+};
+
+useEffect(() => {
+  loadLogs();
+}, [type, startDate, endDate, refreshKey]);
 
   if (logs.length === 0) {
     return (
@@ -79,9 +78,18 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
 
   return (
     <div className="card">
-      <h3>
-        {config.emoji} {config.label}
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  <h3>
+    {config.emoji} {config.label}
+  </h3>
+
+  <button
+    className="btn-secondary"
+    onClick={loadLogs}
+  >
+    🔄 Refresh
+  </button>
+</div>
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
