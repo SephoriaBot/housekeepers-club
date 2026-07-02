@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { upsertTrackerLog, getTrackerLog } from '../../api/trackerApi';
-import { SleepValue } from '../types/tracker';
 
 interface Props {
   date: string; // YYYY-MM-DD
