@@ -174,20 +174,6 @@ return date.toLocaleDateString(undefined, {
 
       <div className="page-body" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-        {/* ── QUICK STATS ── */}
-        <section>
-          <div className="section-label">Your Home at a Glance</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            <MiniStatCard emoji="🌿" label="Plants" value={stats.plants} onClick={() => onNavigate('plants')} />
-            <MiniStatCard emoji="🐾" label="Pets" value={stats.pets} onClick={() => onNavigate('pets')} />
-            <MiniStatCard emoji="🫐" label="Meal Planner" value={null} onClick={() => onNavigate('planner')} />
-            <MiniStatCard emoji="🛒" label="Grocery" value={stats.groceryItems} onClick={() => onNavigate('grocery')} />
-            <MiniStatCard emoji="✔️" label="Daily Planner" value={null} onClick={() => onNavigate('dailyplanner')} />
-            <MiniStatCard emoji="🐷" label="Wallet" value={null} onClick={() => onNavigate('wallet')} />
-             <MiniStatCard emoji="🧼" label="Clean" value={null} onClick={() => onNavigate('maidwizard')} />
-             <MiniStatCard emoji="📊" label="Trackers" value={null} onClick={() => onNavigate('trackers')} />
- </div>
-        </section>
 
         {/* ── TODAY'S FOCUS ── */}
         <section>
