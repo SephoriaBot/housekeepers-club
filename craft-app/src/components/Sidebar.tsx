@@ -22,7 +22,6 @@ const SECTIONS = [
       { id: 'suggest', label: 'Suggestions', icon: Lightbulb },
       { id: 'planner', label: 'Meal Planner', icon: CalendarDays },
       { id: 'grocery', label: 'Grocery List', icon: ShoppingCart },
-      { id: 'pantry', label: 'Pantry', icon: Archive },
     ],
   },
     {
@@ -46,7 +45,6 @@ const SECTIONS = [
     items: [
       { id: 'recipes', label: 'Recipe Library', icon: BookOpen },
       { id: 'wizard', label: 'Recipe Wizard', icon: Wand2 },
-      { id: 'ingredients', label: 'Ingredients', icon: FlaskConical },
       { id: 'add-recipe', label: 'Add Recipe', icon: Sparkles },
     ],
   },
@@ -63,7 +61,8 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
  return (
   <div className="sidebar">
     <div className="sidebar-logo">
-      <h1>Homebody</h1>
+      <h1>Polly</h1>
+      <p>your pocket assistant</p>
     </div>
 
     <div className="sidebar-section">
