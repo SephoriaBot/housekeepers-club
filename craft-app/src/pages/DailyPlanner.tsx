@@ -331,13 +331,12 @@ export default function DailyPlanner() {
                     <div key={appt.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 14px', borderRadius: 14,
-                      background: 'linear-gradient(135deg, #FFF1C9, #F7D7A8)',
-                      border: '1.5px solid #f0d9ff',
-                      boxShadow: '0 1px 4px rgba(201,166,240,0.1)',
+                      background: 'var(--cream)',
+                      border: '1.5px solid var(--border)',
                     }}>
                       <div style={{
                         width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #F7D7A8, #FFD6A5)',
+                        background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         <Calendar size={13} style={{ color: '#B98A5A' }} />
