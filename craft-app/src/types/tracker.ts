@@ -1,8 +1,3 @@
-// Place this file at: src/types/tracker.ts
-//
-// Then add this line to your existing src/types/index.ts barrel file:
-//   export * from './tracker';
-
 export type TrackerType = 'sleep' | 'period' | 'weight';
 
 export interface SleepValue {
