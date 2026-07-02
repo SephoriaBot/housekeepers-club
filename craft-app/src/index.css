@@ -16,6 +16,15 @@
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 22px;
+  
+    --ink: #3b2f2a;
+  --ink-soft: #5a463a;
+  --ink-muted: #9c8a7d;
+  --white: #ffffff;
+  --cream: #fff7f0;
+  --green-dark: #2f6b4f;
+  --citrus-blue: #3b82c4;
+
 }
 
 /* ================= BASE RESET ================= */
@@ -288,7 +297,7 @@ input:focus {
 
 /* ================= BUTTONS ================= */
 
-button {
+.btn {
   border: none;
   border-radius: 999px;
   padding: 10px 14px;
@@ -300,9 +309,10 @@ button {
   transition: 0.15s ease;
 }
 
-button:hover {
+.btn:hover {
   transform: translateY(-2px);
 }
+
 
 /* ================= TYPOGRAPHY ================= */
 
