@@ -151,7 +151,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     if (diffDays === 0) return 'today';
     if (diffDays === 1) return 'tomorrow';
     if (diffDays <= 30) return `in ${diffDays}d`;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const isNextYear = date.getFullYear() !== today.getFullYear();
+return date.toLocaleDateString(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: isNextYear ? 'numeric' : undefined,
+});
+
   }
 
   const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
