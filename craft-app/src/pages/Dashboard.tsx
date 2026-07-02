@@ -36,7 +36,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     recipes: 0,
     pets: 0,
     groceryItems: 0,
-    pantryItems: 0,
   });
   const [soonReminders, setSoonReminders] = useState<ReminderItem[]>([]);
   const [laterReminders, setLaterReminders] = useState<ReminderItem[]>([]);
@@ -55,14 +54,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   async function loadAll() {
     const [
-      plantsRes, recipesRes, petsRes, groceryRes, pantryRes,
+      plantsRes, recipesRes, petsRes, groceryRes,
       vaccinationsRes, apptsRes, focusRes, mealsRes,
     ] = await Promise.all([
       supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
       supabase.from('recipes').select('id', { count: 'exact', head: true }),
       supabase.from('pets').select('id, name'),
       supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
-      supabase.from('pantry_items').select('id', { count: 'exact', head: true }),
       supabase.from('pet_vaccinations').select('id, name, pet_id, next_due'),
       supabase.from('appointments').select('id, title, date_time'),
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
@@ -78,7 +76,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       recipes: recipesRes.count || 0,
       pets: pets.length,
       groceryItems: groceryRes.count || 0,
-      pantryItems: pantryRes.count || 0,
     });
 
     setFocuses(focusRes.data || []);
