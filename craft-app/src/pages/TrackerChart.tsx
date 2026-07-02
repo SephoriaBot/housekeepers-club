@@ -13,7 +13,6 @@ import {
 } from 'recharts';
 import { getTrackerLogsInRange } from '../../api/trackerApi';
 import { TRACKER_CONFIG } from '../data/trackerConfig';
-import { TrackerType, PeriodValue, SleepValue, TrackerLog } from '../types/tracker';
 
 interface Props {
   type: TrackerType;
