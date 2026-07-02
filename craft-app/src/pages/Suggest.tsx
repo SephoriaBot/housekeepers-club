@@ -224,10 +224,10 @@ export default function Suggest() {
                 <div style={{padding:'10px 12px 12px'}}>
                   <h3 className={styles.mealName}>{m.title}</h3>
                   <div className={styles.mealTags}>
-                    {m.vegan && <span className="tag">vegan</span>}
-                    {m.vegetarian && !m.vegan && <span className="tag">vegetarian</span>}
-                    {m.glutenFree && <span className="tag">gluten-free</span>}
-                    {m.dairyFree && <span className="tag">dairy-free</span>}
+                    {m.vegan && <span className={styles.tag}>vegan</span>}
+                    {m.vegetarian && !m.vegan && <span className={styles.tag}>vegetarian</span>}
+                    {m.glutenFree && <span className={styles.tag}>gluten-free</span>}
+                    {m.dairyFree && <span className={styles.tag}>dairy-free</span>}
                     <span className={styles.mealTime}>{m.readyInMinutes} min</span>
                   </div>
                   {m.summary && <p className={styles.mealDesc}>{stripHtml(m.summary)}</p>}
