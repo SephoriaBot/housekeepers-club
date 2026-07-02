@@ -316,6 +316,32 @@ input:focus {
   transform: translateY(-2px);
 }
 
+.btn-primary {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--ink);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+  transition: 0.15s ease;
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--ink-soft);
+  transition: 0.15s ease;
+}
+.btn-secondary:hover { transform: translateY(-2px); background: var(--sage-light); }
+
+
 
 /* ================= TYPOGRAPHY ================= */
 
