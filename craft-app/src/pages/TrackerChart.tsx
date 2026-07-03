@@ -1,31 +1,24 @@
 import { useEffect, useState } from 'react';
 import {
   ResponsiveContainer,
-  ComposedChart,
-  Line,
+  BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ReferenceLine,
 } from 'recharts';
 import { getTrackerLogsInRange } from '../../api/trackerApi';
-import { TRACKER_CONFIG } from '../data/trackerConfig';
-import type { TrackerType, TrackerLog, SleepValue, PeriodValue } from '../types/tracker';
+import type { TrackerType, TrackerLog, PeriodValue } from '../types/tracker';
 
 interface Props {
   type: TrackerType;
   startDate: string;
   endDate: string;
   refreshKey?: number;
-}
-
-interface ChartPoint {
-  date: string;
-  primary: number | null;
-  secondary?: number | null;
 }
 
 function parseValue(raw: unknown): any {
@@ -41,7 +34,6 @@ function parseValue(raw: unknown): any {
 
 export default function TrackerChart({ type, startDate, endDate, refreshKey }: Props) {
   const [logs, setLogs] = useState<TrackerLog[]>([]);
-  const config = TRACKER_CONFIG[type];
 
   const loadLogs = async () => {
     const data = await getTrackerLogsInRange(type, startDate, endDate);
@@ -53,125 +45,103 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
   }, [type, startDate, endDate, refreshKey]);
 
   if (logs.length === 0) {
+    return <p className="card">No data logged for this range yet.</p>;
+  }
+
+  if (type === 'sleep') {
+    const hoursData = logs.map((l) => ({
+      date: l.log_date.slice(5),
+      hours: parseValue(l.value).hours ?? 0,
+    }));
+    const qualityData = logs.map((l) => ({
+      date: l.log_date.slice(5),
+      quality: parseValue(l.value).quality ?? 0,
+    }));
+
     return (
-      <p className="card">
-        No {config.label.toLowerCase()} data logged for this range yet.
-      </p>
+      <div className="card">
+        <h3>🌙 Sleep — Hours</h3>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={hoursData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" fontSize={12} />
+            <YAxis fontSize={12} />
+            <Tooltip />
+            <Bar dataKey="hours" fill="#2f6b4f" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+
+        <h3 style={{ marginTop: '1rem' }}>🌙 Sleep — Quality</h3>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={qualityData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" fontSize={12} />
+            <YAxis domain={[1, 5]} fontSize={12} />
+            <Tooltip />
+            <Line type="monotone" dataKey="quality" stroke="#5f7a5c" strokeWidth={2} dot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     );
   }
 
-  const chartData: ChartPoint[] = logs.map((log) => {
-    const date = log.log_date.slice(5);
-    const v = parseValue(log.value);
-    if (type === 'sleep') {
-      return {
-        date,
-        primary: typeof v.hours === 'number' ? v.hours : null,
-        secondary: typeof v.quality === 'number' ? v.quality : null,
-      };
-    }
-    if (type === 'period') {
-      const moodScore =
-        v.mood === 'good' ? 3 : v.mood === 'ok' ? 2 : v.mood === 'bad' ? 1 : null;
-      return { date, primary: moodScore };
-    }
-    return { date, primary: typeof v.weight_lbs === 'number' ? v.weight_lbs : null };
-  });
+  if (type === 'period') {
+    const moodData = logs.map((l) => {
+      const v = parseValue(l.value) as PeriodValue;
+      const score = v.mood === 'good' ? 3 : v.mood === 'ok' ? 2 : v.mood === 'bad' ? 1 : 0;
+      return { date: l.log_date.slice(5), mood: score };
+    });
+    const markers = logs
+      .filter((l) => {
+        const v = parseValue(l.value) as PeriodValue;
+        return v.bleeding_start || v.bleeding_end;
+      })
+      .map((l) => {
+        const v = parseValue(l.value) as PeriodValue;
+        return { date: l.log_date.slice(5), kind: v.bleeding_start ? 'start' : 'end' };
+      });
 
-  const periodMarkers =
-    type === 'period'
-      ? logs
-          .filter((l) => {
-            const v = parseValue(l.value);
-            return v.bleeding_start || v.bleeding_end;
-          })
-          .map((l) => {
-            const v = parseValue(l.value);
-            return { date: l.log_date.slice(5), kind: v.bleeding_start ? 'start' : 'end' };
-          })
-      : [];
+    return (
+      <div className="card">
+        <h3>🌸 Cycle — Mood</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={moodData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" fontSize={12} />
+            <YAxis domain={[1, 3]} ticks={[1, 2, 3]} fontSize={12} />
+            <Tooltip />
+            <Line type="monotone" dataKey="mood" stroke="#e0789a" strokeWidth={2} dot={{ r: 4 }} />
+            {markers.map((m, i) => (
+              <ReferenceLine
+                key={i}
+                x={m.date}
+                stroke={m.kind === 'start' ? '#e0789a' : '#8ba888'}
+                strokeDasharray="4 4"
+                label={m.kind === 'start' ? '🩸' : '✅'}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  const weightData = logs.map((l) => ({
+    date: l.log_date.slice(5),
+    weight: parseValue(l.value).weight_lbs ?? 0,
+  }));
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3>
-          {config.emoji} {config.label}
-        </h3>
-        <button className="btn-secondary" onClick={loadLogs}>
-          🔄 Refresh
-        </button>
-      </div>
-
-      {/* TEMPORARY DEBUG — remove once chart is confirmed working */}
-      <pre style={{ fontSize: '10px', background: '#f4f4f4', padding: '6px', overflowX: 'auto' }}>
-        {JSON.stringify(chartData, null, 2)}
-      </pre>
-
-      <ResponsiveContainer width="100%" height={240}>
-        <ComposedChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="date" stroke="var(--ink)" fontSize={12} />
-          <YAxis
-            yAxisId="left"
-            stroke="var(--ink)"
-            fontSize={12}
-            allowDecimals
-            domain={[0, 'auto']}
-            label={{ value: config.yAxisLabel, angle: -90, position: 'insideLeft' }}
-          />
-          {type === 'sleep' && (
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              stroke="var(--sage-dark)"
-              fontSize={12}
-              domain={[1, 5]}
-              label={{ value: 'Quality', angle: 90, position: 'insideRight' }}
-            />
-          )}
+      <h3>⚖️ Weight</h3>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={weightData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" fontSize={12} />
+          <YAxis fontSize={12} />
           <Tooltip />
-          <Legend />
-
-          {type === 'sleep' && (
-            <>
-              <Bar yAxisId="left" dataKey="primary" name="Hours" fill={config.color} radius={[4, 4, 0, 0]} />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="secondary"
-                name="Quality"
-                stroke="var(--sage-dark)"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-            </>
-          )}
-
-          {type !== 'sleep' && (
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="primary"
-              name={config.label}
-              stroke={config.color}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-            />
-          )}
-
-          {periodMarkers.map((m, i) => (
-            <ReferenceLine
-              key={i}
-              yAxisId="left"
-              x={m.date}
-              stroke={m.kind === 'start' ? 'var(--primary)' : 'var(--sage)'}
-              strokeDasharray="4 4"
-              label={{ value: m.kind === 'start' ? '🩸' : '✅', position: 'top' }}
-            />
-          ))}
-        </ComposedChart>
+          <Line type="monotone" dataKey="weight" stroke="#3b2f2a" strokeWidth={2} dot={{ r: 4 }} />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );
