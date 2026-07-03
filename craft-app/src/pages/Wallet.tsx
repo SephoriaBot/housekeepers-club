@@ -324,7 +324,7 @@ export default function Wallet() {
   const isCrisis = crisisTotal > 0;
   const billsRate = totalMonthlyBills / (isWeeklyMode ? 4.33 : 30);
 
-  const NEEDS_FLOOR = isWeeklyMode ? 105 : 25;
+   const NEEDS_FLOOR = isWeeklyMode ? 105 : 25;
 
   let unifiedBills: number;
   let unifiedSnowball: number;
@@ -333,24 +333,33 @@ export default function Wallet() {
   let unifiedFun: number;
 
   if (isCrisis) {
-    unifiedBills = Math.min(inputAmount, crisisTotal);
-    const afterBills = Math.max(0, inputAmount - unifiedBills);
-    unifiedNeeds = Math.min(afterBills, NEEDS_FLOOR);
-    const leftover = Math.max(0, afterBills - unifiedNeeds);
+    // Groceries/gas floor is reserved FIRST, even in crisis — then bills get the rest
+    unifiedNeeds = Math.min(inputAmount, NEEDS_FLOOR);
+    const afterNeeds = Math.max(0, inputAmount - unifiedNeeds);
+    unifiedBills = Math.min(afterNeeds, crisisTotal);
+    const leftover = Math.max(0, afterNeeds - unifiedBills);
     unifiedBills += leftover;
     unifiedSnowball = 0;
     unifiedBuffer = 0;
     unifiedFun = 0;
   } else {
-    unifiedBills = urgentTotal > 0 ? Math.min(inputAmount * 0.45, urgentTotal) : Math.min(inputAmount * 0.40, billsRate * 1.2);
+    unifiedBills = urgentBills.length > 0 ? Math.min(inputAmount * 0.45, urgentTotal) : Math.min(inputAmount * 0.40, billsRate * 1.2);
     const afterBills = Math.max(0, inputAmount - unifiedBills);
-    unifiedSnowball = snowballExtra > 0 ? Math.min(afterBills * 0.25, isWeeklyMode ? snowballExtra / 4.33 : snowballExtra / 30) : 0;
-    const afterSnowball = Math.max(0, afterBills - unifiedSnowball);
+
+    // Reserve the floor before snowball/buffer get a chance to eat into it
+    const needsFloor = Math.min(afterBills, NEEDS_FLOOR);
+    const afterFloor = Math.max(0, afterBills - needsFloor);
+
+    unifiedSnowball = snowballExtra > 0 ? Math.min(afterFloor * 0.25, isWeeklyMode ? snowballExtra / 4.33 : snowballExtra / 30) : 0;
+    const afterSnowball = Math.max(0, afterFloor - unifiedSnowball);
     unifiedBuffer = isWeeklyMode ? 0 : Math.min(22, afterSnowball);
     const afterBuffer = Math.max(0, afterSnowball - unifiedBuffer);
-    unifiedNeeds = Math.min(afterBuffer, Math.max(NEEDS_FLOOR, afterBuffer * 0.65));
-    unifiedFun = Math.max(0, afterBuffer - unifiedNeeds);
+
+    const extraNeeds = Math.min(afterBuffer, afterBuffer * 0.65);
+    unifiedNeeds = needsFloor + extraNeeds;
+    unifiedFun = Math.max(0, afterBuffer - extraNeeds);
   }
+
 
   const allocations = [
     {
