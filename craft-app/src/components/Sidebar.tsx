@@ -97,10 +97,13 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  paddingLeft: 10,
-                  marginTop: 2
+                  flexDirection: 'row',
+                  gap: 6,
+                  paddingLeft: 4,
+                  marginTop: 4,
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
                 }}
               >
                 {section.items.map(item => {
@@ -110,10 +113,19 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                     <button
                       key={item.id}
                       className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-                      style={{ fontSize: '0.8rem' }}
+                      style={{
+                        fontSize: '0.8rem',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '8px 12px',
+                      }}
                       onClick={() => onNavigate(item.id)}
                     >
-                      <ItemIcon size={14} /> {item.label}
+                      <ItemIcon size={16} />
+                      <span>{item.label}</span>
                     </button>
                   );
                 })}
