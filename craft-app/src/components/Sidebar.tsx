@@ -32,6 +32,13 @@ const SECTIONS = [
       { id: 'maidwizard', label: 'Maid Wizard', icon: Sparkles },
       { id: 'plants', label: 'My Plants', icon: Leaf },
       { id: 'pets', label: 'My Pets', icon: PawPrint },
+    ],
+  },
+  {
+    id: 'planning',
+    label: 'Planning',
+    icon: CalendarCheck,
+    items: [
       { id: 'dailyplanner', label: 'Daily Planner', icon: CalendarCheck },
       { id: 'wallet', label: 'Wallet', icon: PiggyBank },
       { id: 'trackers', label: 'Trackers', icon: LineChart },
