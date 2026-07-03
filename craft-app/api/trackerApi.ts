@@ -51,3 +51,14 @@ export async function getTrackerLogsInRange(
   if (error) throw error;
   return (data ?? []) as TrackerLog[];
 }
+
+export async function deleteTrackerLog(type: TrackerType, logDate: string): Promise<void> {
+  const { error } = await supabase
+    .from('tracker_logs')
+    .delete()
+    .eq('type', type)
+    .eq('log_date', logDate);
+
+  if (error) throw error;
+}
+
