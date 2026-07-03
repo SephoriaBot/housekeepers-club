@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import styles from './Pets.module.css'
 import DrGroq from './DrGroq'
+import { Cat, Dog, Bird, Rabbit, Fish, PawPrint, type LucideIcon } from 'lucide-react'
 
 interface Pet {
   id: string
@@ -49,8 +50,14 @@ interface FeedingEntry {
   fed_at: string
 }
 
-const SPECIES_EMOJI: Record<string, string> = {
-  cat: '🐱', dog: '🐶', bird: '🐦', rabbit: '🐰', fish: '🐠', other: '🐾'
+// One consistent line-icon per species, instead of emoji.
+const SPECIES_ICONS: Record<string, LucideIcon> = {
+  cat: Cat, dog: Dog, bird: Bird, rabbit: Rabbit, fish: Fish, other: PawPrint
+}
+
+function SpeciesIcon({ species, size = 24, style }: { species: string; size?: number; style?: React.CSSProperties }) {
+  const Icon = SPECIES_ICONS[species] ?? PawPrint
+  return <Icon size={size} style={style} strokeWidth={1.75} />
 }
 
 const COLOR_OPTIONS = [
@@ -315,17 +322,17 @@ export default function Pets() {
                       onClick={() => setPetForm(f => ({ ...f, icon_color: c.name }))}
                       title={c.name}
                       style={{
-                        fontSize: '1.5rem',
                         padding: '6px 10px',
                         borderRadius: 8,
                         border: petForm.icon_color === c.name ? '2px solid var(--pink)' : '1.5px dashed var(--border)',
                         background: petForm.icon_color === c.name ? 'var(--blush)' : '#fff',
                         cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      <span style={{ filter: c.filter, display: 'inline-block' }}>
-                        {SPECIES_EMOJI[petForm.species] ?? '🐾'}
-                      </span>
+                      <SpeciesIcon species={petForm.species} size={22} style={{ filter: c.filter, color: 'var(--ink)' }} />
                     </button>
                   ))}
                 </div>
@@ -394,7 +401,7 @@ export default function Pets() {
         <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
       ) : pets.length === 0 ? (
         <div className="empty-state">
-          <p style={{ fontSize: '2.5rem', marginBottom: 12 }}>🐾</p>
+          <PawPrint size={40} style={{ marginBottom: 12, color: 'var(--ink-muted)' }} />
           <p>No pets yet — add your first one above!</p>
         </div>
       ) : (
@@ -409,9 +416,7 @@ export default function Pets() {
                 onClick={() => setSelectedPet(pet)}
               >
                 <span className={styles.petEmoji}>
-                  <span style={{ filter: getFilter(pet.icon_color), display: 'inline-block' }}>
-                    {SPECIES_EMOJI[pet.species] ?? '🐾'}
-                  </span>
+                  <SpeciesIcon species={pet.species} size={28} style={{ filter: getFilter(pet.icon_color), color: 'var(--ink)' }} />
                 </span>
                 <div className={styles.petInfo}>
                   <div className={styles.petName}>{pet.name}</div>
@@ -431,9 +436,7 @@ export default function Pets() {
               <div className={`card ${styles.petSummary}`}>
                 <div className={styles.summaryLeft}>
                   <span className={styles.summaryEmoji}>
-                    <span style={{ filter: getFilter(selectedPet.icon_color), display: 'inline-block' }}>
-                      {SPECIES_EMOJI[selectedPet.species] ?? '🐾'}
-                    </span>
+                    <SpeciesIcon species={selectedPet.species} size={40} style={{ filter: getFilter(selectedPet.icon_color), color: 'var(--ink)' }} />
                   </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -570,8 +573,9 @@ export default function Pets() {
               {tab === 'sitter' && (
                 <div className={styles.section}>
                   <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)' }}>
-                      {SPECIES_EMOJI[selectedPet.species]} {selectedPet.name}'s Care Card
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <SpeciesIcon species={selectedPet.species} size={20} style={{ color: 'var(--ink)' }} />
+                      {selectedPet.name}'s Care Card
                     </div>
 
                     {selectedPet.feeding_routine ? (
