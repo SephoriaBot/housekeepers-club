@@ -1,25 +1,26 @@
 /* ================= TOKENS ================= */
 
 :root {
-  --bg: #fff7f0;
-  --surface: #fffdf9;
-  --text: #3b2f2a;
+  --bg: #fff5f3;
+  --surface: #fffbfa;
+  --text: #3b2a2e;
 
-  --primary: #ffd6a5;
-  --secondary: #ffe5b4;
-  --accent: #fff1c1;
-  --mint: #d8f3dc;
+  --primary: #f7b89c;      /* apricot */
+  --secondary: #f6cfd6;    /* soft pink */
+  --accent: #ffe0d1;       /* pale apricot blush */
+  --mint: #f9dde2;         /* swapped mint for a dusty rose, keeps the "soft accent" role */
 
-  --border: rgba(210, 180, 140, 0.35);
-  --shadow: 0 14px 30px rgba(60, 30, 20, 0.10);
+  --border: rgba(215, 150, 150, 0.35);
+  --shadow: 0 14px 30px rgba(90, 30, 40, 0.10);
 
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 22px;
-  
-    --ink: #3b2f2a;
-  --ink-soft: #5a463a;
-  --ink-muted: #9c8a7d;
+
+  --ink: #3b2a2e;
+  --ink-soft: #5a3f42;
+  --ink-muted: #a3898b;
+
   --white: #ffffff;
   --cream: #fff7f0;
   --green-dark: #2f6b4f;
