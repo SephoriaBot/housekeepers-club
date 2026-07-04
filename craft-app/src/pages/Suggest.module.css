@@ -11,7 +11,7 @@
   gap: 8px;
   margin-bottom: 4px;
 }
-.genTitle i { color: var(--sage); }
+.genTitle i { color: var(--pink); }
 .genSub { font-size: 12px; color: var(--text-soft); margin-bottom: 0.75rem; }
 
 .filterSection { margin-bottom: 10px; }
@@ -27,15 +27,15 @@
   color: var(--text-soft);
   transition: all 0.15s;
 }
-.chip.active { background: var(--sage); border-color: var(--sage); color: #fff; }
-.chip:hover:not(.active) { border-color: var(--sage); color: var(--sage-dark); }
+.chip.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+.chip:hover:not(.active) { border-color: var(--pink); color: var(--pink-dark); }
 
 .aiBadge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--sage-light);
-  color: var(--sage-dark);
+  background: var(--pink-light);
+  color: var(--pink-dark);
   font-size: 10px;
   font-weight: 500;
   padding: 3px 10px;
@@ -44,8 +44,8 @@
 }
 
 .tag {
-  background: var(--sage-light);
-  color: var(--sage-dark);
+  background: var(--pink-light);
+  color: var(--pink-dark);
   font-size: 10px;
   font-weight: 500;
   padding: 2px 8px;
@@ -62,7 +62,7 @@
 .mealTags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 6px; color: var(--ink-muted);}
 .mealTime { font-size: 10px; color: var(--text-soft); margin-left: auto; }
 
-.loadingBar { height: 2px; background: var(--sage-light); border-radius: 1px; overflow: hidden; margin-bottom: 1rem; }
-.loadingFill { height: 100%; width: 40%; background: var(--sage); animation: slide 1s ease-in-out infinite; }
+.loadingBar { height: 2px; background: var(--pink-light); border-radius: 1px; overflow: hidden; margin-bottom: 1rem; }
+.loadingFill { height: 100%; width: 40%; background: var(--pink); animation: slide 1s ease-in-out infinite; }
 @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 @keyframes spin { to { transform: rotate(360deg); } }
