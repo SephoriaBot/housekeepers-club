@@ -14,10 +14,12 @@ import DailyPlanner from './pages/DailyPlanner';
 import MaidWizard from './pages/MaidWizard';
 import Wallet from './pages/Wallet';
 import TrackerPage from './pages/TrackerPage';
+import DecisionTree from './pages/DecisionTree';
+
 
 import { ToastProvider } from './hooks/useToast';
 
-type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'cook' | 'grocery' | 'planner' | 'suggest' | 'pets' | 'dailyplanner' | 'maidwizard' | 'wallet' | 'trackers';
+type Page = 'dashboard' | 'plants' | 'recipes' | 'wizard' | 'add-recipe' | 'cook' | 'grocery' | 'planner' | 'suggest' | 'pets' | 'dailyplanner' | 'maidwizard' | 'wallet' | 'trackers' | 'decisions';
 
 
 
@@ -46,6 +48,7 @@ export default function App() {
           {page === 'maidwizard' && <MaidWizard />}
           {page === 'wallet' && <Wallet />}
           {page === 'trackers' && <TrackerPage />}
+          {page === 'decisions' && <DecisionTree />}
 
     
         </main>
