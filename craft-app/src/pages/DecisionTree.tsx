@@ -89,9 +89,13 @@ const styles = {
   listHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   pageTitle: { fontSize: '1.2rem', fontWeight: 700, color: '#4a3b3b', margin: 0 },
   newBtn: { background: '#f4a988', color: '#5a3521', border: 'none', borderRadius: 12, padding: '10px 16px', fontWeight: 600 },
-  treeCard: { background: '#fdf6ee', border: '2px solid #f3c9d4', borderRadius: 16, padding: '12px 16px', display: 'flex', flexDirection: 'column' as const, gap: 4, textAlign: 'left' as const, cursor: 'pointer' },
+  treeCard: { background: '#fdf6ee', border: '2px solid #f3c9d4', borderRadius: 16, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 },
+  treeCardMain: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 4, textAlign: 'left' as const, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
   treeCardTitle: { fontWeight: 600, color: '#4a3b3b', fontSize: '1rem' },
   treeCardMeta: { fontSize: '0.75rem', color: '#a98a8a' },
+  deleteBtn: { background: 'none', border: 'none', color: '#c98b8b', fontSize: '0.85rem', padding: '6px 8px', flexShrink: 0 },
+  deleteConfirmBtn: { background: '#c98b8b', color: '#fff', border: 'none', borderRadius: 10, padding: '6px 10px', fontSize: '0.75rem', flexShrink: 0 },
+  deleteCancelBtn: { background: 'none', border: 'none', color: '#a98a8a', fontSize: '0.75rem', padding: '6px 8px', flexShrink: 0 },
   backBtn: { background: 'none', border: 'none', color: '#6b3f4b', fontSize: '0.85rem', alignSelf: 'flex-start' as const, padding: 0 },
   emptyText: { color: '#a98a8a', fontStyle: 'italic' as const },
 };
@@ -270,10 +274,49 @@ const DecisionTreeEditor: FC<{ treeId?: string; onBack: () => void; onSaved: (id
   );
 };
 
+const DecisionTreeCard: FC<{
+  tree: SavedTreeSummary;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
+}> = ({ tree, onSelect, onDelete }) => {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  return (
+    <div style={styles.treeCard}>
+      <button style={styles.treeCardMain} onClick={() => onSelect(tree.id)}>
+        <span style={styles.treeCardTitle}>{tree.title?.trim() ? tree.title : 'Untitled decision'}</span>
+        {tree.updated_at && (
+          <span style={styles.treeCardMeta}>Updated {new Date(tree.updated_at).toLocaleDateString()}</span>
+        )}
+      </button>
+      {!confirming ? (
+        <button style={styles.deleteBtn} onClick={() => setConfirming(true)}>Delete</button>
+      ) : (
+        <>
+          <button
+            style={styles.deleteConfirmBtn}
+            disabled={deleting}
+            onClick={async () => {
+              setDeleting(true);
+              await onDelete(tree.id);
+              setDeleting(false);
+            }}
+          >
+            {deleting ? '...' : 'Confirm'}
+          </button>
+          <button style={styles.deleteCancelBtn} onClick={() => setConfirming(false)}>Cancel</button>
+        </>
+      )}
+    </div>
+  );
+};
+
 const DecisionTreeList: FC<{ onSelect: (id: string) => void; onNew: () => void; refreshKey: number }> = ({ onSelect, onNew, refreshKey }) => {
   const [trees, setTrees] = useState<SavedTreeSummary[]>([]);
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -302,6 +345,16 @@ const DecisionTreeList: FC<{ onSelect: (id: string) => void; onNew: () => void; 
     };
   }, [refreshKey]);
 
+  const handleDelete = async (id: string) => {
+    setDeleteError(null);
+    const { error } = await supabase.from('decision_trees').delete().eq('id', id);
+    if (error) {
+      setDeleteError(error.message);
+      return;
+    }
+    setTrees((prev) => prev.filter((t) => t.id !== id));
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.listHeaderRow}>
@@ -310,16 +363,12 @@ const DecisionTreeList: FC<{ onSelect: (id: string) => void; onNew: () => void; 
       </div>
       {status === 'loading' && <p>Loading saved decisions...</p>}
       {status === 'error' && <p style={styles.errorText}>Couldn't load decisions: {error}</p>}
+      {deleteError && <p style={styles.errorText}>Couldn't delete: {deleteError}</p>}
       {status === 'ready' && trees.length === 0 && (
         <p style={styles.emptyText}>No saved decisions yet. Start a new one above.</p>
       )}
       {status === 'ready' && trees.map((t) => (
-        <button key={t.id} style={styles.treeCard} onClick={() => onSelect(t.id)}>
-          <span style={styles.treeCardTitle}>{t.title?.trim() ? t.title : 'Untitled decision'}</span>
-          {t.updated_at && (
-            <span style={styles.treeCardMeta}>Updated {new Date(t.updated_at).toLocaleDateString()}</span>
-          )}
-        </button>
+        <DecisionTreeCard key={t.id} tree={t} onSelect={onSelect} onDelete={handleDelete} />
       ))}
     </div>
   );
