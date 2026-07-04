@@ -100,6 +100,31 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   },
 }
 
+// Add your local grocery chains here
+const STORE_ALLOWLIST = [
+  'target',
+  'walmart',
+  'kroger',
+  'aldi',
+  'food lion',
+  'publix',
+  'harris teeter',
+  'giant',
+  'safeway',
+  'whole foods',
+  'trader joe',
+  'costco',
+  "sam's club",
+  'wegmans',
+]
+
+function isAllowedStore(storeName: string | undefined | null) {
+  if (!storeName) return false
+  const normalized = storeName.toLowerCase()
+  return STORE_ALLOWLIST.some(allowed => normalized.includes(allowed))
+}
+
+
 export default function Grocery() {
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
@@ -244,7 +269,8 @@ try {
     { signal: controller.signal }
   )
 
-  data = await res.json()
+  const raw = await res.json()
+  data = Array.isArray(raw) ? raw.filter((r: any) => isAllowedStore(r.store)) : []
 } catch (e) {
   data = []
 } finally {
