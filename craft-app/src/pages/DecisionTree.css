@@ -187,3 +187,61 @@
   color: #8a7a7a;
   line-height: 1.4;
 }
+
+.dt-error {
+  font-size: 0.85rem;
+  color: #b85c5c;
+  font-weight: 600;
+}
+
+.dt-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #6b3f2b;
+  font-size: 0.85rem;
+  padding: 12px 16px 0;
+  cursor: pointer;
+}
+
+.dt-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dt-list-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text, #4a3b3b);
+}
+
+.dt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dt-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--cream, #fdf6ee);
+  border: 1.5px solid var(--pink, #f3c9d4);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.dt-list-title {
+  font-weight: 600;
+  color: var(--text, #4a3b3b);
+}
+
+.dt-list-date {
+  font-size: 0.75rem;
+  color: #8a7a7a;
+  margin-top: 2px;
+}
