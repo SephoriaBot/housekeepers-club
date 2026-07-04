@@ -146,3 +146,44 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.dt-payoff-input {
+  width: 70px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--pink, #f3c9d4);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.dt-ev-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b3f2b;
+  background: var(--apricot, #f4a988);
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.dt-prob-warning {
+  margin: 2px 0 4px 24px;
+  font-size: 0.75rem;
+  color: #b85c5c;
+}
+
+.dt-overall-ev {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #6b3f2b;
+  background: var(--pink, #f3c9d4);
+  padding: 8px 14px;
+  border-radius: 12px;
+  align-self: flex-start;
+}
+
+.dt-hint {
+  font-size: 0.8rem;
+  color: #8a7a7a;
+  line-height: 1.4;
+}
