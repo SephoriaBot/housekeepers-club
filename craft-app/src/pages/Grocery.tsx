@@ -100,31 +100,6 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   },
 }
 
-// Add your local grocery chains here
-const STORE_ALLOWLIST = [
-  'target',
-  'walmart',
-  'kroger',
-  'aldi',
-  'food lion',
-  'publix',
-  'harris teeter',
-  'giant',
-  'safeway',
-  'whole foods',
-  'trader joe',
-  'costco',
-  "sam's club",
-  'wegmans',
-]
-
-function isAllowedStore(storeName: string | undefined | null) {
-  if (!storeName) return false
-  const normalized = storeName.toLowerCase()
-  return STORE_ALLOWLIST.some(allowed => normalized.includes(allowed))
-}
-
-
 export default function Grocery() {
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
@@ -269,8 +244,7 @@ try {
     { signal: controller.signal }
   )
 
-  const raw = await res.json()
-  data = Array.isArray(raw) ? raw.filter((r: any) => isAllowedStore(r.store)) : []
+  data = await res.json()
 } catch (e) {
   data = []
 } finally {
@@ -417,12 +391,18 @@ try {
       })
     })
 
+    // Only show stores that have priced coverage for at least 30% of the tracked list.
+    // This filters out one-off niche/reseller matches without needing a name allowlist.
+    const totalTracked = cartData.length
+    const minCoverage = 0.3
+
     return Array.from(storeCounts.entries())
       .map(([store, count]) => ({
         store,
         count,
         total: storeTotals.get(store) ?? 0
       }))
+      .filter(s => totalTracked > 0 && (s.count / totalTracked) >= minCoverage)
       .sort((a, b) => b.count - a.count || a.total - b.total)
   }
 
