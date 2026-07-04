@@ -414,20 +414,21 @@ try {
       <div className={styles.header}>
         <h1 className={styles.title}><i className="ti ti-shopping-cart" aria-hidden="true" /> grocery list</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn-ghost" onClick={openBasicsModal}>
-            <i className="ti ti-list-details" aria-hidden="true" /> build basics list
-          </button>
-          <button className="btn-primary" onClick={buildSmartCart}>
+          <button className="btn-primary" onClick={openBasicsModal}>
+  <i className="ti ti-list-details" aria-hidden="true" /> build basics list
+</button>
+<button className="btn-primary" onClick={buildSmartCart}>
   <i className="ti ti-shopping-cart" aria-hidden="true" /> Build Smart Cart
 </button>
-<button className="btn-ghost" onClick={refreshSmartCart}>
+<button className="btn-primary" onClick={refreshSmartCart}>
   <i className="ti ti-refresh" aria-hidden="true" /> Refresh
 </button>
-<button className="btn-ghost" onClick={clearSmartCart}>
+<button className="btn-primary" onClick={clearSmartCart}>
   <i className="ti ti-x" aria-hidden="true" /> Clear
 </button>
 
-          <button className="btn-ghost" onClick={() => setShowSaved(!showSaved)}>
+
+          <button className="btn-primary" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
           </button>
           <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
