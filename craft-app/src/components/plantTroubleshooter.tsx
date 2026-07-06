@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { SYMPTOMS, FOLLOW_UP_QUESTIONS } from '../data/plantQuestions'
-import type { GardenPlant } from '../types'
+import type { GardenPlant } from '../types/legacy'
 
 interface Props {
   plant: GardenPlant
