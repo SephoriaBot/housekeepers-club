@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
 
 interface Debt {
@@ -36,6 +37,9 @@ interface BillPayment {
   year: number;
   paid: boolean;
   paid_at?: string;
+  name?: string;
+  amount?: number;
+  due_day?: number;
 }
 
 interface DailyLog {
@@ -146,13 +150,13 @@ function hoursOfWork(amount: number, wage: number) {
   return (amount / wage).toFixed(1);
 }
 
-function EditableCell({ value, onChange, type = "number" }: { value: string | number; onChange: (v: string) => void; type?: string }) {
+function EditableCell({ value, onChange, type = "number", style }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties }) {
   return (
     <input
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
-      style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1.5px dashed var(--border)", color: "var(--ink)", fontSize: 13, padding: "2px 4px", outline: "none", fontFamily: "inherit" }}
+      style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1.5px dashed var(--border)", color: "var(--ink)", fontSize: 13, padding: "2px 4px", outline: "none", fontFamily: "inherit", ...style }}
     />
   );
 }
@@ -195,7 +199,7 @@ export default function Wallet() {
 
   const availableMonths = useMemo(() => {
     const months = [];
-    for (let i = -3; i <= 3; i++) {
+    for (let i = 0; i <= 3; i++) {
       const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
       months.push({ month: d.getMonth() + 1, year: d.getFullYear(), label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` });
     }
@@ -233,11 +237,22 @@ export default function Wallet() {
         }
 
         if (budgetData) setBudget(prev => ({ ...prev, ...budgetData }));
+
+        const isPastMonth = (m: number, y: number) =>
+          y < today.getFullYear() || (y === today.getFullYear() && m < today.getMonth() + 1);
+
         if (billData) {
-          setBills(billData);
-          if (billData.length > 0) setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
+          const staleOneOffIds = billData.filter((b: Bill) => !b.recurring && isPastMonth(b.bill_month!, b.bill_year!)).map((b: Bill) => b.id);
+          if (staleOneOffIds.length > 0) supabase.from("bills").delete().in("id", staleOneOffIds);
+          const keptBills = billData.filter((b: Bill) => b.recurring || !isPastMonth(b.bill_month!, b.bill_year!));
+          setBills(keptBills);
+          if (keptBills.length > 0) setNextBillId(Math.max(...keptBills.map((b: Bill) => b.id)) + 1);
         }
-        if (paymentData) setPayments(paymentData);
+        if (paymentData) {
+          const stalePaymentIds = paymentData.filter((p: BillPayment) => isPastMonth(p.month, p.year)).map((p: BillPayment) => p.id).filter(Boolean);
+          if (stalePaymentIds.length > 0) supabase.from("bill_payments").delete().in("id", stalePaymentIds);
+          setPayments(paymentData.filter((p: BillPayment) => !isPastMonth(p.month, p.year)));
+        }
       } catch (err) {
         console.error("Wallet loadData failed:", err);
       } finally {
@@ -255,7 +270,10 @@ export default function Wallet() {
         for (const { month, year } of availableMonths) {
           const exists = payments.some(p => p.bill_id === bill.id && p.month === month && p.year === year);
           if (!exists) {
-            const newPayment: BillPayment = { bill_id: bill.id, month, year, paid: false };
+            const newPayment: BillPayment = {
+              bill_id: bill.id, month, year, paid: false,
+              name: bill.name, amount: bill.amount, due_day: bill.due_day,
+            };
             const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
             if (data) setPayments(prev => [...prev, data]);
           }
@@ -281,15 +299,18 @@ export default function Wallet() {
     return filtered.map(bill => {
       const payment = payments.find(p => p.bill_id === bill.id && p.month === selectedMonth && p.year === selectedYear);
       const paid = payment?.paid ?? false;
-      const late = isLate(bill.due_day, selectedMonth, selectedYear, paid);
-      const days = daysUntilDue(bill.due_day, selectedMonth, selectedYear);
-      return { ...bill, paid, late, days, paymentId: payment?.id };
+      const name = bill.recurring ? (payment?.name ?? bill.name) : bill.name;
+      const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
+      const due_day = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+      const late = isLate(due_day, selectedMonth, selectedYear, paid);
+      const days = daysUntilDue(due_day, selectedMonth, selectedYear);
+      return { ...bill, name, amount, due_day, paid, late, days, paymentId: payment?.id };
     });
   }, [bills, payments, selectedMonth, selectedYear]);
 
   const urgentBills = monthBills.filter(b => !b.paid && b.days <= 7 && b.days >= 0);
   const crisisBills = monthBills.filter(b => !b.paid && (b.late || (b.days <= 3 && b.days >= 0)));
-  const totalMonthlyBills = bills.reduce((s, b) => s + b.amount, 0);
+  const totalMonthlyBills = monthBills.reduce((s, b) => s + b.amount, 0);
   const paidTotal = monthBills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const unpaidTotal = monthBills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
 
@@ -399,6 +420,26 @@ export default function Wallet() {
       const newPayment: BillPayment = { bill_id: bill.id, month: selectedMonth, year: selectedYear, paid: newPaid };
       const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
       if (data) setPayments(prev => [...prev, data]);
+    }
+  }
+
+  async function updateMonthBill(bill: typeof monthBills[0], field: "name" | "amount" | "due_day", value: string | number) {
+    if (bill.recurring) {
+      if (bill.paymentId) {
+        await supabase.from("bill_payments").update({ [field]: value }).eq("id", bill.paymentId);
+        setPayments(prev => prev.map(p => p.id === bill.paymentId ? { ...p, [field]: value } : p));
+      } else {
+        const newPayment: BillPayment = {
+          bill_id: bill.id, month: selectedMonth, year: selectedYear, paid: false,
+          name: bill.name, amount: bill.amount, due_day: bill.due_day,
+          [field]: value,
+        };
+        const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
+        if (data) setPayments(prev => [...prev, data]);
+      }
+    } else {
+      await supabase.from("bills").update({ [field]: value }).eq("id", bill.id);
+      setBills(prev => prev.map(b => b.id === bill.id ? { ...b, [field]: value } : b));
     }
   }
 
@@ -784,6 +825,10 @@ export default function Wallet() {
                   <button className="btn btn-primary btn-sm" onClick={() => setShowBillForm(v => !v)}>+ Add Bill</button>
                 </div>
 
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 12 }}>
+                  💡 Tap any bill, amount, or due day to edit it — changes only apply to {MONTH_NAMES[selectedMonth - 1]}. Recurring bills still show up automatically in new months.
+                </div>
+
                 {showBillForm && (
                   <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -824,9 +869,15 @@ export default function Wallet() {
                         <td style={{ padding: "9px 8px" }}>
                           <input type="checkbox" checked={b.paid} onChange={() => togglePaid(b)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
                         </td>
-                        <td style={{ padding: "9px 8px", textDecoration: b.paid ? "line-through" : "none", color: b.paid ? "var(--ink-muted)" : "var(--ink)", fontWeight: 600 }}>{b.name}</td>
-                        <td style={{ padding: "9px 8px", color: b.paid ? "var(--ink-muted)" : "var(--pink-dark)", fontWeight: 700, textDecoration: b.paid ? "line-through" : "none" }}>{fmt(b.amount)}</td>
-                        <td style={{ padding: "9px 8px", color: "var(--ink-muted)" }}>{MONTH_NAMES[selectedMonth - 1].slice(0, 3)} {b.due_day}</td>
+                        <td style={{ padding: "9px 8px", textDecoration: b.paid ? "line-through" : "none" }}>
+                          <EditableCell value={b.name} onChange={v => updateMonthBill(b, "name", v)} type="text" style={{ color: b.paid ? "var(--ink-muted)" : "var(--ink)", fontWeight: 600 }} />
+                        </td>
+                        <td style={{ padding: "9px 8px", textDecoration: b.paid ? "line-through" : "none" }}>
+                          <EditableCell value={b.amount} onChange={v => updateMonthBill(b, "amount", parseFloat(v) || 0)} style={{ color: b.paid ? "var(--ink-muted)" : "var(--pink-dark)", fontWeight: 700 }} />
+                        </td>
+                        <td style={{ padding: "9px 8px" }}>
+                          <EditableCell value={b.due_day} onChange={v => updateMonthBill(b, "due_day", parseInt(v) || 1)} style={{ color: "var(--ink-muted)" }} />
+                        </td>
                         <td style={{ padding: "9px 8px" }}>
                           {b.paid
                             ? <span className="badge badge-green">PAID</span>
