@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { WeekPlan, Meal } from '../types'
+import type { WeekPlan, Meal } from '../types/legacy'
 import { supabase } from '../lib/supabase'
 import styles from './Planner.module.css'
 
