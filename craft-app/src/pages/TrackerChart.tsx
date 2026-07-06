@@ -11,7 +11,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { getTrackerLogsInRange, deleteTrackerLog } from '../../api/trackerApi';
+import { getTrackerLogsInRange, deleteTrackerLog } from '../lib/trackerApi';
 import type { TrackerType, TrackerLog, PeriodValue } from '../types/tracker';
 
 interface Props {
