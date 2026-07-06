@@ -187,11 +187,13 @@ const DecisionTreeEditor: FC<{ treeId?: string; onBack: () => void; onSaved: (id
     }
     let cancelled = false;
     setStatus('loading');
-    supabase
-      .from('decision_trees')
-      .select('*')
-      .eq('id', treeId)
-      .maybeSingle()
+    Promise.resolve(
+      supabase
+        .from('decision_trees')
+        .select('*')
+        .eq('id', treeId)
+        .maybeSingle()
+    )
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
@@ -321,10 +323,12 @@ const DecisionTreeList: FC<{ onSelect: (id: string) => void; onNew: () => void; 
   useEffect(() => {
     let cancelled = false;
     setStatus('loading');
-    supabase
-      .from('decision_trees')
-      .select('id, title, updated_at')
-      .order('updated_at', { ascending: false })
+    Promise.resolve(
+      supabase
+        .from('decision_trees')
+        .select('id, title, updated_at')
+        .order('updated_at', { ascending: false })
+    )
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
