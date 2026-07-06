@@ -47,7 +47,11 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]*>/g, '').replace(/&amp;/g,'&').replace(/&#39;/g,"'").slice(0, 120) + '...'
 }
 
+type Mode = 'random' | 'search'
+
 export default function Suggest() {
+  const [mode, setMode] = useState<Mode>('random')
+  const [query, setQuery] = useState('')
   const [selectedDiets, setSelectedDiets] = useState<Set<string>>(new Set(['vegetarian']))
   const [selectedIntolerances, setSelectedIntolerances] = useState<Set<string>>(new Set())
   const [maxTime, setMaxTime] = useState('')
@@ -63,7 +67,17 @@ export default function Suggest() {
     setFn(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
 
+  function switchMode(next: Mode) {
+    setMode(next)
+    setError('')
+  }
+
   async function fetchRecipes() {
+    if (mode === 'search' && !query.trim()) {
+      setError('type something to search for')
+      return
+    }
+
     setLoading(true)
     setError('')
     setMeals([])
@@ -71,9 +85,15 @@ export default function Suggest() {
       number: '6',
       addRecipeInformation: 'true',
       fillIngredients: 'false',
-      sort: 'random',
       apiKey: import.meta.env.VITE_SPOONACULAR_API_KEY,
     })
+
+    if (mode === 'search') {
+      params.set('query', query.trim())
+    } else {
+      params.set('sort', 'random')
+    }
+
     if (selectedDiets.size) params.set('diet', [...selectedDiets].join(','))
     if (selectedIntolerances.size) params.set('intolerances', [...selectedIntolerances].join(','))
     if (maxTime) params.set('maxReadyTime', maxTime)
@@ -90,7 +110,11 @@ export default function Suggest() {
       }
 
       setMeals(results)
-      if (!results.length) setError('No recipes found for those filters — try adjusting them')
+      if (!results.length) {
+        setError(mode === 'search'
+          ? `no recipes found for "${query.trim()}" — try different words or fewer filters`
+          : 'no recipes found for those filters — try adjusting them')
+      }
     } catch {
       setError('Could not load recipes — check your connection')
     }
@@ -142,7 +166,37 @@ export default function Suggest() {
     <div className={styles.page}>
       <div className={`card ${styles.genBox}`}>
         <h2 className={styles.genTitle}><i className="ti ti-adjustments" aria-hidden="true" /> find recipes that work for you</h2>
-        <p className={styles.genSub}>filter by diet, intolerances, and cook time</p>
+        <p className={styles.genSub}>search by name, or get a surprise pick</p>
+
+        <div className={styles.filterSection}>
+          <div className={styles.chips}>
+            <button
+              className={`${styles.chip} ${mode === 'random' ? styles.active : ''}`}
+              onClick={() => switchMode('random')}
+            >
+              <i className="ti ti-sparkles" aria-hidden="true" /> surprise me
+            </button>
+            <button
+              className={`${styles.chip} ${mode === 'search' ? styles.active : ''}`}
+              onClick={() => switchMode('search')}
+            >
+              <i className="ti ti-search" aria-hidden="true" /> search
+            </button>
+          </div>
+        </div>
+
+        {mode === 'search' && (
+          <div className={styles.filterSection}>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="e.g. lemon pasta, chicken tacos..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') fetchRecipes() }}
+            />
+          </div>
+        )}
 
         <div className={styles.filterSection}>
           <div className={styles.filterLabel}>diet</div>
@@ -206,7 +260,9 @@ export default function Suggest() {
         <button className="btn-primary" onClick={fetchRecipes} disabled={loading} style={{marginTop:'0.75rem'}}>
           {loading
             ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> loading...</>
-            : <><i className="ti ti-search" aria-hidden="true" /> find recipes</>}
+            : mode === 'search'
+              ? <><i className="ti ti-search" aria-hidden="true" /> search recipes</>
+              : <><i className="ti ti-sparkles" aria-hidden="true" /> surprise me</>}
         </button>
       </div>
 
@@ -253,7 +309,7 @@ export default function Suggest() {
       {!loading && !error && meals.length === 0 && (
         <div className="empty-state">
           <i className="ti ti-salad" aria-hidden="true" />
-          set your filters and hit find recipes
+          {mode === 'search' ? 'search for a recipe by name' : 'hit surprise me for a random pick'}
         </div>
       )}
     </div>

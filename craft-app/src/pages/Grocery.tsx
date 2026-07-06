@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { GroceryItem } from '../types'
+import type { GroceryItem } from '../types/legacy'
 import { supabase } from '../lib/supabase'
 import styles from './Grocery.module.css'
 
