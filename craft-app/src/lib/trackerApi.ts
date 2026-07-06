@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { TrackerType, TrackerValue, TrackerLog } from '../types/tracker'
+import type { TrackerType, TrackerValue, TrackerLog } from '../types/tracker';
 
 export async function upsertTrackerLog(
   type: TrackerType,
