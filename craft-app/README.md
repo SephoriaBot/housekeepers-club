@@ -55,8 +55,8 @@ A full-stack household management application for organizing home, finances, mea
 Clone the repository:
 
 ```bash
-git clone https://github.com/SephoriaBot/housekeepers-club.git
-cd housekeepers-club/craft-app
+git clone https://github.com/SephoriaBot/polly.git
+cd polly/craft-app
 ```
 
 Install dependencies:
