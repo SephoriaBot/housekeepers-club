@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const q = (req.query.q || "").toString().trim()
   const location = (req.query.zip || "").toString().trim()
 
