@@ -62,6 +62,16 @@ export const FOLLOW_UP_QUESTIONS: TroubleshootQuestion[] = [
   }
 ];
 
+export interface PlantProblem {
+  symptom: string;
+  diagnosis: string;
+  confidence: number;
+  severity: "Low" | "Medium" | "High";
+  description: string;
+  fix: string[];
+  prevention: string[];
+}
+
 export const PLANT_PROBLEMS: PlantProblem[] = [
   {
     symptom: "yellow_leaves",
