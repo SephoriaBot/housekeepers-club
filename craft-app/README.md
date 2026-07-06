@@ -1,32 +1,31 @@
-Housekeepers Club
+# Housekeepers Club
 
-A full-stack household management application built to help users organize their home, finances, meals, pets, plants, and daily routines in one place. Housekeepers Club combines multiple household tools into a single responsive web application with cloud synchronization through Supabase.
+A full-stack household management application for organizing home, finances, meals, pets, plants, and daily routines in one place. Housekeepers Club combines multiple household tools into a single responsive web app with cloud sync through Supabase.
 
-Features
+**Live demo:** [alchemy-kitchen.vercel.app](https://alchemy-kitchen.vercel.app)
 
-* 📊 Dashboard with household statistics and quick actions
-* 💰 Personal finance and budgeting tools
-* 🛒 Grocery list and shopping management
-* 🍽️ Pantry inventory and meal planning
-* 📖 Recipe collection and cooking tools
-* 🌱 Plant care tracking
-* 🐾 Pet care management
-* 📅 Daily habit and wellness trackers
-* ☁️ Cloud data storage with user authentication
-* 📱 Responsive design for desktop and mobile devices
+## Features
 
-Built With
+- 📊 Dashboard with household statistics and quick actions
+- 💰 Personal finance and budgeting tools
+- 🛒 Grocery list and shopping management
+- 🍽️ Pantry inventory and meal planning
+- 📖 Recipe collection and cooking tools
+- 🌱 Plant care tracking
+- 🐾 Pet care management
+- 📅 Daily habit and wellness trackers
+- ☁️ Cloud-synced data persistence via Supabase
+- 📱 Responsive design for desktop and mobile
 
-* React
-* TypeScript
-* Vite
-* Supabase
-* PostgreSQL
-* Recharts
-* CSS
-* Lucide React
-* Vercel
+## Built With
 
+- React
+- TypeScript
+- Vite
+- Supabase (PostgreSQL)
+- Recharts
+- Lucide React
+- Vercel
 
 ## Screenshots
 
@@ -51,48 +50,52 @@ Built With
 ### Personal Tracker
 ![Tracker](docs/images/IMG_2945.jpeg)
 
-Getting Started
+## Getting Started
 
-Clone the repository
+Clone the repository:
 
+```bash
 git clone https://github.com/SephoriaBot/housekeepers-club.git
-cd housekeepers-club
+cd housekeepers-club/craft-app
+```
 
-Install dependencies
+Install dependencies:
 
+```bash
 npm install
+```
 
-Configure environment variables
+Configure environment variables — create a `.env` file in `craft-app/`:
 
-Create a .env file in the project root:
-
+```
 VITE_SUPABASE_URL=your_project_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
+```
 
-Start the development server
+Start the development server:
 
+```bash
 npm run dev
+```
 
-Tech Highlights
+## Tech Highlights
 
-* Full CRUD functionality
-* Cloud database powered by Supabase
-* Responsive mobile-first interface
-* Interactive dashboards and data visualization
-* Modular React component architecture
-* TypeScript for type safety
-* Real-time data persistence
-* Deployed with Vercel
+- Full CRUD functionality against a Supabase/PostgreSQL backend
+- Modular React component architecture
+- TypeScript for type safety
+- Interactive dashboards and data visualization with Recharts
+- Real-time data persistence
+- Deployed with Vercel
 
-Future Improvements
+## Future Improvements
 
-* Shared household accounts
-* Push notifications and reminders
-* Offline support
-* Calendar integration
-* Expanded analytics and reporting
-* Export and backup functionality
+- Shared household accounts
+- Push notifications and reminders
+- Offline support
+- Calendar integration
+- Expanded analytics and reporting
+- Export and backup functionality
 
-License
+## License
 
 This project is licensed under the MIT License.
