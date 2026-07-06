@@ -50,13 +50,6 @@ interface DailyLog {
   notes: string;
 }
 
-interface SavedInstead {
-  id?: number;
-  amount: number;
-  item_name: string;
-  saved_at?: string;
-}
-
 interface MonthSnap {
   month: number;
   target: string;
@@ -169,10 +162,9 @@ export default function Wallet() {
   const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0 });
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<BillPayment[]>([]);
-  const [savedInstead, setSavedInstead] = useState<SavedInstead[]>([]);
   const [nextId, setNextId] = useState(20);
   const [nextBillId, setNextBillId] = useState(10);
-  const [tab, setTab] = useState("planner");
+  const [tab, setTab] = useState("bills");
   const [showDeferred, setShowDeferred] = useState(false);
   const [, setLoading] = useState(true);
   const [savedMsg, setSavedMsg] = useState(false);
@@ -196,10 +188,6 @@ export default function Wallet() {
   });
   const [showConfetti, setShowConfetti] = useState(false);
   const [paidOffDebt, setPaidOffDebt] = useState<string>("");
-  const [wizardCost, setWizardCost] = useState("");
-  const [wizardDebtId, setWizardDebtId] = useState<number | null>(null);
-  const [wizardResult, setWizardResult] = useState<{ days: number; payments: number } | null>(null);
-  const [showSavedHistory, setShowSavedHistory] = useState(false);
 
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -227,13 +215,11 @@ export default function Wallet() {
           { data: budgetData },
           { data: billData },
           { data: paymentData },
-          { data: savedData },
         ] = await Promise.all([
           supabase.from("debts").select("*"),
           supabase.from("budget").select("*").eq("id", 1).maybeSingle(),
           supabase.from("bills").select("*").order("due_day"),
           supabase.from("bill_payments").select("*"),
-          supabase.from("saved_instead").select("*").order("saved_at", { ascending: false }),
         ]);
 
         if (debtData && debtData.length > 0) {
@@ -252,7 +238,6 @@ export default function Wallet() {
           if (billData.length > 0) setNextBillId(Math.max(...billData.map((b: Bill) => b.id)) + 1);
         }
         if (paymentData) setPayments(paymentData);
-        if (savedData) setSavedInstead(savedData);
       } catch (err) {
         console.error("Wallet loadData failed:", err);
       } finally {
@@ -307,7 +292,6 @@ export default function Wallet() {
   const totalMonthlyBills = bills.reduce((s, b) => s + b.amount, 0);
   const paidTotal = monthBills.filter(b => b.paid).reduce((s, b) => s + b.amount, 0);
   const unpaidTotal = monthBills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
-  const totalSavedInstead = savedInstead.reduce((s, i) => s + i.amount, 0);
 
   const pay = parseFloat(anytimePay) || 0;
   const isWeeklyMode = bufferBalance >= 650;
@@ -534,37 +518,9 @@ export default function Wallet() {
     }
   }
 
-  function runWizard() {
-    const cost = parseFloat(wizardCost);
-    if (!cost || !wizardDebtId) return;
-    const debt = debts.find(d => d.id === wizardDebtId);
-    if (!debt) return;
-    const dailySnowball = snowballExtra / 30;
-    const daysDelayed = dailySnowball > 0 ? Math.ceil(cost / dailySnowball) : 0;
-    const paymentsEquiv = debt.min_payment > 0 ? parseFloat((cost / debt.min_payment).toFixed(1)) : 0;
-    setWizardResult({ days: daysDelayed, payments: paymentsEquiv });
-  }
-
-  async function saveToBank() {
-    const cost = parseFloat(wizardCost);
-    const debt = debts.find(d => d.id === wizardDebtId);
-    if (!cost) return;
-    const entry: SavedInstead = {
-      amount: cost,
-      item_name: debt ? `Skipped purchase (vs ${debt.name})` : "Skipped purchase",
-    };
-    const { data } = await supabase.from("saved_instead").insert(entry).select().single();
-    if (data) setSavedInstead(prev => [data, ...prev]);
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 2000);
-    setWizardCost("");
-    setWizardDebtId(null);
-    setWizardResult(null);
-  }
-
   const MILESTONE_DEFS: Record<string, { emoji: string; label: string; desc: string }> = {
     under5k: { emoji: "🌸", label: "Under $5,000!", desc: "Active debt below $5k" },
-    under3k: { emoji: "🍓", label: "Under $3,000!", desc: "Active debt below $3k" },
+    under3k: { emoji: "🎯", label: "Under $3,000!", desc: "Active debt below $3k" },
     under1k: { emoji: "✨", label: "Under $1,000!", desc: "Almost there!" },
     zero:    { emoji: "🎊", label: "DEBT FREE!", desc: "All active debts paid off!" },
     buffer:  { emoji: "🏦", label: "Savings Goal!", desc: "$650 general savings reached" },
@@ -577,10 +533,10 @@ export default function Wallet() {
     ? Object.values(months[months.length - 1].deferredBalances).reduce((s, v) => s + v, 0)
     : deferredDebts.reduce((s, d) => s + d.balance, 0);
 
-  const TABS = ["planner","wizard","bills","debts","budget","schedule"];
+  const TABS = ["bills","planner","debts","budget"];
   const TAB_LABELS: Record<string, string> = {
-    planner: "📅 Check-ins", wizard: "🧙 Daddy Wizard", bills: "🏠 Bills",
-    debts: "🍓 Debts", budget: "💰 Budget", schedule: "📋 Payoff Schedule",
+    planner: "📅 Check-ins", bills: "🏠 Bills",
+    debts: "💳 Debts", budget: "💰 Budget",
   };
 
   const Confetti = () => {
@@ -787,93 +743,6 @@ export default function Wallet() {
                 </div>
               </div>
             )}
-          </>
-        )}
-
-        {/* ── WIZARD TAB ── */}
-        {tab === "wizard" && (
-          <>
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">🧙 Can I Buy This?</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 6 }}>How much does it cost?</div>
-                    <input type="number" className="form-input" placeholder="e.g. 49.99" value={wizardCost} onChange={e => { setWizardCost(e.target.value); setWizardResult(null); }} style={{ fontSize: 20, fontWeight: 700 }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 6 }}>Which debt are you targeting?</div>
-                    <select className="form-select" value={wizardDebtId ?? ""} onChange={e => { setWizardDebtId(Number(e.target.value)); setWizardResult(null); }}>
-                      <option value="">-- Select a debt --</option>
-                      {activeDebts.filter(d => !d.paid_off).map(d => (
-                        <option key={d.id} value={d.id}>{d.name} ({fmt(d.balance)})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="btn btn-primary" style={{ justifyContent: "center" }} onClick={runWizard}>Ask the Wizard ✨</button>
-                </div>
-
-                {wizardResult && parseFloat(wizardCost) > 0 && (
-                  <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14 }}>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Payoff delay</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: "var(--pink-dark)" }}>+{wizardResult.days} days</div>
-                    </div>
-                    {wizardResult.payments > 0 && (
-                      <div style={{ background: "var(--gold-light)", borderRadius: 16, padding: 14 }}>
-                        <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Equivalent minimum payments</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--gold-dark)" }}>{wizardResult.payments}x payments</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>on {debts.find(d => d.id === wizardDebtId)?.name}</div>
-                      </div>
-                    )}
-                    {hoursOfWork(parseFloat(wizardCost), budget.hourly_wage) && (
-                      <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14 }}>
-                        <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Work hours cost</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--green-dark)" }}>{hoursOfWork(parseFloat(wizardCost), budget.hourly_wage)} hrs</div>
-                      </div>
-                    )}
-                    <button className="btn btn-green" style={{ justifyContent: "center" }} onClick={saveToBank}>
-                      I Skipped It — Save {fmt(parseFloat(wizardCost))} to My Bank
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div className="section-label" style={{ marginBottom: 0 }}>💸 Saved Instead Bank</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(totalSavedInstead)}</div>
-                </div>
-                <div style={{ background: "var(--sage-light)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "var(--green-dark)", marginBottom: 10 }}>
-                  Every dollar here is a dollar you chose NOT to spend. That's real discipline.
-                </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowSavedHistory(v => !v)}>
-                  {showSavedHistory ? "Hide History" : "Show History"}
-                </button>
-                {showSavedHistory && (
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginTop: 10 }}>
-                    <thead>
-                      <tr>
-                        {["Date","Amount","Item"].map(h => (
-                          <th key={h} style={{ fontSize: 10, color: "var(--ink-muted)", textTransform: "uppercase", padding: "8px", textAlign: "left", borderBottom: "1.5px solid var(--border)", fontWeight: 700 }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {savedInstead.map((entry, i) => (
-                        <tr key={entry.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--accent)" }}>
-                          <td style={{ padding: "8px", color: "var(--ink-muted)" }}>{entry.saved_at?.split("T")[0]}</td>
-                          <td style={{ padding: "8px", color: "var(--green-dark)", fontWeight: 800 }}>{fmt(entry.amount)}</td>
-                          <td style={{ padding: "8px", color: "var(--ink)" }}>{entry.item_name}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
           </>
         )}
 
@@ -1098,94 +967,8 @@ export default function Wallet() {
                 )}
               </div>
             </div>
-          </>
-        )}
 
-        {/* ── BUDGET TAB ── */}
-        {tab === "budget" && (
-          <>
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Monthly Budget</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {[
-                    { label: "Monthly Take-Home (est.)", val: budget.take_home, field: "take_home" as keyof Budget, note: "after taxes + benefits + 401K" },
-                    { label: "Fixed Expenses", val: budget.fixed_expenses, field: "fixed_expenses" as keyof Budget, note: "rent + transport + bills + groceries" },
-                    { label: "Hourly Wage", val: budget.hourly_wage, field: "hourly_wage" as keyof Budget, note: "used for work-hours calculations" },
-                  ].map(({ label, val, field, note }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                      <div>
-                        <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
-                      </div>
-                      <input type="number" className="form-input" value={val} onChange={e => updateBudget(field, parseFloat(e.target.value) || 0)} style={{ width: 100, textAlign: "right" }} />
-                    </div>
-                  ))}
-                  {[
-                    { label: "Debt Minimums (auto)", val: fmt(totalMins) },
-                    { label: "Total Outflow", val: fmt(budget.fixed_expenses + totalMins) },
-                  ].map(({ label, val }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--accent)", margin: "0 -18px", padding: "12px 18px" }}>
-                      <span style={{ fontSize: 13, color: "var(--ink)" }}>{label}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{val}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: 4 }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>True Snowball Extra</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>thrown at target debt each month</div>
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>{fmt(snowballExtra)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">🏦 General Savings</div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, marginTop: 8 }}>
-                  <span style={{ fontSize: 13, color: "var(--ink)" }}>Current Balance</span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)" }}>{fmt(bufferBalance)} / $650.00</span>
-                </div>
-                <div style={{ height: 14, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 10 }}>
-                  <div style={{ height: "100%", width: `${Math.min((bufferBalance / 650) * 100, 100)}%`, background: bufferBalance >= 650 ? "var(--green-dark)" : "var(--pink-dark)", borderRadius: 99, transition: "width 0.3s" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{Math.round((bufferBalance / 650) * 100)}% complete</span>
-                  <span style={{ fontSize: 11, color: bufferBalance >= 650 ? "var(--green-dark)" : "var(--ink-muted)", fontWeight: 600 }}>
-                    {bufferBalance >= 650 ? "GOAL REACHED! 🎉" : `$${(650 - bufferBalance).toFixed(2)} to go`}
-                  </span>
-                </div>
-                <input type="number" className="form-input" placeholder="Update balance..." onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { setBufferBalance(v); e.target.value = ""; }}} />
-                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6 }}>Enter your current savings balance to update</div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Savings & Deductions</div>
-                {[
-                  { label: "401K Contributions", val: "~$200/mo", color: "var(--green-dark)", note: "auto-deducted before you see it" },
-                  { label: "General Savings Goal", val: "$650", color: "var(--ink-soft)", note: "5-week build — $110/wk — $22/day" },
-                  { label: "Daily Savings Set-Aside", val: "$22/day", color: "var(--ink-soft)", note: "pull $22 less per day to fund general savings" },
-                ].map(({ label, val, color, note }) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color }}>{val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-                {/* ── SCHEDULE TAB ── */}
-        {tab === "schedule" && (
-          <>
+            <div className="section-label" style={{ marginTop: 4 }}>📋 Payoff Schedule</div>
             {snowballExtra < 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ Snowball extra is negative — minimums exceed your budget!
@@ -1271,6 +1054,88 @@ export default function Wallet() {
                 </div>
               </div>
             )}
+          </>
+        )}
+
+        {/* ── BUDGET TAB ── */}
+        {tab === "budget" && (
+          <>
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">Monthly Budget</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {[
+                    { label: "Monthly Take-Home (est.)", val: budget.take_home, field: "take_home" as keyof Budget, note: "after taxes + benefits + 401K" },
+                    { label: "Fixed Expenses", val: budget.fixed_expenses, field: "fixed_expenses" as keyof Budget, note: "rent + transport + bills + groceries" },
+                    { label: "Hourly Wage", val: budget.hourly_wage, field: "hourly_wage" as keyof Budget, note: "used for work-hours calculations" },
+                  ].map(({ label, val, field, note }) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+                      <div>
+                        <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
+                        <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
+                      </div>
+                      <input type="number" className="form-input" value={val} onChange={e => updateBudget(field, parseFloat(e.target.value) || 0)} style={{ width: 100, textAlign: "right" }} />
+                    </div>
+                  ))}
+                  {[
+                    { label: "Debt Minimums (auto)", val: fmt(totalMins) },
+                    { label: "Total Outflow", val: fmt(budget.fixed_expenses + totalMins) },
+                  ].map(({ label, val }) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--accent)", margin: "0 -18px", padding: "12px 18px" }}>
+                      <span style={{ fontSize: 13, color: "var(--ink)" }}>{label}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{val}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: 4 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>True Snowball Extra</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>thrown at target debt each month</div>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>{fmt(snowballExtra)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">🏦 General Savings</div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, marginTop: 8 }}>
+                  <span style={{ fontSize: 13, color: "var(--ink)" }}>Current Balance</span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)" }}>{fmt(bufferBalance)} / $650.00</span>
+                </div>
+                <div style={{ height: 14, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 10 }}>
+                  <div style={{ height: "100%", width: `${Math.min((bufferBalance / 650) * 100, 100)}%`, background: bufferBalance >= 650 ? "var(--green-dark)" : "var(--pink-dark)", borderRadius: 99, transition: "width 0.3s" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{Math.round((bufferBalance / 650) * 100)}% complete</span>
+                  <span style={{ fontSize: 11, color: bufferBalance >= 650 ? "var(--green-dark)" : "var(--ink-muted)", fontWeight: 600 }}>
+                    {bufferBalance >= 650 ? "GOAL REACHED! 🎉" : `$${(650 - bufferBalance).toFixed(2)} to go`}
+                  </span>
+                </div>
+                <input type="number" className="form-input" placeholder="Update balance..." onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { setBufferBalance(v); e.target.value = ""; }}} />
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6 }}>Enter your current savings balance to update</div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">Savings & Deductions</div>
+                {[
+                  { label: "401K Contributions", val: "~$200/mo", color: "var(--green-dark)", note: "auto-deducted before you see it" },
+                  { label: "General Savings Goal", val: "$650", color: "var(--ink-soft)", note: "5-week build — $110/wk — $22/day" },
+                  { label: "Daily Savings Set-Aside", val: "$22/day", color: "var(--ink-soft)", note: "pull $22 less per day to fund general savings" },
+                ].map(({ label, val, color, note }) => (
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
+                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
