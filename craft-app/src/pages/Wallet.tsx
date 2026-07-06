@@ -368,13 +368,13 @@ export default function Wallet() {
     {
       label: "❄️ Snowball Extra",
       amount: unifiedSnowball,
-      color: "#6BBFD4",
+      color: "var(--sky)",
       note: isCrisis ? "paused -- bills come first" : "extra toward target debt",
     },
     ...(isWeeklyMode ? [] : [{
       label: "🏦 General Savings",
       amount: unifiedBuffer,
-      color: "#C4933F",
+      color: "var(--gold)",
       note: isCrisis ? "paused -- bills come first" : "$22/day until $650",
     }]),
     {
@@ -584,7 +584,7 @@ export default function Wallet() {
   };
 
   const Confetti = () => {
-    const colors = ["var(--pink-dark)","var(--green)","var(--pink-light)","var(--ink-soft)","#FEFBE8"];
+    const colors = ["var(--pink-dark)","var(--green-dark)","var(--pink-light)","var(--ink-soft)","var(--gold-light)"];
     return (
       <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 9999, overflow: "hidden" }}>
         {Array.from({ length: 60 }).map((_, i) => (
@@ -664,13 +664,13 @@ export default function Wallet() {
         {tab === "planner" && (
           <>
             {isCrisis && (
-              <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 700 }}>
+              <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
                 🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Groceries & gas are still protected.
               </div>
             )}
 
             {!isCrisis && urgentBills.length > 0 && (
-              <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 600 }}>
+              <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
               </div>
             )}
@@ -734,13 +734,13 @@ export default function Wallet() {
                     {parseFloat(purchaseAmount) > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {hoursOfWork(parseFloat(purchaseAmount), budget.hourly_wage) && (
-                          <div style={{ background: "var(--blush)", borderRadius: 16, padding: 14 }}>
+                          <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14 }}>
                             <div style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 4 }}>That purchase costs you:</div>
                             <div style={{ fontSize: 22, fontWeight: 800, color: "var(--pink-dark)" }}>{hoursOfWork(parseFloat(purchaseAmount), budget.hourly_wage)} hours of work</div>
                             <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>at {fmt(budget.hourly_wage)}/hr</div>
                           </div>
                         )}
-                        <div style={{ background: "var(--green-light)", borderRadius: 16, padding: 14 }}>
+                        <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14 }}>
                           <div style={{ fontSize: 12, color: "var(--green-dark)", marginBottom: 4 }}>If saved toward debt instead:</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>
                             Saves ~{snowballExtra > 0 ? Math.ceil(parseFloat(purchaseAmount) / (snowballExtra / 30)) : "?"} days off your payoff
@@ -777,7 +777,7 @@ export default function Wallet() {
                   <div className="section-label">Milestones Earned</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
                     {milestones.map(m => (
-                      <div key={m} style={{ background: "var(--blush)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "10px 14px", textAlign: "center" }}>
+                      <div key={m} style={{ background: "var(--accent)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "10px 14px", textAlign: "center" }}>
                         <div style={{ fontSize: 24 }}>{MILESTONE_DEFS[m]?.emoji}</div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pink-dark)", marginTop: 4 }}>{MILESTONE_DEFS[m]?.label}</div>
                         <div style={{ fontSize: 10, color: "var(--ink-muted)" }}>{MILESTONE_DEFS[m]?.desc}</div>
@@ -815,19 +815,19 @@ export default function Wallet() {
 
                 {wizardResult && parseFloat(wizardCost) > 0 && (
                   <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ background: "var(--blush)", borderRadius: 16, padding: 14 }}>
+                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14 }}>
                       <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Payoff delay</div>
                       <div style={{ fontSize: 22, fontWeight: 800, color: "var(--pink-dark)" }}>+{wizardResult.days} days</div>
                     </div>
                     {wizardResult.payments > 0 && (
-                      <div style={{ background: "#FEFBE8", borderRadius: 16, padding: 14 }}>
+                      <div style={{ background: "var(--gold-light)", borderRadius: 16, padding: 14 }}>
                         <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Equivalent minimum payments</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: "#8B6000" }}>{wizardResult.payments}x payments</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--gold-dark)" }}>{wizardResult.payments}x payments</div>
                         <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>on {debts.find(d => d.id === wizardDebtId)?.name}</div>
                       </div>
                     )}
                     {hoursOfWork(parseFloat(wizardCost), budget.hourly_wage) && (
-                      <div style={{ background: "var(--green-light)", borderRadius: 16, padding: 14 }}>
+                      <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14 }}>
                         <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 4 }}>Work hours cost</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: "var(--green-dark)" }}>{hoursOfWork(parseFloat(wizardCost), budget.hourly_wage)} hrs</div>
                       </div>
@@ -846,7 +846,7 @@ export default function Wallet() {
                   <div className="section-label" style={{ marginBottom: 0 }}>💸 Saved Instead Bank</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(totalSavedInstead)}</div>
                 </div>
-                <div style={{ background: "var(--green-light)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "var(--green-dark)", marginBottom: 10 }}>
+                <div style={{ background: "var(--sage-light)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "var(--green-dark)", marginBottom: 10 }}>
                   Every dollar here is a dollar you chose NOT to spend. That's real discipline.
                 </div>
                 <button className="btn btn-ghost btn-sm" onClick={() => setShowSavedHistory(v => !v)}>
@@ -863,7 +863,7 @@ export default function Wallet() {
                     </thead>
                     <tbody>
                       {savedInstead.map((entry, i) => (
-                        <tr key={entry.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                        <tr key={entry.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--accent)" }}>
                           <td style={{ padding: "8px", color: "var(--ink-muted)" }}>{entry.saved_at?.split("T")[0]}</td>
                           <td style={{ padding: "8px", color: "var(--green-dark)", fontWeight: 800 }}>{fmt(entry.amount)}</td>
                           <td style={{ padding: "8px", color: "var(--ink)" }}>{entry.item_name}</td>
@@ -916,7 +916,7 @@ export default function Wallet() {
                 </div>
 
                 {showBillForm && (
-                  <div style={{ background: "var(--blush)", borderRadius: 16, padding: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <div>
                         <div className="form-label">Bill Name</div>
@@ -951,7 +951,7 @@ export default function Wallet() {
                   </thead>
                   <tbody>
                     {monthBills.map((b, i) => (
-                      <tr key={b.id} style={{ background: b.late ? "#FDE8E8" : b.paid ? "var(--green-light)" : i % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                      <tr key={b.id} style={{ background: b.late ? "var(--danger-bg)" : b.paid ? "var(--sage-light)" : i % 2 === 0 ? "transparent" : "var(--accent)" }}>
                         <td style={{ padding: "9px 8px" }}>
                           <input type="checkbox" checked={b.paid} onChange={() => togglePaid(b)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
                         </td>
@@ -961,7 +961,7 @@ export default function Wallet() {
                         <td style={{ padding: "9px 8px" }}>
                           {b.paid
                             ? <span className="badge badge-green">PAID</span>
-                            : b.late ? <span className="badge" style={{ background: "#FDE8E8", color: "#C0404A" }}>LATE</span>
+                            : b.late ? <span className="badge" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>LATE</span>
                             : b.days <= 3 ? <span className="badge badge-lavender">DUE SOON</span>
                             : <span className="badge badge-pink">{b.days}d away</span>}
                         </td>
@@ -1006,7 +1006,7 @@ export default function Wallet() {
                         const origBal = d.original_balance || d.balance;
                         const paidPct = origBal > 0 ? Math.min(100, ((origBal - d.balance) / origBal) * 100) : 0;
                         return (
-                          <tr key={d.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                          <tr key={d.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--accent)" }}>
                             <td style={{ padding: "9px 8px" }}>
                               {i === 0
                                 ? <span className="badge badge-pink">Target</span>
@@ -1047,7 +1047,7 @@ export default function Wallet() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <tbody>
                       {activeDebts.filter(d => d.paid_off).map(d => (
-                        <tr key={d.id} style={{ background: "var(--green-light)" }}>
+                        <tr key={d.id} style={{ background: "var(--sage-light)" }}>
                           <td style={{ padding: "9px 8px", textDecoration: "line-through", color: "var(--green-dark)", fontWeight: 700 }}>{d.name}</td>
                           <td style={{ padding: "9px 8px", color: "var(--green-dark)", fontWeight: 800 }}>$0.00</td>
                           <td style={{ padding: "9px 8px" }}><span className="badge badge-green">PAID OFF</span></td>
@@ -1084,7 +1084,7 @@ export default function Wallet() {
                       </thead>
                       <tbody>
                         {deferredDebts.map((d, i) => (
-                          <tr key={d.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                          <tr key={d.id} style={{ background: i % 2 === 0 ? "transparent" : "var(--accent)" }}>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.name} onChange={v => updateDebt(d.id, "name", v)} type="text" /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.balance} onChange={v => updateDebt(d.id, "balance", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
@@ -1125,7 +1125,7 @@ export default function Wallet() {
                     { label: "Debt Minimums (auto)", val: fmt(totalMins) },
                     { label: "Total Outflow", val: fmt(budget.fixed_expenses + totalMins) },
                   ].map(({ label, val }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--blush)", margin: "0 -18px", padding: "12px 18px" }}>
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--accent)", margin: "0 -18px", padding: "12px 18px" }}>
                       <span style={{ fontSize: 13, color: "var(--ink)" }}>{label}</span>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{val}</span>
                     </div>
@@ -1135,7 +1135,7 @@ export default function Wallet() {
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>True Snowball Extra</div>
                       <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>thrown at target debt each month</div>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "#C0404A" }}>{fmt(snowballExtra)}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>{fmt(snowballExtra)}</div>
                   </div>
                 </div>
               </div>
@@ -1187,7 +1187,7 @@ export default function Wallet() {
         {tab === "schedule" && (
           <>
             {snowballExtra < 0 && (
-              <div style={{ background: "#FDE8E8", border: "1.5px solid #C0404A", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "#C0404A", fontWeight: 600 }}>
+              <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ Snowball extra is negative — minimums exceed your budget!
               </div>
             )}
@@ -1211,7 +1211,7 @@ export default function Wallet() {
                     </thead>
                     <tbody>
                       {months.map((snap, mi) => (
-                        <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                        <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--accent)" }}>
                           <td style={{ padding: "8px", color: "var(--ink-muted)", fontWeight: 700 }}>{snap.month}</td>
                           {activeDebts.filter(d => !d.paid_off).map(d => {
                             const bal = snap.balances[d.id] ?? 0;
@@ -1220,7 +1220,7 @@ export default function Wallet() {
                             const origBal = d.original_balance || d.balance;
                             const paidPct = origBal > 0 ? Math.min(100, ((origBal - bal) / origBal) * 100) : 0;
                             return (
-                              <td key={d.id} style={{ padding: "8px", background: paid ? "var(--green-light)" : isTgt ? "var(--blush)" : "transparent", color: paid ? "var(--green-dark)" : isTgt ? "var(--pink-dark)" : "var(--ink-muted)", fontWeight: isTgt ? 700 : 400, textAlign: "right" }}>
+                              <td key={d.id} style={{ padding: "8px", background: paid ? "var(--sage-light)" : isTgt ? "var(--accent)" : "transparent", color: paid ? "var(--green-dark)" : isTgt ? "var(--pink-dark)" : "var(--ink-muted)", fontWeight: isTgt ? 700 : 400, textAlign: "right" }}>
                                 <div>{paid ? "PAID ✓" : fmt(bal)}</div>
                                 {!paid && (
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginTop: 3 }}>
@@ -1258,7 +1258,7 @@ export default function Wallet() {
                       </thead>
                       <tbody>
                         {months.filter((_, i) => i % 3 === 0 || i === months.length - 1).map((snap, mi) => (
-                          <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--blush)" }}>
+                          <tr key={mi} style={{ background: mi % 2 === 0 ? "transparent" : "var(--accent)" }}>
                             <td style={{ padding: "8px", color: "var(--ink-muted)", fontWeight: 700 }}>{snap.month}</td>
                             {deferredDebts.map(d => (
                               <td key={d.id} style={{ padding: "8px", color: "var(--ink-soft)", textAlign: "right", fontWeight: 600 }}>{fmt(snap.deferredBalances[d.id] ?? d.balance)}</td>
