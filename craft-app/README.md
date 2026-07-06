@@ -27,17 +27,29 @@ Built With
 * Lucide React
 * Vercel
 
-Screenshots
 
-Dashboard
+## Screenshots
 
-Wallet
+### Dashboard
+![Dashboard](docs/images/IMG_2936.jpeg)
 
-Grocery & Meal Planner
+### Wallet
+![Wallet](docs/images/IMG_2937.jpeg)
 
-Plant Tracker
+### Grocery & Meal Planner
+![Grocery](docs/images/IMG_2938.jpeg)
+(docs/images/IMG_2939.jpeg)
+(docs/images/IMG_2940.jpeg)
+(docs/images/IMG_2941.jpeg)
 
-Pet Tracker
+### Plant Tracker
+![Plants] (docs/images/IMG_2943.jpeg)
+
+### Pet Tracker
+![Pets] (docs/images/IMG_2944.jpeg)
+
+### Personal Tracker
+![Tracker] (docs/images/IMG_2945.jpeg)
 
 Getting Started
 
