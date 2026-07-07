@@ -33,7 +33,7 @@ A full-stack household management application for organizing home, finances, mea
 ![Dashboard](craft-app/docs/images/IMG_2936.jpeg)
 
 ### Wallet
-![Wallet](craft-app/docs/images/Screenshot_2026-07-06_201326.png)
+![Wallet](craft-app/docs/images/Wallet.png)
 
 ### Grocery & Meal Planner
 ![Grocery](craft-app/docs/images/IMG_2938.jpeg)
@@ -45,7 +45,7 @@ A full-stack household management application for organizing home, finances, mea
 ![Plants](craft-app/docs/images/IMG_2943.jpeg)
 
 ### Pet Tracker
-![Pets](craft-app/docs/images/Screenshot_2026-07-06_201522.png)
+![Pets](craft-app/docs/images/Pets.png)
 
 ### Personal Tracker
 ![Tracker](craft-app/docs/images/IMG_2945.jpeg)
