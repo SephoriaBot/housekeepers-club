@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, X, RotateCcw, Calendar, ShoppingCart, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
 
 interface DailyTask {
   id: string;
@@ -385,6 +386,10 @@ export default function DailyPlanner() {
           </div>
 
         </div>
+
+<div style={{ marginTop: 20 }}>
+  <AppointmentNotesPanel />
+</div>
 
         {/* Needs / Wants */}
         <div className="grid-2" style={{ alignItems: 'start', marginTop: 20 }}>
