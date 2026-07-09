@@ -702,6 +702,60 @@ export default function Wallet() {
               </button>
             </div>
 
+            {/* ── MINIMUM HOURS NEEDED ── */}
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">⏱️ Minimum Hours Needed</div>
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
+                  Based on unpaid bills due in the next 10 days, after your tax withholding.
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="form-label">Tax Withholding (%)</div>
+                    <input type="number" className="form-input" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="form-label">Hourly Wage</div>
+                    <input type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={e => updateBudget("hourly_wage", parseFloat(e.target.value) || 0)} />
+                  </div>
+                </div>
+
+                {budget.hourly_wage <= 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Enter your hourly wage above (or save it from the Budget Calculator below) to see hours needed.</div>
+                ) : upcomingWindowBills.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>🌸 No unpaid bills due in the next 10 days!</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                      {upcomingWindowBills.map((b, i) => (
+                        <div key={`${b.id}-${i}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                          <span style={{ color: "var(--ink)" }}>{b.name} <span style={{ color: "var(--ink-muted)" }}>({b.days === 0 ? "today" : `${b.days}d`})</span></span>
+                          <span style={{ fontWeight: 700, color: "var(--pink-dark)" }}>{fmt(b.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total Needed</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{fmt(upcomingWindowTotal)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Net Wage (after {taxRate}% tax)</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{fmt(netHourlyWage)}/hr</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pink-dark)" }}>Minimum Hours This Week</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, color: "var(--pink-dark)" }}>
+                          {minHoursNeeded !== null ? minHoursNeeded.toFixed(1) : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* ── TODAY'S PAYCHECK CALCULATOR ── */}
             {isCrisis && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
