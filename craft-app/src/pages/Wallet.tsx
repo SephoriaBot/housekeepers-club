@@ -173,11 +173,21 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 function EditableCell({ value, onChange, type = "number", style }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties }) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => { setDraft(String(value)); }, [value]);
+
+  function commit() {
+    if (draft !== String(value)) onChange(draft);
+  }
+
   return (
     <input
       type={type}
-      value={value}
-      onChange={e => onChange(e.target.value)}
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1.5px dashed var(--border)", color: "var(--ink)", fontSize: 13, padding: "2px 4px", outline: "none", fontFamily: "inherit", ...style }}
     />
   );
@@ -336,13 +346,15 @@ export default function Wallet() {
         candidates.push({ month: bill.bill_month, year: bill.bill_year });
       }
       candidates.forEach(({ month, year }) => {
-        const dueDate = new Date(year, month - 1, bill.due_day);
+        const payment = payments.find(p => p.bill_id === bill.id && p.month === month && p.year === year);
+        const effectiveDueDay = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+        const dueDate = new Date(year, month - 1, effectiveDueDay);
         const diffDays = Math.ceil((dueDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
         if (diffDays >= 0 && diffDays <= 14) {
-          const payment = payments.find(p => p.bill_id === bill.id && p.month === month && p.year === year);
           const paid = payment?.paid ?? false;
           const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
-          if (!paid) results.push({ id: bill.id, name: bill.name, amount, dueDate, days: diffDays });
+          const name = bill.recurring ? (payment?.name ?? bill.name) : bill.name;
+          if (!paid) results.push({ id: bill.id, name, amount, dueDate, days: diffDays });
         }
       });
     });
@@ -512,7 +524,8 @@ export default function Wallet() {
   async function updateMonthBill(bill: typeof monthBills[0], field: "name" | "amount" | "due_day", value: string | number) {
     if (bill.recurring) {
       if (bill.paymentId) {
-        await supabase.from("bill_payments").update({ [field]: value }).eq("id", bill.paymentId);
+        const { error } = await supabase.from("bill_payments").update({ [field]: value }).eq("id", bill.paymentId);
+        if (error) { console.error("updateMonthBill failed:", error); return; }
         setPayments(prev => prev.map(p => p.id === bill.paymentId ? { ...p, [field]: value } : p));
       } else {
         const newPayment: BillPayment = {
@@ -520,11 +533,13 @@ export default function Wallet() {
           name: bill.name, amount: bill.amount, due_day: bill.due_day,
           [field]: value,
         };
-        const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
+        const { data, error } = await supabase.from("bill_payments").insert(newPayment).select().single();
+        if (error) { console.error("updateMonthBill insert failed:", error); return; }
         if (data) setPayments(prev => [...prev, data]);
       }
     } else {
-      await supabase.from("bills").update({ [field]: value }).eq("id", bill.id);
+      const { error } = await supabase.from("bills").update({ [field]: value }).eq("id", bill.id);
+      if (error) { console.error("updateMonthBill (bills) failed:", error); return; }
       setBills(prev => prev.map(b => b.id === bill.id ? { ...b, [field]: value } : b));
     }
   }
