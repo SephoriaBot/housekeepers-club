@@ -338,7 +338,7 @@ export default function Wallet() {
       candidates.forEach(({ month, year }) => {
         const dueDate = new Date(year, month - 1, bill.due_day);
         const diffDays = Math.ceil((dueDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays <= 10) {
+        if (diffDays >= 0 && diffDays <= 14) {
           const payment = payments.find(p => p.bill_id === bill.id && p.month === month && p.year === year);
           const paid = payment?.paid ?? false;
           const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
