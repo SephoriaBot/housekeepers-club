@@ -1,0 +1,162 @@
+.panel {
+  background: var(--an-apricot-soft, #fbe3d0);
+  border: 1px solid var(--an-apricot, #f3a26d);
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  font-family: 'Nunito Sans', sans-serif;
+  color: var(--an-ink, #4a3f35);
+}
+
+.sectionLabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  margin: 10px 0 8px;
+}
+
+.sectionLabel:first-child {
+  margin-top: 0;
+}
+
+.typeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.typeChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--an-line, #efe4d6);
+  background: transparent;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  color: var(--an-ink, #4a3f35);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.typeChipActive {
+  border: 1.5px solid var(--an-ink, #4a3f35);
+  background: #fff;
+}
+
+.typeChipAdd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--an-ink-soft, #8c7c6e);
+  background: transparent;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--an-ink, #4a3f35);
+  cursor: pointer;
+}
+
+.customTypeRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.customTypeInput {
+  flex: 1;
+  border: 1px solid var(--an-line, #efe4d6);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  color: var(--an-ink, #4a3f35);
+  outline: none;
+  background: #fff;
+}
+
+.smallConfirmButton {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: #fff;
+  background: var(--an-ink, #4a3f35);
+  border: none;
+  border-radius: 10px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  padding: 10px 32px 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--an-line, #efe4d6);
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 14px;
+  color: var(--an-ink, #4a3f35);
+  background: #fff;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  pointer-events: none;
+  color: var(--an-ink-soft, #8c7c6e);
+}
+
+.helperText {
+  font-size: 13px;
+  color: var(--an-ink-soft, #8c7c6e);
+  margin: 4px 0 0;
+}
+
+.errorText {
+  font-size: 13px;
+  color: #b0524f;
+  margin: 4px 0 0;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cancelButton {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 10px;
+  border: 1px solid var(--an-line, #efe4d6);
+  background: #fff;
+  color: var(--an-ink, #4a3f35);
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirmButton {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--an-ink, #4a3f35);
+  color: #fff;
+  font-family: 'Nunito Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirmButton:disabled {
+  background: var(--an-ink-soft, #8c7c6e);
+  cursor: not-allowed;
+}
