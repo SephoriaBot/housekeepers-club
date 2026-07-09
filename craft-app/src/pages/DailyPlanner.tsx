@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, RotateCcw, Calendar, ShoppingCart, Heart } from 'lucide-react';
+import { Plus, X, RotateCcw, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
 
@@ -14,14 +14,6 @@ interface Appointment {
   id: string;
   title: string;
   date_time: string;
-  created_at: string;
-}
-
-interface PlannerItem {
-  id: string;
-  type: 'need' | 'want';
-  label: string;
-  done: boolean;
   created_at: string;
 }
 
@@ -44,13 +36,10 @@ const SPARK_COLORS = [
 export default function DailyPlanner() {
   const [tasks, setTasks] = useState<DailyTask[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [plannerItems, setPlannerItems] = useState<PlannerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState('');
   const [newApptTitle, setNewApptTitle] = useState('');
   const [newApptDate, setNewApptDate] = useState('');
-  const [newNeed, setNewNeed] = useState('');
-  const [newWant, setNewWant] = useState('');
   const [sparks, setSparks] = useState<Spark[]>([]);
 
   useEffect(() => {
@@ -59,14 +48,12 @@ export default function DailyPlanner() {
 
   async function loadAll() {
     setLoading(true);
-    const [tasksRes, apptsRes, plannerRes] = await Promise.all([
+    const [tasksRes, apptsRes] = await Promise.all([
       supabase.from('daily_tasks').select('*').order('created_at'),
       supabase.from('appointments').select('*').order('date_time'),
-      supabase.from('planner_items').select('*').order('created_at'),
     ]);
     setTasks(tasksRes.data ?? []);
     setAppointments(apptsRes.data ?? []);
-    setPlannerItems(plannerRes.data ?? []);
     setLoading(false);
   }
 
@@ -146,34 +133,8 @@ export default function DailyPlanner() {
     });
   }
 
-  async function addPlannerItem(type: 'need' | 'want') {
-    const label = (type === 'need' ? newNeed : newWant).trim();
-    if (!label) return;
-    const { data } = await supabase
-      .from('planner_items')
-      .insert({ type, label, done: false })
-      .select()
-      .single();
-    if (data) setPlannerItems(prev => [...prev, data]);
-    if (type === 'need') setNewNeed(''); else setNewWant('');
-  }
-
-  async function togglePlannerItem(item: PlannerItem) {
-    const newDone = !item.done;
-    await supabase.from('planner_items').update({ done: newDone }).eq('id', item.id);
-    setPlannerItems(prev => prev.map(p => p.id === item.id ? { ...p, done: newDone } : p));
-  }
-
-  async function deletePlannerItem(id: string) {
-    await supabase.from('planner_items').delete().eq('id', id);
-    setPlannerItems(prev => prev.filter(p => p.id !== id));
-  }
-
   const doneCount = tasks.filter(t => t.done).length;
   const allDone = tasks.length > 0 && doneCount === tasks.length;
-
-  const needs = plannerItems.filter(p => p.type === 'need');
-  const wants = plannerItems.filter(p => p.type === 'want');
 
   return (
     <div>
@@ -391,176 +352,6 @@ export default function DailyPlanner() {
   <AppointmentNotesPanel />
 </div>
 
-        {/* Needs / Wants */}
-        <div className="grid-2" style={{ alignItems: 'start', marginTop: 20 }}>
-
-          {/* Things We Need */}
-          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
-            <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: '1.1rem' }}>🛒</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Things We Need
-                </span>
-              </div>
-
-              {needs.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                  Nothing urgent right now 🌱
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {needs.map(item => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 14,
-                        background: item.done
-                          ? 'linear-gradient(135deg, #FFE1B3, #EFD3A2)'
-                          : 'var(--cream)',
-                        border: `1.5px solid ${item.done ? '#EFD3A2' : 'var(--border)'}`,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <button
-                        onClick={() => togglePlannerItem(item)}
-                        style={{
-                          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${item.done ? '#EFD3A2' : 'var(--border)'}`,
-                          background: item.done
-                            ? 'linear-gradient(135deg, #EFD3A2, #FFE8A3)'
-                            : 'var(--white)',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {item.done && <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>✓</span>}
-                      </button>
-
-                      <span style={{
-                        flex: 1, fontSize: '0.88rem',
-                        color: item.done ? '#B98A5A' : 'var(--ink-muted)',
-                        textDecoration: item.done ? 'line-through' : 'none',
-                      }}>
-                        {item.label}
-                      </span>
-
-                      <button
-                        onClick={() => deletePlannerItem(item.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  className="form-input"
-                  placeholder="Add a priority purchase…"
-                  value={newNeed}
-                  onChange={e => setNewNeed(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addPlannerItem('need')}
-                  style={{ flex: 1, borderRadius: 12 }}
-                />
-                <button
-                  className="btn btn-primary"
-                  style={{ padding: '8px 14px', borderRadius: 12 }}
-                  onClick={() => addPlannerItem('need')}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Things We Want */}
-          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
-            <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: '1.1rem' }}>💛</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Things We Want
-                </span>
-              </div>
-
-              {wants.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                  Nothing on the wishlist yet 🌸
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {wants.map(item => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 14,
-                        background: item.done
-                          ? 'linear-gradient(135deg, #FFF1C9, #F7D7A8)'
-                          : 'var(--cream)',
-                        border: `1.5px solid ${item.done ? '#f0d9ff' : 'var(--border)'}`,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <button
-                        onClick={() => togglePlannerItem(item)}
-                        style={{
-                          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${item.done ? '#f0d9ff' : 'var(--border)'}`,
-                          background: item.done
-                            ? 'linear-gradient(135deg, #F7D7A8, #FFD6A5)'
-                            : 'var(--white)',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {item.done && <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>✓</span>}
-                      </button>
-
-                      <span style={{
-                        flex: 1, fontSize: '0.88rem',
-                        color: item.done ? '#B98A5A' : 'var(--ink-muted)',
-                        textDecoration: item.done ? 'line-through' : 'none',
-                      }}>
-                        {item.label}
-                      </span>
-
-                      <button
-                        onClick={() => deletePlannerItem(item.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  className="form-input"
-                  placeholder="Add something to save up for…"
-                  value={newWant}
-                  onChange={e => setNewWant(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addPlannerItem('want')}
-                  style={{ flex: 1, borderRadius: 12 }}
-                />
-                <button
-                  className="btn btn-primary"
-                  style={{ padding: '8px 14px', borderRadius: 12 }}
-                  onClick={() => addPlannerItem('want')}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
       </div>
     </div>
   );
