@@ -150,6 +150,20 @@ function hoursOfWork(amount: number, wage: number) {
   return (amount / wage).toFixed(1);
 }
 
+const PERIOD_MULTIPLIERS: Record<string, number> = {
+  weekly: 52 / 12,
+  biweekly: 26 / 12,
+  semimonthly: 2,
+  monthly: 1,
+};
+
+const PERIOD_LABELS: Record<string, string> = {
+  weekly: "Weekly",
+  biweekly: "Every 2 Weeks",
+  semimonthly: "Twice a Month",
+  monthly: "Monthly",
+};
+
 function EditableCell({ value, onChange, type = "number", style }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties }) {
   return (
     <input
@@ -168,30 +182,24 @@ export default function Wallet() {
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [nextId, setNextId] = useState(20);
   const [nextBillId, setNextBillId] = useState(10);
-  const [tab, setTab] = useState("bills");
+  const [view, setView] = useState<"home" | "bills" | "debts">("home");
   const [showDeferred, setShowDeferred] = useState(false);
   const [, setLoading] = useState(true);
   const [savedMsg, setSavedMsg] = useState(false);
   const [anytimePay, setAnytimePay] = useState("");
-  const [weeklyPay, setWeeklyPay] = useState("");
   const [planNotes, setPlanNotes] = useState("");
   const [showBillForm, setShowBillForm] = useState(false);
   const [newBill, setNewBill] = useState({ name: "", amount: "", due_day: "", recurring: true });
-  const [streakCount, setStreakCount] = useState<number>(() => {
-    const s = localStorage.getItem("streak_count"); return s ? parseInt(s) : 0;
-  });
-  const [lastCheckIn, setLastCheckIn] = useState<string>(() => localStorage.getItem("last_checkin") || "");
-  const [purchaseAmount, setPurchaseAmount] = useState("");
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [milestones, setMilestones] = useState<string[]>(() => {
-    const s = localStorage.getItem("milestones"); return s ? JSON.parse(s) : [];
-  });
-  const [bufferBalance, setBufferBalance] = useState<number>(() => {
-    const saved = localStorage.getItem("buffer_balance");
-    return saved ? parseFloat(saved) : 0;
-  });
   const [showConfetti, setShowConfetti] = useState(false);
   const [paidOffDebt, setPaidOffDebt] = useState<string>("");
+
+  // Budget calculator (landing page) — starts blank
+  const [calcRegWage, setCalcRegWage] = useState("");
+  const [calcOtWage, setCalcOtWage] = useState("");
+  const [calcRegHours, setCalcRegHours] = useState("");
+  const [calcOtHours, setCalcOtHours] = useState("");
+  const [calcPeriod, setCalcPeriod] = useState<"weekly" | "biweekly" | "semimonthly" | "monthly">("biweekly");
+  const [budgetSavedMsg, setBudgetSavedMsg] = useState(false);
 
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -205,10 +213,6 @@ export default function Wallet() {
     }
     return months;
   }, []);
-
-  useEffect(() => { localStorage.setItem("buffer_balance", bufferBalance.toString()); }, [bufferBalance]);
-  useEffect(() => { localStorage.setItem("streak_count", streakCount.toString()); }, [streakCount]);
-  useEffect(() => { localStorage.setItem("milestones", JSON.stringify(milestones)); }, [milestones]);
 
   useEffect(() => {
     async function loadData() {
@@ -315,16 +319,14 @@ export default function Wallet() {
   const unpaidTotal = monthBills.filter(b => !b.paid).reduce((s, b) => s + b.amount, 0);
 
   const pay = parseFloat(anytimePay) || 0;
-  const isWeeklyMode = bufferBalance >= 650;
-  const weekPay = parseFloat(weeklyPay) || 0;
-  const inputAmount = isWeeklyMode ? weekPay : pay;
+  const inputAmount = pay;
 
   const urgentTotal = urgentBills.reduce((s, b) => s + b.amount, 0);
   const crisisTotal = crisisBills.reduce((s, b) => s + b.amount, 0);
   const isCrisis = crisisTotal > 0;
-  const billsRate = totalMonthlyBills / (isWeeklyMode ? 4.33 : 30);
+  const billsRate = totalMonthlyBills / 30;
 
-   const NEEDS_FLOOR = isWeeklyMode ? 105 : 25;
+  const NEEDS_FLOOR = 25;
 
   let unifiedBills: number;
   let unifiedSnowball: number;
@@ -350,16 +352,15 @@ export default function Wallet() {
     const needsFloor = Math.min(afterBills, NEEDS_FLOOR);
     const afterFloor = Math.max(0, afterBills - needsFloor);
 
-    unifiedSnowball = snowballExtra > 0 ? Math.min(afterFloor * 0.25, isWeeklyMode ? snowballExtra / 4.33 : snowballExtra / 30) : 0;
+    unifiedSnowball = snowballExtra > 0 ? Math.min(afterFloor * 0.25, snowballExtra / 30) : 0;
     const afterSnowball = Math.max(0, afterFloor - unifiedSnowball);
-    unifiedBuffer = isWeeklyMode ? 0 : Math.min(22, afterSnowball);
+    unifiedBuffer = Math.min(22, afterSnowball);
     const afterBuffer = Math.max(0, afterSnowball - unifiedBuffer);
 
     const extraNeeds = Math.min(afterBuffer, afterBuffer * 0.65);
     unifiedNeeds = needsFloor + extraNeeds;
     unifiedFun = Math.max(0, afterBuffer - extraNeeds);
   }
-
 
   const allocations = [
     {
@@ -376,12 +377,12 @@ export default function Wallet() {
       color: "var(--sky)",
       note: isCrisis ? "paused -- bills come first" : "extra toward target debt",
     },
-    ...(isWeeklyMode ? [] : [{
+    {
       label: "🏦 General Savings",
       amount: unifiedBuffer,
       color: "var(--gold)",
       note: isCrisis ? "paused -- bills come first" : "$22/day until $650",
-    }]),
+    },
     {
       label: "🛒 Groceries & Gas",
       amount: unifiedNeeds,
@@ -395,6 +396,15 @@ export default function Wallet() {
       note: isCrisis ? "zeroed until crisis bills are caught up" : "whimsy -- wants, not needs!",
     },
   ];
+
+  // Budget calculator math (blank until the person fills it in)
+  const calcRegWageNum = parseFloat(calcRegWage) || 0;
+  const calcOtWageNum = parseFloat(calcOtWage) || 0;
+  const calcRegHoursNum = parseFloat(calcRegHours) || 0;
+  const calcOtHoursNum = parseFloat(calcOtHours) || 0;
+  const calcHasInput = calcRegWageNum > 0 && calcRegHoursNum > 0;
+  const calcGrossPerPeriod = calcRegWageNum * calcRegHoursNum + calcOtWageNum * calcOtHoursNum;
+  const calcEstMonthlyTakeHome = calcGrossPerPeriod * PERIOD_MULTIPLIERS[calcPeriod];
 
   async function processMonthlyMinimums(debtList: Debt[]) {
     const now = new Date();
@@ -444,7 +454,7 @@ export default function Wallet() {
   }
 
   async function saveLog() {
-    const amount = isWeeklyMode ? weekPay : pay;
+    const amount = pay;
     if (!amount) return;
     const log: DailyLog = {
       date: todayStr(),
@@ -459,8 +469,16 @@ export default function Wallet() {
     await supabase.from("daily_log").insert(log).select().single();
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
-    isWeeklyMode ? setWeeklyPay("") : setAnytimePay("");
+    setAnytimePay("");
     setPlanNotes("");
+  }
+
+  async function saveBudgetCalc() {
+    if (!calcHasInput) return;
+    await updateBudget("hourly_wage", calcRegWageNum);
+    await updateBudget("take_home", calcEstMonthlyTakeHome);
+    setBudgetSavedMsg(true);
+    setTimeout(() => setBudgetSavedMsg(false), 2000);
   }
 
   async function addBill() {
@@ -522,63 +540,10 @@ export default function Wallet() {
     await supabase.from("budget").update({ [field]: val }).eq("id", 1);
   }
 
-  function checkStreak() {
-    const today = todayStr();
-    if (lastCheckIn === today) return;
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().split("T")[0];
-    const newStreak = lastCheckIn === yStr ? streakCount + 1 : 1;
-    setStreakCount(newStreak);
-    setLastCheckIn(today);
-    localStorage.setItem("last_checkin", today);
-    checkMilestones(newStreak);
-  }
-
-  function breakStreak() {
-    setStreakCount(0);
-    setLastCheckIn(todayStr());
-    localStorage.setItem("streak_count", "0");
-    localStorage.setItem("last_checkin", todayStr());
-  }
-
-  function checkMilestones(streak?: number) {
-    const newMilestones = [...milestones];
-    const total = debts.filter(d => !d.deferred && !d.paid_off).reduce((s, d) => s + d.balance, 0);
-    const toAdd: string[] = [];
-    if (total < 5000 && !newMilestones.includes("under5k")) toAdd.push("under5k");
-    if (total < 3000 && !newMilestones.includes("under3k")) toAdd.push("under3k");
-    if (total < 1000 && !newMilestones.includes("under1k")) toAdd.push("under1k");
-    if (total === 0 && !newMilestones.includes("zero")) toAdd.push("zero");
-    if (bufferBalance >= 650 && !newMilestones.includes("buffer")) toAdd.push("buffer");
-    if ((streak || streakCount) >= 7 && !newMilestones.includes("streak7")) toAdd.push("streak7");
-    if ((streak || streakCount) >= 30 && !newMilestones.includes("streak30")) toAdd.push("streak30");
-    if (toAdd.length > 0) {
-      const updated = [...newMilestones, ...toAdd];
-      setMilestones(updated);
-      localStorage.setItem("milestones", JSON.stringify(updated));
-    }
-  }
-
-  const MILESTONE_DEFS: Record<string, { emoji: string; label: string; desc: string }> = {
-    under5k: { emoji: "🌸", label: "Under $5,000!", desc: "Active debt below $5k" },
-    under3k: { emoji: "🎯", label: "Under $3,000!", desc: "Active debt below $3k" },
-    under1k: { emoji: "✨", label: "Under $1,000!", desc: "Almost there!" },
-    zero:    { emoji: "🎊", label: "DEBT FREE!", desc: "All active debts paid off!" },
-    buffer:  { emoji: "🏦", label: "Savings Goal!", desc: "$650 general savings reached" },
-    streak7: { emoji: "🔥", label: "7 Day Streak!", desc: "7 days no unplanned spending" },
-    streak30:{ emoji: "💎", label: "30 Day Streak!", desc: "30 days no unplanned spending" },
-  };
-
   const payoffMonth = months.length;
   const finalDeferred = months.length > 0
     ? Object.values(months[months.length - 1].deferredBalances).reduce((s, v) => s + v, 0)
     : deferredDebts.reduce((s, d) => s + d.balance, 0);
-
-  const TABS = ["bills","planner","debts","budget"];
-  const TAB_LABELS: Record<string, string> = {
-    planner: "📅 Check-ins", bills: "🏠 Bills",
-    debts: "💳 Debts", budget: "💰 Budget",
-  };
 
   const Confetti = () => {
     const colors = ["var(--pink-dark)","var(--green-dark)","var(--pink-light)","var(--ink-soft)","var(--gold-light)"];
@@ -598,74 +563,60 @@ export default function Wallet() {
     );
   };
 
+  const VIEW_TITLES: Record<typeof view, string> = {
+    home: "Welcome to Your Piggybank",
+    bills: "🏠 Bills",
+    debts: "💳 Debts",
+  };
+
   return (
     <div>
       {showConfetti && <Confetti />}
 
       {/* ── HEADER ── */}
       <div className="page-header">
-        <div>
-          <h2>Welcome to Your Piggybank</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {view !== "home" && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setView("home")}>← Back</button>
+          )}
+          <h2>{VIEW_TITLES[view]}</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
 
-              {/* ── STAT CARDS ── */}
       <div className="page-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-
-        {/* ── MOTIVATIONAL STRIP ── */}
-<div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-  {[
-    { icon: "💵", label: "Saved-Not-Spent Streak", val: `${streakCount} days`, color: "var(--pink-dark)" },
-    { icon: "🏦", label: "General Savings", val: `${fmt(bufferBalance)} / $650`, color: bufferBalance >= 650 ? "var(--green-dark)" : "var(--ink-soft)" },
-    { icon: "⛓️‍💥", label: "Payoff", val: `${payoffMonth} months`, color: "var(--green-dark)" },
-  ].map(({ icon, label, val, color }) => (
-    <div key={label} className="card" style={{ flexShrink: 0, cursor: "default" }}>
-      <div className="card-body" style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 20 }}>{icon}</span>
-        <div>
-          <div className="section-label" style={{ marginBottom: 2 }}>{label}</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color }}>{val}</div>
-        </div>
-      </div>
-    </div>
-  ))}
-
-  {milestones.slice(-2).map(m => (
-    <div key={m} className="card" style={{ flexShrink: 0, cursor: "default" }}>
-      <div className="card-body" style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 20 }}>{MILESTONE_DEFS[m]?.emoji}</span>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pink-dark)" }}>
-          {MILESTONE_DEFS[m]?.label}
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
-
-        {/* ── TABS ── */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-          {TABS.map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={tab === t ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"}
-            >
-              {TAB_LABELS[t]}
-            </button>
-          ))}
-        </div>
-
-        {/* ── PLANNER TAB ── */}
-        {tab === "planner" && (
+        {/* ══════════════════ HOME (LANDING) ══════════════════ */}
+        {view === "home" && (
           <>
+            {/* ── NAV CARDS ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <button onClick={() => setView("bills")} className="card" style={{ textAlign: "left", cursor: "pointer", border: "none", padding: 0 }}>
+                <div className="card-body">
+                  <div style={{ fontSize: 24 }}>🏠</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)", marginTop: 6 }}>Bills</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>
+                    {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : "all paid up ✓"}
+                  </div>
+                </div>
+              </button>
+              <button onClick={() => setView("debts")} className="card" style={{ textAlign: "left", cursor: "pointer", border: "none", padding: 0 }}>
+                <div className="card-body">
+                  <div style={{ fontSize: 24 }}>💳</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)", marginTop: 6 }}>Debts</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>
+                    {activeDebts.filter(d => !d.paid_off).length} active · {payoffMonth}mo payoff
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* ── TODAY'S PAYCHECK CALCULATOR ── */}
             {isCrisis && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
-                🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Groceries & gas are still protected.
+                🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Things you need are still protected.
               </div>
             )}
-
             {!isCrisis && urgentBills.length > 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
@@ -674,13 +625,13 @@ export default function Wallet() {
 
             <div className="card">
               <div className="card-body">
-                <div className="section-label">{isWeeklyMode ? "This Week's Paycheck" : "Today's Paycheck"}</div>
+                <div className="section-label">Today's Paycheck</div>
                 <input
                   type="number"
                   className="form-input"
-                  placeholder={isWeeklyMode ? "e.g. 900" : "e.g. 120"}
-                  value={isWeeklyMode ? weeklyPay : anytimePay}
-                  onChange={e => isWeeklyMode ? setWeeklyPay(e.target.value) : setAnytimePay(e.target.value)}
+                  placeholder="e.g. 120"
+                  value={anytimePay}
+                  onChange={e => setAnytimePay(e.target.value)}
                   style={{ fontSize: 22, fontWeight: 700, marginTop: 8, marginBottom: 6 }}
                 />
                 {inputAmount > 0 && hoursOfWork(inputAmount, budget.hourly_wage) && (
@@ -711,7 +662,7 @@ export default function Wallet() {
                     <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
                       <input type="text" className="form-input" placeholder="Notes (optional)..." value={planNotes} onChange={e => setPlanNotes(e.target.value)} />
                       <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={saveLog}>
-                        Save {isWeeklyMode ? "Weekly" : "Daily"} Plan
+                        Save Plan
                       </button>
                     </div>
                   </>
@@ -719,76 +670,69 @@ export default function Wallet() {
               </div>
             </div>
 
+            {/* ── BUDGET CALCULATOR ── */}
             <div className="card">
               <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div className="section-label" style={{ marginBottom: 0 }}>Purchase Reality Check</div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowCalculator(v => !v)}>{showCalculator ? "Hide" : "Show"}</button>
+                <div className="section-label">Budget Calculator</div>
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
+                  Enter your wage and hours to estimate your take-home pay for your budget.
                 </div>
-                {showCalculator && (
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <div className="form-label">Hourly Wage ($)</div>
+                    <input type="number" className="form-input" placeholder="e.g. 19.50" value={calcRegWage} onChange={e => setCalcRegWage(e.target.value)} />
+                  </div>
+                  <div>
+                    <div className="form-label">OT Wage ($)</div>
+                    <input type="number" className="form-input" placeholder="e.g. 29.25" value={calcOtWage} onChange={e => setCalcOtWage(e.target.value)} />
+                  </div>
+                  <div>
+                    <div className="form-label">Regular Hours</div>
+                    <input type="number" className="form-input" placeholder="e.g. 40" value={calcRegHours} onChange={e => setCalcRegHours(e.target.value)} />
+                  </div>
+                  <div>
+                    <div className="form-label">OT Hours</div>
+                    <input type="number" className="form-input" placeholder="e.g. 5" value={calcOtHours} onChange={e => setCalcOtHours(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="form-label">Pay Period</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  {(Object.keys(PERIOD_LABELS) as Array<keyof typeof PERIOD_LABELS>).map(p => (
+                    <button key={p} className={calcPeriod === p ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"} onClick={() => setCalcPeriod(p as typeof calcPeriod)}>
+                      {PERIOD_LABELS[p]}
+                    </button>
+                  ))}
+                </div>
+
+                {calcHasInput && (
                   <>
-                    <input type="number" className="form-input" placeholder="e.g. 45.00" value={purchaseAmount} onChange={e => setPurchaseAmount(e.target.value)} style={{ marginBottom: 12 }} />
-                    {parseFloat(purchaseAmount) > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {hoursOfWork(parseFloat(purchaseAmount), budget.hourly_wage) && (
-                          <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14 }}>
-                            <div style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 4 }}>That purchase costs you:</div>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--pink-dark)" }}>{hoursOfWork(parseFloat(purchaseAmount), budget.hourly_wage)} hours of work</div>
-                            <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>at {fmt(budget.hourly_wage)}/hr</div>
-                          </div>
-                        )}
-                        <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14 }}>
-                          <div style={{ fontSize: 12, color: "var(--green-dark)", marginBottom: 4 }}>If saved toward debt instead:</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>
-                            Saves ~{snowballExtra > 0 ? Math.ceil(parseFloat(purchaseAmount) / (snowballExtra / 30)) : "?"} days off your payoff
-                          </div>
-                        </div>
+                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14, marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Gross Pay ({PERIOD_LABELS[calcPeriod]})</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{fmt(calcGrossPerPeriod)}</span>
                       </div>
-                    )}
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-dark)" }}>Est. Monthly Take-Home</span>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(calcEstMonthlyTakeHome)}</span>
+                      </div>
+                    </div>
+                    <button className="btn btn-green" style={{ width: "100%", justifyContent: "center" }} onClick={saveBudgetCalc}>
+                      {budgetSavedMsg ? "Saved to Budget ✓" : "Save to Budget"}
+                    </button>
+                    <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 6 }}>
+                      Updates your hourly wage and take-home pay used across the app (snowball extra, hours-of-work, etc).
+                    </div>
                   </>
                 )}
               </div>
             </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div className="section-label" style={{ marginBottom: 0 }}>No-Spend Streak</div>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: "var(--pink-dark)" }}>{streakCount} days 🔥</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button className={`btn btn-sm ${lastCheckIn === todayStr() ? "btn-ghost" : "btn-primary"}`} style={{ flex: 1, justifyContent: "center" }} onClick={checkStreak} disabled={lastCheckIn === todayStr()}>
-                    {lastCheckIn === todayStr() ? "✓ Checked In" : "No Spend Today"}
-                  </button>
-                  <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: "center" }} onClick={breakStreak}>
-                    I Bought Something
-                  </button>
-                </div>
-                {streakCount >= 7 && <div style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: "var(--green-dark)", fontWeight: 700 }}>On fire! {streakCount} days strong! 🔥</div>}
-              </div>
-            </div>
-
-            {milestones.length > 0 && (
-              <div className="card">
-                <div className="card-body">
-                  <div className="section-label">Milestones Earned</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
-                    {milestones.map(m => (
-                      <div key={m} style={{ background: "var(--accent)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "10px 14px", textAlign: "center" }}>
-                        <div style={{ fontSize: 24 }}>{MILESTONE_DEFS[m]?.emoji}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pink-dark)", marginTop: 4 }}>{MILESTONE_DEFS[m]?.label}</div>
-                        <div style={{ fontSize: 10, color: "var(--ink-muted)" }}>{MILESTONE_DEFS[m]?.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
 
-        {/* ── BILLS TAB ── */}
-        {tab === "bills" && (
+        {/* ══════════════════ BILLS VIEW ══════════════════ */}
+        {view === "bills" && (
           <>
             <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
               {availableMonths.map(({ month, year, label }) => (
@@ -900,20 +844,47 @@ export default function Wallet() {
           </>
         )}
 
-        {/* ── DEBTS TAB ── */}
-        {tab === "debts" && (
+        {/* ══════════════════ DEBTS VIEW ══════════════════ */}
+        {view === "debts" && (
           <>
-          <div className="card">
-  <div className="card-body">
+            <div className="card">
+              <div className="card-body">
+                <div className="section-header">
+                  <div className="section-label" style={{ marginBottom: 0 }}>Monthly Fixed Expenses</div>
+                </div>
+                <input
+                  type="number"
+                  className="form-input"
+                  placeholder="e.g. 1800"
+                  value={budget.fixed_expenses || ""}
+                  onChange={e => updateBudget("fixed_expenses", parseFloat(e.target.value) || 0)}
+                />
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6 }}>rent + transport + non-debt bills — used to calculate your snowball extra</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>True Snowball Extra</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>take-home ({fmt(budget.take_home)}) minus fixed expenses and {fmt(totalMins)} in minimums</div>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>{fmt(snowballExtra)}</div>
+                </div>
+                {snowballExtra < 0 && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: "var(--danger)", fontWeight: 600 }}>
+                    ⚠️ Minimums + fixed expenses exceed your take-home pay. Update your Budget Calculator on the home page.
+                  </div>
+                )}
+              </div>
+            </div>
 
-    <div className="section-header">
-      <div className="section-label">Active Debts — Snowball Order</div>
-      <button className="btn btn-primary btn-sm" onClick={() => addDebt(false)}>
-        + Add
-      </button>
-    </div>
+            <div className="card">
+              <div className="card-body">
+                <div className="section-header">
+                  <div className="section-label">Active Debts — Snowball Order</div>
+                  <button className="btn btn-primary btn-sm" onClick={() => addDebt(false)}>
+                    + Add
+                  </button>
+                </div>
                 <div style={{ overflowX: "auto" }}>
-  <table className="table">
+                  <table className="table">
                     <thead>
                       <tr>
                         {["#","Name","Balance","Progress","APR%","Min/Mo","",""].map(h => (
@@ -961,7 +932,7 @@ export default function Wallet() {
               <div className="card" style={{ opacity: 0.9 }}>
                 <div className="card-body">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                   <div className="section-label" style={{ marginBottom: 0 }}>🎉 Paid Off</div>
+                    <div className="section-label" style={{ marginBottom: 0 }}>🎉 Paid Off</div>
                     <span style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>Amazing work!</span>
                   </div>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -983,9 +954,9 @@ export default function Wallet() {
               </div>
             )}
 
-           <div className="card" style={{ opacity: 0.85 }}>
+            <div className="card" style={{ opacity: 0.85 }}>
               <div className="card-body">
-               <div className="section-header">
+                <div className="section-header">
                   <div className="section-label" style={{ marginBottom: 0 }}>Deferred Debts</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => setShowDeferred(v => !v)}>{showDeferred ? "Hide" : "Show"}</button>
@@ -1105,88 +1076,6 @@ export default function Wallet() {
                 </div>
               </div>
             )}
-          </>
-        )}
-
-        {/* ── BUDGET TAB ── */}
-        {tab === "budget" && (
-          <>
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Monthly Budget</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  {[
-                    { label: "Monthly Take-Home (est.)", val: budget.take_home, field: "take_home" as keyof Budget, note: "after taxes + benefits + 401K" },
-                    { label: "Fixed Expenses", val: budget.fixed_expenses, field: "fixed_expenses" as keyof Budget, note: "rent + transport + bills + groceries" },
-                    { label: "Hourly Wage", val: budget.hourly_wage, field: "hourly_wage" as keyof Budget, note: "used for work-hours calculations" },
-                  ].map(({ label, val, field, note }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                      <div>
-                        <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
-                        <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
-                      </div>
-                      <input type="number" className="form-input" value={val} onChange={e => updateBudget(field, parseFloat(e.target.value) || 0)} style={{ width: 100, textAlign: "right" }} />
-                    </div>
-                  ))}
-                  {[
-                    { label: "Debt Minimums (auto)", val: fmt(totalMins) },
-                    { label: "Total Outflow", val: fmt(budget.fixed_expenses + totalMins) },
-                  ].map(({ label, val }) => (
-                    <div key={label} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--accent)", margin: "0 -18px", padding: "12px 18px" }}>
-                      <span style={{ fontSize: 13, color: "var(--ink)" }}>{label}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{val}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: 4 }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green-dark)" }}>True Snowball Extra</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>thrown at target debt each month</div>
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: snowballExtra >= 0 ? "var(--green-dark)" : "var(--danger)" }}>{fmt(snowballExtra)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">🏦 General Savings</div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, marginTop: 8 }}>
-                  <span style={{ fontSize: 13, color: "var(--ink)" }}>Current Balance</span>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: "var(--ink-soft)" }}>{fmt(bufferBalance)} / $650.00</span>
-                </div>
-                <div style={{ height: 14, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 10 }}>
-                  <div style={{ height: "100%", width: `${Math.min((bufferBalance / 650) * 100, 100)}%`, background: bufferBalance >= 650 ? "var(--green-dark)" : "var(--pink-dark)", borderRadius: 99, transition: "width 0.3s" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{Math.round((bufferBalance / 650) * 100)}% complete</span>
-                  <span style={{ fontSize: 11, color: bufferBalance >= 650 ? "var(--green-dark)" : "var(--ink-muted)", fontWeight: 600 }}>
-                    {bufferBalance >= 650 ? "GOAL REACHED! 🎉" : `$${(650 - bufferBalance).toFixed(2)} to go`}
-                  </span>
-                </div>
-                <input type="number" className="form-input" placeholder="Update balance..." onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { setBufferBalance(v); e.target.value = ""; }}} />
-                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6 }}>Enter your current savings balance to update</div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Savings & Deductions</div>
-                {[
-                  { label: "401K Contributions", val: "~$200/mo", color: "var(--green-dark)", note: "auto-deducted before you see it" },
-                  { label: "General Savings Goal", val: "$650", color: "var(--ink-soft)", note: "5-week build — $110/wk — $22/day" },
-                  { label: "Daily Savings Set-Aside", val: "$22/day", color: "var(--ink-soft)", note: "pull $22 less per day to fund general savings" },
-                ].map(({ label, val, color, note }) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{label}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{note}</div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color }}>{val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         )}
 
