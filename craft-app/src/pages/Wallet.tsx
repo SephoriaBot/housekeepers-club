@@ -63,6 +63,14 @@ interface MonthSnap {
   deferredTotal: number;
 }
 
+interface PlannerItem {
+  id: string;
+  type: "need" | "want";
+  label: string;
+  done: boolean;
+  created_at: string;
+}
+
 const DEFAULT_DEBTS: Debt[] = [
   { id: 1, name: "Amir",             balance: 225.00,   original_balance: 225.00,   apr: 0,    min_payment: 0,   deferred: false },
   { id: 2, name: "Midland (Ulta)",   balance: 713.57,   original_balance: 713.57,   apr: 0,    min_payment: 20,  deferred: false },
@@ -193,6 +201,10 @@ export default function Wallet() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [paidOffDebt, setPaidOffDebt] = useState<string>("");
 
+  const [plannerItems, setPlannerItems] = useState<PlannerItem[]>([]);
+  const [newNeed, setNewNeed] = useState("");
+  const [newWant, setNewWant] = useState("");
+
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
   const [calcOtWage, setCalcOtWage] = useState("");
@@ -223,11 +235,13 @@ export default function Wallet() {
           { data: budgetData },
           { data: billData },
           { data: paymentData },
+          { data: plannerData },
         ] = await Promise.all([
           supabase.from("debts").select("*"),
           supabase.from("budget").select("*").eq("id", 1).maybeSingle(),
           supabase.from("bills").select("*").order("due_day"),
           supabase.from("bill_payments").select("*"),
+          supabase.from("planner_items").select("*").order("created_at"),
         ]);
 
         if (debtData && debtData.length > 0) {
@@ -241,6 +255,7 @@ export default function Wallet() {
         }
 
         if (budgetData) setBudget(prev => ({ ...prev, ...budgetData }));
+        if (plannerData) setPlannerItems(plannerData);
 
         const isPastMonth = (m: number, y: number) =>
           y < today.getFullYear() || (y === today.getFullYear() && m < today.getMonth() + 1);
@@ -294,6 +309,8 @@ export default function Wallet() {
 
   const activeDebts = useMemo(() => debts.filter(d => !d.deferred).sort((a, b) => a.balance - b.balance), [debts]);
   const deferredDebts = debts.filter(d => d.deferred);
+  const needs = plannerItems.filter(p => p.type === "need");
+  const wants = plannerItems.filter(p => p.type === "want");
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
@@ -479,6 +496,29 @@ export default function Wallet() {
     await updateBudget("take_home", calcEstMonthlyTakeHome);
     setBudgetSavedMsg(true);
     setTimeout(() => setBudgetSavedMsg(false), 2000);
+  }
+
+  async function addPlannerItem(type: "need" | "want") {
+    const label = (type === "need" ? newNeed : newWant).trim();
+    if (!label) return;
+    const { data } = await supabase
+      .from("planner_items")
+      .insert({ type, label, done: false })
+      .select()
+      .single();
+    if (data) setPlannerItems(prev => [...prev, data]);
+    if (type === "need") setNewNeed(""); else setNewWant("");
+  }
+
+  async function togglePlannerItem(item: PlannerItem) {
+    const newDone = !item.done;
+    await supabase.from("planner_items").update({ done: newDone }).eq("id", item.id);
+    setPlannerItems(prev => prev.map(p => p.id === item.id ? { ...p, done: newDone } : p));
+  }
+
+  async function deletePlannerItem(id: string) {
+    await supabase.from("planner_items").delete().eq("id", id);
+    setPlannerItems(prev => prev.filter(p => p.id !== id));
   }
 
   async function addBill() {
@@ -726,6 +766,54 @@ export default function Wallet() {
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+
+            {/* ── THINGS WE NEED ── */}
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">🛒 Things We Need</div>
+                {needs.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing urgent right now 🌱</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    {needs.map(item => (
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
+                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
+                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
+                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="form-input" placeholder="Add a priority purchase…" value={newNeed} onChange={e => setNewNeed(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("need")} style={{ flex: 1 }} />
+                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("need")}>+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── THINGS WE WANT ── */}
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">💛 Things We Want</div>
+                {wants.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing on the wishlist yet 🌸</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    {wants.map(item => (
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
+                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
+                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
+                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="form-input" placeholder="Add something to save up for…" value={newWant} onChange={e => setNewWant(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("want")} style={{ flex: 1 }} />
+                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("want")}>+</button>
+                </div>
               </div>
             </div>
           </>
