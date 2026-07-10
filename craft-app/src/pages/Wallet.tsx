@@ -773,6 +773,54 @@ export default function Wallet() {
               </button>
             </div>
 
+            {/* ── SAFE TO SPEND ── */}
+            <div className="card" style={{ border: "2px solid var(--pink-dark)" }}>
+              <div className="card-body">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div className="section-label" style={{ marginBottom: 0 }}>💸 Safe to Spend</div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setHoursLoggedInput("")}>Reset</button>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 12 }}>
+                  Log the hours you've actually worked this stretch to see what's really left over for extras — once bills are covered.
+                </div>
+
+                <div className="form-label">Hours Worked So Far</div>
+                <input type="number" className="form-input" placeholder="e.g. 18" value={hoursLoggedInput} onChange={e => setHoursLoggedInput(e.target.value)} style={{ marginBottom: 12 }} />
+
+                {budget.hourly_wage <= 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Set your hourly wage below to see this.</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                      <span style={{ color: "var(--ink-muted)" }}>Earned So Far</span>
+                      <span style={{ fontWeight: 700, color: "var(--green-dark)" }}>{fmt(earnedSoFar)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                      <span style={{ color: "var(--ink-muted)" }}>Needed (next 8 days)</span>
+                      <span style={{ fontWeight: 700, color: "var(--pink-dark)" }}>{fmt(neededCombined)}</span>
+                    </div>
+
+                    {progressGap > 0 ? (
+                      <div style={{ background: "var(--danger-bg)", borderRadius: 16, padding: 14, marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "var(--danger)", fontWeight: 700, marginBottom: 4 }}>Not covered yet</div>
+                        <div style={{ fontSize: 13, color: "var(--danger)" }}>
+                          Still need {fmt(stillNeededDollars)} (~{stillNeededHours.toFixed(1)} more hrs) before extras are safe.
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14, marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 700, marginBottom: 4 }}>🌸 Bills covered!</div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-dark)" }}>Safe to Spend</span>
+                          <span style={{ fontSize: 20, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(safeToSpend)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* ── MINIMUM HOURS NEEDED ── */}
             <div className="card">
               <div className="card-body">
