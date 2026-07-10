@@ -219,9 +219,11 @@ export default function Wallet() {
     return s ? parseFloat(s) : 20;
   });
   const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
+  const [hoursLoggedInput, setHoursLoggedInput] = useState<string>(() => localStorage.getItem("hours_logged_stretch") || "");
 
   useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
   useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
+  useEffect(() => { localStorage.setItem("hours_logged_stretch", hoursLoggedInput); }, [hoursLoggedInput]);
 
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
@@ -393,6 +395,29 @@ export default function Wallet() {
 
   const bucketA = calcHoursForBucket(bucketABills);
   const bucketB = calcHoursForBucket(bucketBBills);
+
+  // Progress tracking: hours actually logged vs. what's needed to cover the
+  // combined 8-day window, so "safe to spend" reflects real earned money.
+  const hoursLoggedNum = parseFloat(hoursLoggedInput) || 0;
+  function calcPayForHours(hours: number) {
+    if (netHourlyWage <= 0) return 0;
+    if (hours <= 40) return hours * netHourlyWage;
+    return 40 * netHourlyWage + (hours - 40) * netOtWage;
+  }
+  function hoursForRemaining(remainingDollars: number, hoursAlreadyLogged: number) {
+    if (remainingDollars <= 0 || netHourlyWage <= 0) return 0;
+    const hoursLeftAtReg = Math.max(0, 40 - hoursAlreadyLogged);
+    const regCapPay = hoursLeftAtReg * netHourlyWage;
+    if (remainingDollars <= regCapPay) return remainingDollars / netHourlyWage;
+    const remainder = remainingDollars - regCapPay;
+    return hoursLeftAtReg + (netOtWage > 0 ? remainder / netOtWage : 0);
+  }
+  const earnedSoFar = calcPayForHours(hoursLoggedNum);
+  const neededCombined = bucketA.total + bucketB.total;
+  const progressGap = neededCombined - earnedSoFar;
+  const safeToSpend = progressGap < 0 ? -progressGap : 0;
+  const stillNeededDollars = progressGap > 0 ? progressGap : 0;
+  const stillNeededHours = hoursForRemaining(stillNeededDollars, hoursLoggedNum);
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
