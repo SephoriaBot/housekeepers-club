@@ -219,11 +219,9 @@ export default function Wallet() {
     return s ? parseFloat(s) : 20;
   });
   const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
-  const [hoursLoggedInput, setHoursLoggedInput] = useState<string>(() => localStorage.getItem("hours_logged_stretch") || "");
 
   useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
   useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
-  useEffect(() => { localStorage.setItem("hours_logged_stretch", hoursLoggedInput); }, [hoursLoggedInput]);
 
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
@@ -333,91 +331,89 @@ export default function Wallet() {
   const wants = plannerItems.filter(p => p.type === "want");
 
   // Bills due in the next 8 days, split into two 4-day stretches, regardless
-  // of which month tab is selected — handles recurring bills that roll from
-  // this month into next.
-  const upcomingWindowBills = useMemo(() => {
+  // ── MONEY CALENDAR ── real calendar dates (this week + next week, Sun–Sat)
+  // showing bills due that day, hours logged that day, and a running balance.
+  function dateKey(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  const calendarWeeks = useMemo(() => {
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const results: { id: number; name: string; amount: number; dueDate: Date; days: number; bucket: "A" | "B" }[] = [];
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay()); // back up to this week's Sunday
+    const days: Date[] = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
+      days.push(d);
+    }
+    return { week1: days.slice(0, 7), week2: days.slice(7, 14) };
+  }, []);
+
+  // Map every unpaid bill occurrence (respecting per-month edits) onto its exact calendar date.
+  const billsByDate = useMemo(() => {
+    const map: Record<string, { id: number; name: string; amount: number }[]> = {};
+    const allDays = [...calendarWeeks.week1, ...calendarWeeks.week2];
+    const monthsInView = new Set(allDays.map(d => `${d.getFullYear()}-${d.getMonth() + 1}`));
     bills.forEach(bill => {
       const candidates: { month: number; year: number }[] = [];
       if (bill.recurring) {
-        candidates.push({ month: now.getMonth() + 1, year: now.getFullYear() });
-        const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        candidates.push({ month: nextMonthDate.getMonth() + 1, year: nextMonthDate.getFullYear() });
+        monthsInView.forEach(key => {
+          const [y, m] = key.split("-").map(Number);
+          candidates.push({ month: m, year: y });
+        });
       } else if (bill.bill_month && bill.bill_year) {
         candidates.push({ month: bill.bill_month, year: bill.bill_year });
       }
       candidates.forEach(({ month, year }) => {
         const payment = payments.find(p => p.bill_id === bill.id && p.month === month && p.year === year);
+        const paid = payment?.paid ?? false;
+        if (paid) return;
         const effectiveDueDay = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+        const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
+        const name = bill.recurring ? (payment?.name ?? bill.name) : bill.name;
         const dueDate = new Date(year, month - 1, effectiveDueDay);
-        const diffDays = Math.ceil((dueDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0 && diffDays <= 7) {
-          const paid = payment?.paid ?? false;
-          const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
-          const name = bill.recurring ? (payment?.name ?? bill.name) : bill.name;
-          const bucket: "A" | "B" = diffDays <= 3 ? "A" : "B";
-          if (!paid) results.push({ id: bill.id, name, amount, dueDate, days: diffDays, bucket });
-        }
+        const key = dateKey(dueDate);
+        if (!map[key]) map[key] = [];
+        map[key].push({ id: bill.id, name, amount });
       });
     });
-    return results.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-  }, [bills, payments]);
+    return map;
+  }, [bills, payments, calendarWeeks]);
 
-  const bucketABills = upcomingWindowBills.filter(b => b.bucket === "A");
-  const bucketBBills = upcomingWindowBills.filter(b => b.bucket === "B");
+  const [dailyHours, setDailyHours] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("daily_hours_log") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem("daily_hours_log", JSON.stringify(dailyHours)); }, [dailyHours]);
 
   const effectiveOtWage = parseFloat(otWageOverride) > 0 ? parseFloat(otWageOverride) : budget.hourly_wage * 1.5;
   const netHourlyWage = budget.hourly_wage > 0 ? budget.hourly_wage * (1 - taxRate / 100) : 0;
   const netOtWage = effectiveOtWage > 0 ? effectiveOtWage * (1 - taxRate / 100) : 0;
 
-  // First 40 hrs/week at regular rate, anything beyond at OT rate — computed
-  // independently per 4-day stretch so each answers "hours needed in THIS stretch."
-  function calcHoursForBucket(billsInBucket: typeof upcomingWindowBills) {
-    const total = billsInBucket.reduce((s, b) => s + b.amount, 0);
-    let regHours = 0;
-    let otHours = 0;
-    let hours: number | null = null;
-    if (netHourlyWage > 0) {
-      const regCapPay = netHourlyWage * 40;
-      if (total <= regCapPay) {
-        regHours = total / netHourlyWage;
-      } else {
-        regHours = 40;
-        const remaining = total - regCapPay;
-        otHours = netOtWage > 0 ? remaining / netOtWage : 0;
-      }
-      hours = regHours + otHours;
-    }
-    return { total, regHours, otHours, hours };
+  // Build each day's row: bills due, hours logged, earnings (with 40hr/week OT
+  // reset per real Sun–Sat week), and a running balance carried across both weeks.
+  function buildWeekRows(weekDays: Date[], startingHoursInWeek: number, startingBalance: number) {
+    let runningHoursInWeek = startingHoursInWeek;
+    let runningBalance = startingBalance;
+    const rows = weekDays.map(d => {
+      const key = dateKey(d);
+      const billsToday = billsByDate[key] || [];
+      const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
+      const hoursToday = parseFloat(dailyHours[key]) || 0;
+      const regHoursLeft = Math.max(0, 40 - runningHoursInWeek);
+      const regHoursToday = Math.min(hoursToday, regHoursLeft);
+      const otHoursToday = hoursToday - regHoursToday;
+      const earnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
+      runningHoursInWeek += hoursToday;
+      runningBalance += earnedToday - billsTotal;
+      return { date: d, key, billsToday, billsTotal, hoursToday, earnedToday, balance: runningBalance };
+    });
+    return { rows, endingHoursInWeek: runningHoursInWeek, endingBalance: runningBalance };
   }
 
-  const bucketA = calcHoursForBucket(bucketABills);
-  const bucketB = calcHoursForBucket(bucketBBills);
-
-  // Progress tracking: hours actually logged vs. what's needed to cover the
-  // combined 8-day window, so "safe to spend" reflects real earned money.
-  const hoursLoggedNum = parseFloat(hoursLoggedInput) || 0;
-  function calcPayForHours(hours: number) {
-    if (netHourlyWage <= 0) return 0;
-    if (hours <= 40) return hours * netHourlyWage;
-    return 40 * netHourlyWage + (hours - 40) * netOtWage;
-  }
-  function hoursForRemaining(remainingDollars: number, hoursAlreadyLogged: number) {
-    if (remainingDollars <= 0 || netHourlyWage <= 0) return 0;
-    const hoursLeftAtReg = Math.max(0, 40 - hoursAlreadyLogged);
-    const regCapPay = hoursLeftAtReg * netHourlyWage;
-    if (remainingDollars <= regCapPay) return remainingDollars / netHourlyWage;
-    const remainder = remainingDollars - regCapPay;
-    return hoursLeftAtReg + (netOtWage > 0 ? remainder / netOtWage : 0);
-  }
-  const earnedSoFar = calcPayForHours(hoursLoggedNum);
-  const neededCombined = bucketA.total + bucketB.total;
-  const progressGap = neededCombined - earnedSoFar;
-  const safeToSpend = progressGap < 0 ? -progressGap : 0;
-  const stillNeededDollars = progressGap > 0 ? progressGap : 0;
-  const stillNeededHours = hoursForRemaining(stillNeededDollars, hoursLoggedNum);
+  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, 0, 0), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage]);
+  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, 0, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, week1Result.endingBalance]);
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
@@ -773,60 +769,12 @@ export default function Wallet() {
               </button>
             </div>
 
-            {/* ── SAFE TO SPEND ── */}
-            <div className="card" style={{ border: "2px solid var(--pink-dark)" }}>
-              <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <div className="section-label" style={{ marginBottom: 0 }}>💸 Safe to Spend</div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setHoursLoggedInput("")}>Reset</button>
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 12 }}>
-                  Log the hours you've actually worked this stretch to see what's really left over for extras — once bills are covered.
-                </div>
-
-                <div className="form-label">Hours Worked So Far</div>
-                <input type="number" className="form-input" placeholder="e.g. 18" value={hoursLoggedInput} onChange={e => setHoursLoggedInput(e.target.value)} style={{ marginBottom: 12 }} />
-
-                {budget.hourly_wage <= 0 ? (
-                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Set your hourly wage below to see this.</div>
-                ) : (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-                      <span style={{ color: "var(--ink-muted)" }}>Earned So Far</span>
-                      <span style={{ fontWeight: 700, color: "var(--green-dark)" }}>{fmt(earnedSoFar)}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-                      <span style={{ color: "var(--ink-muted)" }}>Needed (next 8 days)</span>
-                      <span style={{ fontWeight: 700, color: "var(--pink-dark)" }}>{fmt(neededCombined)}</span>
-                    </div>
-
-                    {progressGap > 0 ? (
-                      <div style={{ background: "var(--danger-bg)", borderRadius: 16, padding: 14, marginTop: 10 }}>
-                        <div style={{ fontSize: 12, color: "var(--danger)", fontWeight: 700, marginBottom: 4 }}>Not covered yet</div>
-                        <div style={{ fontSize: 13, color: "var(--danger)" }}>
-                          Still need {fmt(stillNeededDollars)} (~{stillNeededHours.toFixed(1)} more hrs) before extras are safe.
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ background: "var(--sage-light)", borderRadius: 16, padding: 14, marginTop: 10 }}>
-                        <div style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 700, marginBottom: 4 }}>🌸 Bills covered!</div>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-dark)" }}>Safe to Spend</span>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(safeToSpend)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* ── MINIMUM HOURS NEEDED ── */}
+            {/* ── MONEY CALENDAR ── */}
             <div className="card">
               <div className="card-body">
-                <div className="section-label">⏱️ Minimum Hours Needed</div>
+                <div className="section-label">📅 Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Based on unpaid bills due in the next 8 days, split into two 4-day stretches, after your tax withholding. First 40 hrs at your regular rate, anything beyond that at OT.
+                  Real dates. Log the hours you're working (or plan to work) each day and watch your running balance — see exactly when a bill hits and whether you'll have covered it by then.
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
@@ -847,8 +795,8 @@ export default function Wallet() {
                   </div>
                 </div>
 
-                <details style={{ marginBottom: 14 }}>
-                  <summary style={{ fontSize: 11, color: "var(--pink-dark)", fontWeight: 600, cursor: "pointer" }}>Not sure what % to enter?</summary>
+                <details style={{ marginBottom: 16 }}>
+                  <summary style={{ fontSize: 11, color: "var(--pink-dark)", fontWeight: 600, cursor: "pointer" }}>Not sure what % to enter for tax withholding?</summary>
                   <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 8, lineHeight: 1.6 }}>
                     Easiest way: grab a recent pay stub and find the line(s) for federal tax, state tax, Social Security, and Medicare. Add those dollar amounts together, divide by your gross pay for that same period, and multiply by 100 — that's your real withholding rate.
                     <br /><br />
@@ -859,51 +807,57 @@ export default function Wallet() {
                 </details>
 
                 {budget.hourly_wage <= 0 ? (
-                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Enter your hourly wage above (or save it from the Budget Calculator below) to see hours needed.</div>
-                ) : upcomingWindowBills.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>🌸 No unpaid bills due in the next 8 days!</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Enter your hourly wage above to see your calendar.</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-muted)" }}>
-                      <span>Net Regular / OT Wage</span>
-                      <span style={{ fontWeight: 600, color: "var(--ink)" }}>{fmt(netHourlyWage)}/hr · {fmt(netOtWage)}/hr OT</span>
-                    </div>
-                    {[{ label: "Days 1–4", bills: bucketABills, calc: bucketA }, { label: "Days 5–8", bills: bucketBBills, calc: bucketB }].map(({ label, bills: bucketBills, calc }) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{label}</div>
-                        {bucketBills.length === 0 ? (
-                          <div style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 600, marginBottom: 6 }}>🌸 Nothing due</div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
-                            {bucketBills.map((b, i) => (
-                              <div key={`${b.id}-${i}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                                <span style={{ color: "var(--ink)" }}>{b.name} <span style={{ color: "var(--ink-muted)" }}>({b.days === 0 ? "today" : `${b.days}d`})</span></span>
-                                <span style={{ fontWeight: 700, color: "var(--pink-dark)" }}>{fmt(b.amount)}</span>
+                  [{ title: "This Week", result: week1Result }, { title: "Next Week", result: week2Result }].map(({ title, result }) => (
+                    <div key={title} style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>{title}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {result.rows.map(row => {
+                          const isToday = row.key === dateKey(new Date());
+                          return (
+                            <div key={row.key} style={{ border: `1.5px solid ${isToday ? "var(--pink-dark)" : "var(--border)"}`, borderRadius: 14, padding: "10px 12px", background: isToday ? "var(--accent)" : "transparent" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
+                                  {row.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                                  {isToday && <span style={{ color: "var(--pink-dark)", marginLeft: 6, fontSize: 10 }}>TODAY</span>}
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: row.balance < 0 ? "var(--danger)" : "var(--green-dark)" }}>
+                                  {fmt(row.balance)}
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        <div style={{ background: "var(--accent)", borderRadius: 16, padding: 12 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                            <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>Needed</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{fmt(calc.total)}</span>
-                          </div>
-                          {calc.otHours > 0 && (
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                              <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>Breakdown</span>
-                              <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>{calc.regHours.toFixed(1)} reg + {calc.otHours.toFixed(1)} OT</span>
+
+                              {row.billsToday.length > 0 && (
+                                <div style={{ marginBottom: 6 }}>
+                                  {row.billsToday.map(b => (
+                                    <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--pink-dark)" }}>
+                                      <span>🏠 {b.name}</span>
+                                      <span style={{ fontWeight: 700 }}>-{fmt(b.amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>Hours</span>
+                                <input
+                                  type="number"
+                                  className="form-input"
+                                  placeholder="0"
+                                  value={dailyHours[row.key] || ""}
+                                  onChange={e => setDailyHours(prev => ({ ...prev, [row.key]: e.target.value }))}
+                                  style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
+                                />
+                                {row.hoursToday > 0 && (
+                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--pink-dark)" }}>Min. Hours</span>
-                            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--pink-dark)" }}>
-                              {calc.hours !== null ? calc.hours.toFixed(1) : "—"}
-                            </span>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
