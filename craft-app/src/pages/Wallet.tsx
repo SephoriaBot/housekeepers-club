@@ -693,8 +693,10 @@ export default function Wallet() {
   }
 
   async function updateBudget(field: keyof Budget, val: number) {
-    setBudget(prev => ({ ...prev, [field]: val }));
-    await supabase.from("budget").update({ [field]: val }).eq("id", 1);
+    const nextBudget = { ...budget, [field]: val };
+    setBudget(nextBudget);
+    const { error } = await supabase.from("budget").upsert({ id: 1, ...nextBudget });
+    if (error) console.error("updateBudget failed:", error);
   }
 
   const payoffMonth = months.length;
