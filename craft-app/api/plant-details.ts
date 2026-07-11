@@ -9,7 +9,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const detailRes = await fetch(
       `https://perenual.com/api/species/details/${id}?key=${process.env.PERENUAL_KEY}`
     )
-    const d = await detailRes.json()
+
+    const text = await detailRes.text()
+
+    if (!detailRes.ok) {
+      console.error(`perenual details failed for id=${id}: status ${detailRes.status}, body: ${text.slice(0, 300)}`)
+      return res.status(200).json({
+        error: `Perenual returned status ${detailRes.status}`,
+        perenual_status: detailRes.status,
+        perenual_body: text.slice(0, 300),
+      })
+    }
+
+    let d
+    try {
+      d = JSON.parse(text)
+    } catch {
+      console.error(`perenual details non-JSON for id=${id}: ${text.slice(0, 300)}`)
+      return res.status(200).json({
+        error: 'Perenual returned non-JSON response',
+        perenual_body: text.slice(0, 300),
+      })
+    }
 
     const sunlightArr = Array.isArray(d.sunlight)
       ? d.sunlight
@@ -29,6 +50,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (e) {
     console.error('plant-details error:', e)
-    return res.status(500).json({ error: 'fetch failed' })
+    return res.status(200).json({ error: `Server exception: ${e instanceof Error ? e.message : String(e)}` })
   }
 }
