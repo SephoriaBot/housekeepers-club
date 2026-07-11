@@ -75,7 +75,7 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     searchTimeout.current = setTimeout(() => searchPlants(val), 500)
   }
 
-    async function addPlant(result: SearchResult) {
+      async function addPlant(result: SearchResult) {
     const existing = plants.find(p => p.perenual_id === result.id)
     if (existing) {
       await updateQuantity(existing.id, existing.quantity + 1)
@@ -84,16 +84,7 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
       return
     }
 
-    let medicinalNote: string | null = null
-    try {
-      const detailRes = await fetch(`/api/plant-details?id=${result.id}`)
-      const detail = await detailRes.json()
-      if (detail.medicinal) {
-        medicinalNote = await fetchMedicinalBlurb(result.name)
-      }
-    } catch {
-      // silently skip — medicinal info is a nice-to-have, not critical
-    }
+    const profile = await fetchPlantProfile(result.name)
 
     const { data } = await supabase
       .from('garden_plants')
@@ -102,7 +93,8 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
         scientific_name: result.scientific_name ?? null,
         perenual_id: result.id,
         quantity: 1,
-        medicinal_note: medicinalNote,
+        medicinal_note: profile?.medicinal_note ?? null,
+        perenual_details: profile,
       })
       .select()
       .single()
@@ -111,6 +103,7 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     setQuery('')
     setSearchResults([])
   }
+
 
   async function fetchMedicinalBlurb(plantName: string): Promise<string | null> {
     const prompt = `In 1-2 short sentences, describe the traditional or folk medicinal uses of ${plantName}. Be factual and brief. Do not include disclaimers or safety warnings, just the traditional use itself. Respond with plain text only, no markdown.`
