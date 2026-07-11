@@ -250,8 +250,14 @@ export default function PlantsPage() {
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink)' }}>{p.name}</div>
-                        {p.scientific_name && <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{p.scientific_name}</div>}
+                                               {p.scientific_name && <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{p.scientific_name}</div>}
+                        {p.medicinal_note && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--green-dark)', marginTop: 2 }}>
+                            🌿 {p.medicinal_note}
+                          </div>
+                        )}
                       </div>
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                         <button
                           onClick={() => updateQuantity(p.id, p.quantity - 1)}
