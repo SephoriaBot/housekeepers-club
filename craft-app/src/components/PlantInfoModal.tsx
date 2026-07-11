@@ -29,14 +29,26 @@ export default function PlantInfoModal({ plant }: Props) {
       setLoading(false)
       return
     }
-    fetch(`/api/plant-details?id=${plant.perenual_id}`)
+        fetch(`/api/plant-details?id=${plant.perenual_id}`)
       .then(res => res.json())
       .then(data => {
         if (data.error) throw new Error(data.error)
-        setDetails(data)
+        setDetails({
+          medicinal: data.medicinal === true,
+          poisonous_to_pets: data.poisonous_to_pets === true,
+          poisonous_to_humans: data.poisonous_to_humans === true,
+          watering: data.watering ?? null,
+          sunlight: Array.isArray(data.sunlight) ? data.sunlight : [],
+          cycle: data.cycle ?? null,
+          care_level: data.care_level ?? null,
+          edible_fruit: data.edible_fruit === true,
+          edible_leaf: data.edible_leaf === true,
+          description: data.description ?? null,
+        })
       })
       .catch(() => setError('Could not load plant info.'))
       .finally(() => setLoading(false))
+
   }, [plant.perenual_id])
 
   return (
