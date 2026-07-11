@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
 
@@ -174,12 +174,31 @@ const PERIOD_LABELS: Record<string, string> = {
 
 function EditableCell({ value, onChange, type = "number", style, className, placeholder }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties; className?: string; placeholder?: string }) {
   const [draft, setDraft] = useState(String(value));
+  const draftRef = useRef(draft);
+  const valueRef = useRef(String(value));
+  const onChangeRef = useRef(onChange);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { setDraft(String(value)); }, [value]);
+  useEffect(() => { setDraft(String(value)); valueRef.current = String(value); }, [value]);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   function commit() {
-    if (draft !== String(value)) onChange(draft);
+    if (draftRef.current !== valueRef.current) {
+      onChangeRef.current(draftRef.current);
+      valueRef.current = draftRef.current;
+    }
   }
+
+  // Safety net: if this field unmounts (e.g. the user navigates to a different
+  // page) before blur ever fires, still save whatever was last typed.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      commit();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const defaultStyle: CSSProperties = className
     ? {}
@@ -191,8 +210,12 @@ function EditableCell({ value, onChange, type = "number", style, className, plac
       className={className}
       placeholder={placeholder}
       value={draft}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={commit}
+      onChange={e => {
+        setDraft(e.target.value);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(commit, 600);
+      }}
+      onBlur={() => { if (timerRef.current) clearTimeout(timerRef.current); commit(); }}
       onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       style={{ ...defaultStyle, ...style }}
     />
@@ -238,6 +261,7 @@ export default function Wallet() {
   const [calcOtHours, setCalcOtHours] = useState("");
   const [calcPeriod, setCalcPeriod] = useState<"weekly" | "biweekly" | "semimonthly" | "monthly">("biweekly");
   const [budgetSavedMsg, setBudgetSavedMsg] = useState(false);
+  const [budgetSaveError, setBudgetSaveError] = useState("");
 
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -696,7 +720,12 @@ export default function Wallet() {
     const nextBudget = { ...budget, [field]: val };
     setBudget(nextBudget);
     const { error } = await supabase.from("budget").upsert({ id: 1, ...nextBudget });
-    if (error) console.error("updateBudget failed:", error);
+    if (error) {
+      console.error("updateBudget failed:", error);
+      setBudgetSaveError(error.message || "Save failed — see console for details.");
+    } else {
+      setBudgetSaveError("");
+    }
   }
 
   const payoffMonth = months.length;
@@ -806,6 +835,7 @@ export default function Wallet() {
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
+                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}>⚠️ {budgetSaveError}</div>}
                   </div>
                   <div>
                     <div className="form-label">OT Wage</div>
