@@ -62,4 +62,5 @@ export interface GardenPlant {
   perenual_id: number | null
   quantity: number
   created_at: string
+  medicinal_note: string | null
 }
