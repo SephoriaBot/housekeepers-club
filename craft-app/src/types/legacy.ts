@@ -63,4 +63,6 @@ export interface GardenPlant {
   quantity: number
   created_at: string
   medicinal_note: string | null
+  perenual_details: Record<string, unknown> | null
+  perenual_details_fetched_at: string | null
 }
