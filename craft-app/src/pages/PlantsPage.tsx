@@ -3,6 +3,7 @@ import { Search, Plus, Minus, Droplets, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PlantTroubleshooter from '../components/PlantTroubleshooter'
 import type { GardenPlant } from '../types/legacy'
+import PlantInfoModal from '../components/PlantInfoModal'
 
 interface WateringEntry {
   id: string
@@ -26,7 +27,8 @@ export default function PlantsPage() {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [selectedPlant, setSelectedPlant] = useState<GardenPlant | null>(null)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [infoPlant, setInfoPlant] = useState<GardenPlant | null>(null)
+const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     loadPlants()
@@ -279,6 +281,23 @@ export default function PlantsPage() {
                           <Trash2 size={13} />
                         </button>
 <button
+  onClick={() => setInfoPlant(p)}
+  style={{
+    background: 'none',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: '4px 8px',
+    fontSize: '0.75rem',
+    cursor: 'pointer',
+    color: 'var(--ink-soft)',
+    marginLeft: 6
+  }}
+>
+  Info
+</button>
+
+
+<button
   onClick={() => setSelectedPlant(p)}
   style={{
     background: 'none',
@@ -353,6 +372,18 @@ export default function PlantsPage() {
             </div>
           </div>
               </div>
+
+{infoPlant && (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+    <div style={{ background: 'white', borderRadius: 12, padding: 20, width: '90%', maxWidth: 600 }}>
+      <button onClick={() => setInfoPlant(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <X size={16} />
+      </button>
+      <PlantInfoModal key={infoPlant.id} plant={infoPlant} />
+    </div>
+  </div>
+)}
+
 
       {selectedPlant && (
         <div
