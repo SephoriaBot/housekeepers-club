@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import PlantTroubleshooter from '../components/PlantTroubleshooter'
 import type { GardenPlant } from '../types/legacy'
 import PlantInfoModal from '../components/PlantInfoModal'
+import { fetchPlantProfile } from '../lib/plantAi'
+
 
 interface WateringEntry {
   id: string
@@ -102,30 +104,6 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     if (data) setPlants(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
     setQuery('')
     setSearchResults([])
-  }
-
-
-  async function fetchMedicinalBlurb(plantName: string): Promise<string | null> {
-    const prompt = `In 1-2 short sentences, describe the traditional or folk medicinal uses of ${plantName}. Be factual and brief. Do not include disclaimers or safety warnings, just the traditional use itself. Respond with plain text only, no markdown.`
-
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 150,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      })
-      const data = await response.json()
-      return data.choices?.[0]?.message?.content?.trim() ?? null
-    } catch {
-      return null
-    }
   }
 
 
