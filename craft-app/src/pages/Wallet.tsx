@@ -447,6 +447,7 @@ useEffect(() => {
     let runningBalance = startingBalance;
     const rows = weekDays.map(d => {
       const key = dateKey(d);
+      const extraToday = parseFloat(extraFunds[key]) || 0;
       const billsToday = billsByDate[key] || [];
       const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
       const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
@@ -458,9 +459,9 @@ useEffect(() => {
     });
     return { rows, endingBalance: runningBalance };
   }
-  const extraToday = parseFloat(extraFunds[key]) || 0;
-  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, parseFloat(currentBalanceInput) || 0), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, currentBalanceInput]);
-  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, week1Result.endingBalance]);
+  
+  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, parseFloat(currentBalanceInput) || 0), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, currentBalanceInput]);
+  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, week1Result.endingBalance]);
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
@@ -921,7 +922,12 @@ useEffect(() => {
                                   style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
                                 />
 
-                              <div style={{ marginTop: 8 }}>
+                                {row.hoursToday > 0 && (
+                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
+                                )}
+                                                              </div>
+
+<div style={{ marginTop: 8 }}>
   <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>
     Expected Extra Funds
   </span>
@@ -939,10 +945,8 @@ useEffect(() => {
     }
   />
 </div>
-                                {row.hoursToday > 0 && (
-                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
-                                )}
-                                {row.extraToday > 0 && (
+
+{row.extraToday > 0 && (
   <div
     style={{
       fontSize: 11,
@@ -954,7 +958,7 @@ useEffect(() => {
     +{fmt(row.extraToday)} expected
   </div>
 )}
-                              </div>
+
                             </div>
                           );
                         })}
