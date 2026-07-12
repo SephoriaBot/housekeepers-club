@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, RotateCcw, Calendar } from 'lucide-react';
+import { Plus, X, RotateCcw, Calendar, NotebookText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
+import type { AppointmentNoteSelection } from '../components/planner/AppointmentNotesPanel';
+import { useAppointmentNoteMap } from '../hooks/useAppointmentNoteMap';
 
 interface DailyTask {
   id: string;
@@ -41,6 +43,9 @@ export default function DailyPlanner() {
   const [newApptTitle, setNewApptTitle] = useState('');
   const [newApptDate, setNewApptDate] = useState('');
   const [sparks, setSparks] = useState<Spark[]>([]);
+  const [focusNote, setFocusNote] = useState<AppointmentNoteSelection | null>(null);
+
+  const noteMap = useAppointmentNoteMap(appointments.map(a => a.id));
 
   useEffect(() => {
     loadAll();
@@ -104,24 +109,22 @@ export default function DailyPlanner() {
   }
 
   async function addAppointment() {
-  const title = newApptTitle.trim();
-  if (!title || !newApptDate) return;
-  // newApptDate is a naive "local wall clock" string from the
-  // datetime-local input (e.g. "2026-07-01T14:00"). Convert it to a
-  // real UTC ISO string so Postgres stores the correct absolute instant.
-  const isoDateTime = new Date(newApptDate).toISOString();
-  const { data } = await supabase
-    .from('appointments')
-    .insert({ title, date_time: isoDateTime })
-    .select()
-    .single();
-  if (data) setAppointments(prev => [...prev, data].sort((a, b) => a.date_time.localeCompare(b.date_time)));
-  setNewApptTitle('');
-  setNewApptDate('');
-}
-
+    const title = newApptTitle.trim();
+    if (!title || !newApptDate) return;
+    const isoDateTime = new Date(newApptDate).toISOString();
+    const { data } = await supabase
+      .from('appointments')
+      .insert({ title, date_time: isoDateTime })
+      .select()
+      .single();
+    if (data) setAppointments(prev => [...prev, data].sort((a, b) => a.date_time.localeCompare(b.date_time)));
+    setNewApptTitle('');
+    setNewApptDate('');
+  }
 
   async function deleteAppointment(id: string) {
+    // Notes survive this now — appointment_id is ON DELETE SET NULL, so
+    // attached notes just detach and stay available as carry-over material.
     await supabase.from('appointments').delete().eq('id', id);
     setAppointments(prev => prev.filter(a => a.id !== id));
   }
@@ -131,6 +134,12 @@ export default function DailyPlanner() {
       weekday: 'short', month: 'short', day: 'numeric',
       hour: 'numeric', minute: '2-digit',
     });
+  }
+
+  function openNoteFor(appt: Appointment) {
+    const noteType = noteMap[appt.id];
+    if (!noteType) return;
+    setFocusNote({ appointmentId: appt.id, noteType, label: appt.title });
   }
 
   const doneCount = tasks.filter(t => t.done).length;
@@ -158,7 +167,6 @@ export default function DailyPlanner() {
 
       <div className="page-body">
 
-        {/* Progress bar */}
         {tasks.length > 0 && (
           <div style={{ marginBottom: 24, maxWidth: 560 }}>
             <div style={{
@@ -216,7 +224,6 @@ export default function DailyPlanner() {
                         boxShadow: task.done ? '0 1px 6px rgba(201,166,240,0.15)' : 'none',
                       }}
                     >
-                      {/* Checkbox */}
                       <button
                         onClick={e => toggleTask(task, e)}
                         style={{
@@ -289,32 +296,49 @@ export default function DailyPlanner() {
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {appointments.map(appt => (
-                    <div key={appt.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', borderRadius: 14,
-                      background: 'var(--cream)',
-                      border: '1.5px solid var(--border)',
-                    }}>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  {appointments.map(appt => {
+                    const hasNote = Boolean(noteMap[appt.id]);
+                    return (
+                      <div key={appt.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 14,
+                        background: 'var(--cream)',
+                        border: '1.5px solid var(--border)',
                       }}>
-                        <Calendar size={13} style={{ color: '#B98A5A' }} />
+                        <div style={{
+                          width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+                          background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Calendar size={13} style={{ color: '#B98A5A' }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink-muted)' }}>{appt.title}</div>
+                          <div style={{ fontSize: '0.74rem', color: '#B98A5A', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
+                        </div>
+                        {hasNote && (
+                          <button
+                            onClick={() => openNoteFor(appt)}
+                            title="View attached note"
+                            style={{
+                              background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
+                              border: 'none', borderRadius: 10, cursor: 'pointer',
+                              width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <NotebookText size={13} style={{ color: '#B98A5A' }} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteAppointment(appt.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
+                        >
+                          <X size={13} />
+                        </button>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink-muted)' }}>{appt.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#B98A5A', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
-                      </div>
-                      <button
-                        onClick={() => deleteAppointment(appt.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.4 }}
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -348,9 +372,12 @@ export default function DailyPlanner() {
 
         </div>
 
-<div style={{ marginTop: 20 }}>
-  <AppointmentNotesPanel />
-</div>
+        <div style={{ marginTop: 20 }}>
+          <AppointmentNotesPanel
+            externalSelection={focusNote}
+            onExternalSelectionConsumed={() => setFocusNote(null)}
+          />
+        </div>
 
       </div>
     </div>

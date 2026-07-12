@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
 
@@ -172,13 +172,52 @@ const PERIOD_LABELS: Record<string, string> = {
   monthly: "Monthly",
 };
 
-function EditableCell({ value, onChange, type = "number", style }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties }) {
+function EditableCell({ value, onChange, type = "number", style, className, placeholder }: { value: string | number; onChange: (v: string) => void; type?: string; style?: CSSProperties; className?: string; placeholder?: string }) {
+  const [draft, setDraft] = useState(String(value));
+  const draftRef = useRef(draft);
+  const valueRef = useRef(String(value));
+  const onChangeRef = useRef(onChange);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setDraft(String(value)); valueRef.current = String(value); }, [value]);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  function commit() {
+    if (draftRef.current !== valueRef.current) {
+      onChangeRef.current(draftRef.current);
+      valueRef.current = draftRef.current;
+    }
+  }
+
+  // Safety net: if this field unmounts (e.g. the user navigates to a different
+  // page) before blur ever fires, still save whatever was last typed.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      commit();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const defaultStyle: CSSProperties = className
+    ? {}
+    : { width: "100%", background: "transparent", border: "none", borderBottom: "1.5px dashed var(--border)", color: "var(--ink)", fontSize: 13, padding: "2px 4px", outline: "none", fontFamily: "inherit" };
+
   return (
     <input
       type={type}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1.5px dashed var(--border)", color: "var(--ink)", fontSize: 13, padding: "2px 4px", outline: "none", fontFamily: "inherit", ...style }}
+      className={className}
+      placeholder={placeholder}
+      value={draft}
+      onChange={e => {
+        setDraft(e.target.value);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(commit, 600);
+      }}
+      onBlur={() => { if (timerRef.current) clearTimeout(timerRef.current); commit(); }}
+      onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+      style={{ ...defaultStyle, ...style }}
     />
   );
 }
@@ -204,6 +243,16 @@ export default function Wallet() {
   const [plannerItems, setPlannerItems] = useState<PlannerItem[]>([]);
   const [newNeed, setNewNeed] = useState("");
   const [newWant, setNewWant] = useState("");
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    const s = localStorage.getItem("tax_withholding_rate");
+    return s ? parseFloat(s) : 20;
+  });
+  const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
+  const [currentBalanceInput, setCurrentBalanceInput] = useState<string>(() => localStorage.getItem("current_balance") || "");
+
+  useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
+  useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
+  useEffect(() => { localStorage.setItem("current_balance", currentBalanceInput); }, [currentBalanceInput]);
 
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
@@ -212,6 +261,7 @@ export default function Wallet() {
   const [calcOtHours, setCalcOtHours] = useState("");
   const [calcPeriod, setCalcPeriod] = useState<"weekly" | "biweekly" | "semimonthly" | "monthly">("biweekly");
   const [budgetSavedMsg, setBudgetSavedMsg] = useState(false);
+  const [budgetSaveError, setBudgetSaveError] = useState("");
 
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -312,6 +362,94 @@ export default function Wallet() {
   const needs = plannerItems.filter(p => p.type === "need");
   const wants = plannerItems.filter(p => p.type === "want");
 
+  // Bills due in the next 8 days, split into two 4-day stretches, regardless
+  // ── MONEY CALENDAR ── real calendar dates (this week + next week, Sun–Sat)
+  // showing bills due that day, hours logged that day, and a running balance.
+  function dateKey(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  const calendarWeeks = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days: Date[] = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push(d);
+    }
+    return { week1: days.slice(0, 7), week2: days.slice(7, 14) };
+  }, []);
+
+  // Map every UNPAID bill occurrence (respecting per-month edits) onto its exact
+  // calendar date. Paid bills are excluded entirely — that money already left
+  // your account and is already reflected in Current Balance, so showing (and
+  // subtracting) it again here would double-count it.
+  const billsByDate = useMemo(() => {
+    const map: Record<string, { id: number; name: string; amount: number }[]> = {};
+    const allDays = [...calendarWeeks.week1, ...calendarWeeks.week2];
+    const monthsInView = new Set(allDays.map(d => `${d.getFullYear()}-${d.getMonth() + 1}`));
+    bills.forEach(bill => {
+      const candidates: { month: number; year: number }[] = [];
+      if (bill.recurring) {
+        monthsInView.forEach(key => {
+          const [y, m] = key.split("-").map(Number);
+          candidates.push({ month: m, year: y });
+        });
+      } else if (bill.bill_month && bill.bill_year) {
+        candidates.push({ month: bill.bill_month, year: bill.bill_year });
+      }
+      candidates.forEach(({ month, year }) => {
+        const payment = payments.find(p => p.bill_id === bill.id && p.month === month && p.year === year);
+        const paid = payment?.paid ?? false;
+        if (paid) return;
+        const effectiveDueDay = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+        const amount = bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount;
+        const name = bill.recurring ? (payment?.name ?? bill.name) : bill.name;
+        const dueDate = new Date(year, month - 1, effectiveDueDay);
+        const key = dateKey(dueDate);
+        if (!map[key]) map[key] = [];
+        map[key].push({ id: bill.id, name, amount });
+      });
+    });
+    return map;
+  }, [bills, payments, calendarWeeks]);
+
+  const [dailyHours, setDailyHours] = useState<Record<string, { reg: string; ot: string }>>(() => {
+    try { return JSON.parse(localStorage.getItem("daily_hours_log") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem("daily_hours_log", JSON.stringify(dailyHours)); }, [dailyHours]);
+
+  function setDailyHourField(key: string, field: "reg" | "ot", value: string) {
+    setDailyHours(prev => ({ ...prev, [key]: { reg: prev[key]?.reg || "", ot: prev[key]?.ot || "", [field]: value } }));
+  }
+
+  const effectiveOtWage = parseFloat(otWageOverride) > 0 ? parseFloat(otWageOverride) : budget.hourly_wage * 1.5;
+  const netHourlyWage = budget.hourly_wage > 0 ? budget.hourly_wage * (1 - taxRate / 100) : 0;
+  const netOtWage = effectiveOtWage > 0 ? effectiveOtWage * (1 - taxRate / 100) : 0;
+
+  // Build each day's row: bills due, hours logged (regular + OT entered
+  // separately per day), earnings, and a running balance carried forward
+  // from your real Current Balance — today onward only, nothing replayed.
+  function buildWeekRows(weekDays: Date[], startingBalance: number) {
+    let runningBalance = startingBalance;
+    const rows = weekDays.map(d => {
+      const key = dateKey(d);
+      const billsToday = billsByDate[key] || [];
+      const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
+      const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
+      const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
+      const hoursToday = regHoursToday + otHoursToday;
+      const earnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
+      runningBalance += earnedToday - billsTotal;
+      return { date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday, hoursToday, earnedToday, balance: runningBalance };
+    });
+    return { rows, endingBalance: runningBalance };
+  }
+
+  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, parseFloat(currentBalanceInput) || 0), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, currentBalanceInput]);
+  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, week1Result.endingBalance]);
+
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
       if (bill.recurring) return true;
@@ -326,7 +464,7 @@ export default function Wallet() {
       const late = isLate(due_day, selectedMonth, selectedYear, paid);
       const days = daysUntilDue(due_day, selectedMonth, selectedYear);
       return { ...bill, name, amount, due_day, paid, late, days, paymentId: payment?.id };
-    });
+    }).sort((a, b) => a.due_day - b.due_day);
   }, [bills, payments, selectedMonth, selectedYear]);
 
   const urgentBills = monthBills.filter(b => !b.paid && b.days <= 7 && b.days >= 0);
@@ -453,7 +591,8 @@ export default function Wallet() {
   async function updateMonthBill(bill: typeof monthBills[0], field: "name" | "amount" | "due_day", value: string | number) {
     if (bill.recurring) {
       if (bill.paymentId) {
-        await supabase.from("bill_payments").update({ [field]: value }).eq("id", bill.paymentId);
+        const { error } = await supabase.from("bill_payments").update({ [field]: value }).eq("id", bill.paymentId);
+        if (error) { console.error("updateMonthBill failed:", error); return; }
         setPayments(prev => prev.map(p => p.id === bill.paymentId ? { ...p, [field]: value } : p));
       } else {
         const newPayment: BillPayment = {
@@ -461,11 +600,13 @@ export default function Wallet() {
           name: bill.name, amount: bill.amount, due_day: bill.due_day,
           [field]: value,
         };
-        const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
+        const { data, error } = await supabase.from("bill_payments").insert(newPayment).select().single();
+        if (error) { console.error("updateMonthBill insert failed:", error); return; }
         if (data) setPayments(prev => [...prev, data]);
       }
     } else {
-      await supabase.from("bills").update({ [field]: value }).eq("id", bill.id);
+      const { error } = await supabase.from("bills").update({ [field]: value }).eq("id", bill.id);
+      if (error) { console.error("updateMonthBill (bills) failed:", error); return; }
       setBills(prev => prev.map(b => b.id === bill.id ? { ...b, [field]: value } : b));
     }
   }
@@ -576,8 +717,15 @@ export default function Wallet() {
   }
 
   async function updateBudget(field: keyof Budget, val: number) {
-    setBudget(prev => ({ ...prev, [field]: val }));
-    await supabase.from("budget").update({ [field]: val }).eq("id", 1);
+    const nextBudget = { ...budget, [field]: val };
+    setBudget(nextBudget);
+    const { error } = await supabase.from("budget").upsert({ id: 1, ...nextBudget });
+    if (error) {
+      console.error("updateBudget failed:", error);
+      setBudgetSaveError(error.message || "Save failed — see console for details.");
+    } else {
+      setBudgetSaveError("");
+    }
   }
 
   const payoffMonth = months.length;
@@ -663,15 +811,126 @@ export default function Wallet() {
               </button>
             </div>
 
+            {/* ── MONEY CALENDAR ── */}
+            <div className="card">
+              <div className="card-body">
+                <div className="section-label">📅 Money Calendar</div>
+                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
+                  Runs from today forward — no past days, no already-paid bills cluttering it up. Log the hours you're working (or plan to work) each day and watch your running balance move.
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <div className="form-label">Current Balance</div>
+                  <input type="number" className="form-input" placeholder="check your bank app, enter it here" value={currentBalanceInput} onChange={e => setCurrentBalanceInput(e.target.value)} style={{ fontSize: 18, fontWeight: 700 }} />
+                  <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 4 }}>
+                    The calendar's running balance starts from this number. Update it whenever you check your real balance for the most accurate picture — it won't drift correct on its own.
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <div className="form-label">Tax Withholding (%)</div>
+                    <input type="number" className="form-input" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <div className="form-label">Hourly Wage</div>
+                    <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
+                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}>⚠️ {budgetSaveError}</div>}
+                  </div>
+                  <div>
+                    <div className="form-label">OT Wage</div>
+                    <input type="number" className="form-input" value={otWageOverride} placeholder={budget.hourly_wage > 0 ? `${(budget.hourly_wage * 1.5).toFixed(2)} (1.5x)` : "e.g. 29.25"} onChange={e => setOtWageOverride(e.target.value)} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end" }}>
+                    <div style={{ fontSize: 10, color: "var(--ink-muted)" }}>leave blank to auto-use 1.5x your hourly wage</div>
+                  </div>
+                </div>
+
+                <details style={{ marginBottom: 16 }}>
+                  <summary style={{ fontSize: 11, color: "var(--pink-dark)", fontWeight: 600, cursor: "pointer" }}>Not sure what % to enter for tax withholding?</summary>
+                  <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 8, lineHeight: 1.6 }}>
+                    Easiest way: grab a recent pay stub and find the line(s) for federal tax, state tax, Social Security, and Medicare. Add those dollar amounts together, divide by your gross pay for that same period, and multiply by 100 — that's your real withholding rate.
+                    <br /><br />
+                    No pay stub handy? Most hourly W-2 workers land somewhere around 15–25% total depending on state and filing status. 20% is a reasonable starting guess.
+                    <br /><br />
+                    For a precise number, the IRS has a free calculator that walks you through it: <a href="https://www.irs.gov/individuals/tax-withholding-estimator" target="_blank" rel="noopener noreferrer" style={{ color: "var(--pink-dark)" }}>irs.gov/individuals/tax-withholding-estimator</a>
+                  </div>
+                </details>
+
+                {budget.hourly_wage <= 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Enter your hourly wage above to see your calendar.</div>
+                ) : (
+                  [{ title: "Next 7 Days", result: week1Result }, { title: "Following 7 Days", result: week2Result }].map(({ title, result }) => (
+                    <div key={title} style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>{title}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {result.rows.map(row => {
+                          const isToday = row.key === dateKey(new Date());
+                          return (
+                            <div key={row.key} style={{ border: `1.5px solid ${isToday ? "var(--pink-dark)" : "var(--border)"}`, borderRadius: 14, padding: "10px 12px", background: isToday ? "var(--accent)" : "transparent" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
+                                  {row.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                                  {isToday && <span style={{ color: "var(--pink-dark)", marginLeft: 6, fontSize: 10 }}>TODAY</span>}
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: row.balance < 0 ? "var(--danger)" : "var(--green-dark)" }}>
+                                  {fmt(row.balance)}
+                                </div>
+                              </div>
+
+                              {row.billsToday.length > 0 && (
+                                <div style={{ marginBottom: 6 }}>
+                                  {row.billsToday.map(b => (
+                                    <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--pink-dark)" }}>
+                                      <span>🏠 {b.name}</span>
+                                      <span style={{ fontWeight: 700 }}>-{fmt(b.amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>Reg</span>
+                                <input
+                                  type="number"
+                                  className="form-input"
+                                  placeholder="0"
+                                  value={dailyHours[row.key]?.reg || ""}
+                                  onChange={e => setDailyHourField(row.key, "reg", e.target.value)}
+                                  style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
+                                />
+                                <span style={{ fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>OT</span>
+                                <input
+                                  type="number"
+                                  className="form-input"
+                                  placeholder="0"
+                                  value={dailyHours[row.key]?.ot || ""}
+                                  onChange={e => setDailyHourField(row.key, "ot", e.target.value)}
+                                  style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
+                                />
+                                {row.hoursToday > 0 && (
+                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             {/* ── TODAY'S PAYCHECK CALCULATOR ── */}
             {isCrisis && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
-                🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Things you need are still protected.
+                Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Things you need are still protected.
               </div>
             )}
             {!isCrisis && urgentBills.length > 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
-                ⚠️ Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
+                Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
               </div>
             )}
 
@@ -721,115 +980,9 @@ export default function Wallet() {
                 )}
               </div>
             </div>
+            </>
+            )}
 
-            {/* ── BUDGET CALCULATOR ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Budget Calculator</div>
-                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Enter your wage and hours to estimate your take-home pay for your budget.
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                  <div>
-                    <div className="form-label">Hourly Wage ($)</div>
-                    <input type="number" className="form-input" placeholder="e.g. 19.50" value={calcRegWage} onChange={e => setCalcRegWage(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">OT Wage ($)</div>
-                    <input type="number" className="form-input" placeholder="e.g. 29.25" value={calcOtWage} onChange={e => setCalcOtWage(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">Regular Hours</div>
-                    <input type="number" className="form-input" placeholder="e.g. 40" value={calcRegHours} onChange={e => setCalcRegHours(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">OT Hours</div>
-                    <input type="number" className="form-input" placeholder="e.g. 5" value={calcOtHours} onChange={e => setCalcOtHours(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="form-label">Pay Period</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-                  {(Object.keys(PERIOD_LABELS) as Array<keyof typeof PERIOD_LABELS>).map(p => (
-                    <button key={p} className={calcPeriod === p ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"} onClick={() => setCalcPeriod(p as typeof calcPeriod)}>
-                      {PERIOD_LABELS[p]}
-                    </button>
-                  ))}
-                </div>
-
-                {calcHasInput && (
-                  <>
-                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14, marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Gross Pay ({PERIOD_LABELS[calcPeriod]})</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{fmt(calcGrossPerPeriod)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-dark)" }}>Est. Monthly Take-Home</span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(calcEstMonthlyTakeHome)}</span>
-                      </div>
-                    </div>
-                    <button className="btn btn-green" style={{ width: "100%", justifyContent: "center" }} onClick={saveBudgetCalc}>
-                      {budgetSavedMsg ? "Saved to Budget ✓" : "Save to Budget"}
-                    </button>
-                    <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 6 }}>
-                      Updates your hourly wage and take-home pay used across the app (snowball extra, hours-of-work, etc).
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* ── THINGS WE NEED ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">🛒 Things We Need</div>
-                {needs.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing urgent right now 🌱</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                    {needs.map(item => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
-                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
-                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
-                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input className="form-input" placeholder="Add a priority purchase…" value={newNeed} onChange={e => setNewNeed(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("need")} style={{ flex: 1 }} />
-                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("need")}>+</button>
-                </div>
-              </div>
-            </div>
-
-            {/* ── THINGS WE WANT ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">💛 Things We Want</div>
-                {wants.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing on the wishlist yet 🌸</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                    {wants.map(item => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
-                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
-                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
-                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input className="form-input" placeholder="Add something to save up for…" value={newWant} onChange={e => setNewWant(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("want")} style={{ flex: 1 }} />
-                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("want")}>+</button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
 
         {/* ══════════════════ BILLS VIEW ══════════════════ */}
         {view === "bills" && (

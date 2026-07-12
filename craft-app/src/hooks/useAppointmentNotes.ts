@@ -63,15 +63,16 @@ export function useAppointmentNotes(
     // than the appointment's actual date, since we're not joining to the
     // appointments table here. Once appointment dates are wired in, swap
     // this for an ordered join on appointment date instead.
-    const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await supabase
       .from('appointment_note_items')
       .select('*')
       .eq('note_type', noteType)
       .eq('kind', 'bring_up')
       .eq('status', 'open')
-      .neq('appointment_id', appointmentId)
+      .or(`appointment_id.neq.${appointmentId},appointment_id.is.null`)
       .order('updated_at', { ascending: false })
       .limit(20);
+
 
     if (fetchError) {
       setError(fetchError.message);

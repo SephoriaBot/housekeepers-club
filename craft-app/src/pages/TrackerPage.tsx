@@ -24,6 +24,7 @@ export default function TrackerPage() {
   const [date, setDate] = useState(todayISO());
   const [refreshKey, setRefreshKey] = useState(0);
   const [cycleDay, setCycleDay] = useState<number | null>(null);
+  const [periodEnded, setPeriodEnded] = useState(false);
 
   useEffect(() => {
     getTrackerLogsInRange('period', daysAgoISO(90), todayISO()).then((logs) => {
@@ -35,12 +36,20 @@ export default function TrackerPage() {
 
       if (starts.length === 0) {
         setCycleDay(null);
+        setPeriodEnded(false);
         return;
       }
-      const lastStart = new Date(starts[0]);
+
+      const lastStartDate = starts[0];
+      const lastStart = new Date(lastStartDate);
       const diff =
         Math.floor((Date.now() - lastStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setCycleDay(diff);
+
+      const ended = logs.some(
+        (l) => (l.value as PeriodValue).bleeding_end && l.log_date >= lastStartDate
+      );
+      setPeriodEnded(ended);
     });
   }, [refreshKey]);
 
@@ -54,7 +63,7 @@ export default function TrackerPage() {
 
       {cycleDay !== null && (
         <div className="card" style={{ background: 'var(--blush)' }}>
-          🌸 Day {cycleDay} of your cycle
+          🌸 Day {cycleDay} of your cycle{periodEnded ? ' · period ended' : ''}
         </div>
       )}
 
