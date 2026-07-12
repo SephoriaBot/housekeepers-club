@@ -980,6 +980,8 @@ export default function Wallet() {
                 )}
               </div>
             </div>
+            </>
+            )}
 
 
         {/* ══════════════════ BILLS VIEW ══════════════════ */}
