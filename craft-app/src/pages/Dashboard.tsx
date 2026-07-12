@@ -25,9 +25,11 @@ interface Bill {
   id: string;
   name: string;
   amount: number;
-  due_date: string;
+  due_day: number;
+  bill_month: number;
+  bill_year: number;
+  recurring: boolean;
 }
-
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 
@@ -81,7 +83,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
     const [focusRes, mealsRes, billsRes, plantsRes, petsRes, recipesRes, groceryRes] = await Promise.all([
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
       supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
-      supabase.from('bills').select('id, name, amount, due_date').eq('due_date', todayStr),
+      supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring').eq('due_day', new Date().getDate()),
       supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
       supabase.from('pets').select('id', { count: 'exact', head: true }),
       supabase.from('recipes').select('id', { count: 'exact', head: true }),
