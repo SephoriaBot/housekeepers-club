@@ -213,61 +213,60 @@ export default function Grocery() {
     setBasicsChecked(new Set())
   }
 
-async function buildSmartCart() {
-  const needItems = items.filter(i => !i.checked)
+  async function buildSmartCart() {
+    const needItems = items.filter(i => !i.checked)
 
-  setLoadingCart(true)
-  setCart([])
+    setLoadingCart(true)
+    setCart([])
 
-  const results = []
-  const cache = new Map()
+    const results = []
+    const cache = new Map()
 
-  try {
-    for (let i = 0; i < needItems.length; i += 3) {
-      const batch = needItems.slice(i, i + 3)
+    try {
+      for (let i = 0; i < needItems.length; i += 3) {
+        const batch = needItems.slice(i, i + 3)
 
-      const batchResults = await Promise.all(
-        batch.map(async (item) => {
-          if (cache.has(item.name)) {
-            return cache.get(item.name)
-          }
+        const batchResults = await Promise.all(
+          batch.map(async (item) => {
+            if (cache.has(item.name)) {
+              return cache.get(item.name)
+            }
 
-          const controller = new AbortController()
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 4000)
 
-const timeout = setTimeout(() => controller.abort(), 4000)
+            let data = []
 
-let data = []
+            try {
+              const res = await fetch(
+                `/api/product-search?q=${encodeURIComponent(item.name)}`,
+                { signal: controller.signal }
+              )
+              data = await res.json()
+            } catch (e) {
+              data = []
+            } finally {
+              clearTimeout(timeout)
+            }
 
-try {
-  const res = await fetch(
-    `/api/product-search?q=${encodeURIComponent(item.name)}`,
-    { signal: controller.signal }
-  )
+            const result = {
+              item: item.name,
+              results: Array.isArray(data) ? data : []
+            }
 
-  data = await res.json()
-} catch (e) {
-  data = []
-} finally {
-  clearTimeout(timeout)
-}
+            cache.set(item.name, result)
+            return result
+          })
+        )
 
-          const result = {
-            item: item.name,
-            results: Array.isArray(data) ? data : []
-          }
-
-          cache.set(item.name, result)
-          return result
-        })
-      )
-
-      results.push(...batchResults)
-      setCart(prev => [...prev, ...batchResults])
+        results.push(...batchResults)
+        setCart(prev => [...prev, ...batchResults])
+      }
+    } finally {
+      setLoadingCart(false)
     }
-  } finally {
-    setLoadingCart(false)
   }
-}
+
   function refreshSmartCart() {
     buildSmartCart()
   }
@@ -391,19 +390,33 @@ try {
       })
     })
 
-    // Only show stores that have priced coverage for at least 30% of the tracked list.
-    // This filters out one-off niche/reseller matches without needing a name allowlist.
     const totalTracked = cartData.length
-    const minCoverage = 0.3
 
-    return Array.from(storeCounts.entries())
-      .map(([store, count]) => ({
-        store,
-        count,
-        total: storeTotals.get(store) ?? 0
-      }))
+    const allStores = Array.from(storeCounts.entries()).map(([store, count]) => ({
+      store,
+      count,
+      total: storeTotals.get(store) ?? 0,
+    }))
+
+    // Only stores that carry every item on the list qualify as a true "cheapest
+    // overall" candidate — a partial total isn't comparable across stores.
+    const fullCoverage = allStores
+      .filter(s => totalTracked > 0 && s.count === totalTracked)
+      .sort((a, b) => a.total - b.total)
+
+    if (fullCoverage.length > 0) {
+      return { stores: fullCoverage, fullCoverage: true }
+    }
+
+    // Fallback: nobody has everything. Show the closest partial matches so the
+    // feature isn't just empty, but keep it clearly labeled as partial coverage,
+    // not a true total, so it can't be mistaken for a real "cheapest store" total.
+    const minCoverage = 0.3
+    const partial = allStores
       .filter(s => totalTracked > 0 && (s.count / totalTracked) >= minCoverage)
       .sort((a, b) => b.count - a.count || a.total - b.total)
+
+    return { stores: partial, fullCoverage: false }
   }
 
   const needs = items.filter(i => !i.checked)
@@ -415,18 +428,17 @@ try {
         <h1 className={styles.title}><i className="ti ti-shopping-cart" aria-hidden="true" /> grocery list</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn-primary" onClick={openBasicsModal}>
-  <i className="ti ti-list-details" aria-hidden="true" /> build basics list
-</button>
-<button className="btn-primary" onClick={buildSmartCart}>
-  <i className="ti ti-shopping-cart" aria-hidden="true" /> Build Smart Cart
-</button>
-<button className="btn-primary" onClick={refreshSmartCart}>
-  <i className="ti ti-refresh" aria-hidden="true" /> Refresh
-</button>
-<button className="btn-primary" onClick={clearSmartCart}>
-  <i className="ti ti-x" aria-hidden="true" /> Clear
-</button>
-
+            <i className="ti ti-list-details" aria-hidden="true" /> build basics list
+          </button>
+          <button className="btn-primary" onClick={buildSmartCart}>
+            <i className="ti ti-shopping-cart" aria-hidden="true" /> Build Smart Cart
+          </button>
+          <button className="btn-primary" onClick={refreshSmartCart}>
+            <i className="ti ti-refresh" aria-hidden="true" /> Refresh
+          </button>
+          <button className="btn-primary" onClick={clearSmartCart}>
+            <i className="ti ti-x" aria-hidden="true" /> Clear
+          </button>
 
           <button className="btn-primary" onClick={() => setShowSaved(!showSaved)}>
             <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
@@ -576,27 +588,30 @@ try {
 
       {/* store leaderboard — computed inline from current cart */}
       {(() => {
-  const tally = computeTally(cart)
-  const totalTracked = cart.length
-  if (tally.length === 0) return null
-  return (
-    <div className={`card ${styles.savedPanel}`}>
-      <div className={styles.savedPanelTitle}>best store for your list</div>
-      {tally.map((t, i) => (
-        <div key={t.store} className={styles.tallyRow}>
-          <span className={styles.tallyRank}>{i + 1}</span>
-          <span className={styles.tallyStore}>{t.store}</span>
-          <div className={styles.tallyBarTrack}>
-            <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+        const { stores: tally, fullCoverage } = computeTally(cart)
+        const totalTracked = cart.length
+        if (tally.length === 0) return null
+        return (
+          <div className={`card ${styles.savedPanel}`}>
+            <div className={styles.savedPanelTitle}>
+              {fullCoverage ? 'best store for your whole list' : 'no single store has everything — closest matches'}
+            </div>
+            {tally.map((t, i) => (
+              <div key={t.store} className={styles.tallyRow}>
+                <span className={styles.tallyRank}>{i + 1}</span>
+                <span className={styles.tallyStore}>{t.store}</span>
+                <div className={styles.tallyBarTrack}>
+                  <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+                </div>
+                <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
+                <span className={styles.priceBadge}>
+                  ${t.total.toFixed(2)} {fullCoverage ? 'total' : 'est. (partial)'}
+                </span>
+              </div>
+            ))}
           </div>
-          <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
-          <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
-        </div>
-      ))}
-    </div>
-  )
-})()}
-
+        )
+      })()}
 
       {loading ? (
         <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
