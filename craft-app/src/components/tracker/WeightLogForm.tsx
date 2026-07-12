@@ -9,14 +9,15 @@ interface Props {
 }
 
 export default function WeightLogForm({ date, onSaved }: Props) {
-  const [weight, setWeight] = useState<number>(0);
+  const [weightInput, setWeightInput] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
     getTrackerLog('weight', date).then((log) => {
       if (!active || !log) return;
-      setWeight((log.value as WeightValue).weight_lbs);
+      const w = (log.value as WeightValue).weight_lbs;
+      setWeightInput(w != null ? String(w) : '');
     });
     return () => {
       active = false;
@@ -26,6 +27,7 @@ export default function WeightLogForm({ date, onSaved }: Props) {
   async function handleSave() {
     setSaving(true);
     try {
+      const weight = weightInput === '' ? 0 : Number(weightInput);
       await upsertTrackerLog('weight', date, { weight_lbs: weight });
       onSaved?.();
     } finally {
@@ -41,8 +43,13 @@ export default function WeightLogForm({ date, onSaved }: Props) {
         className="form-input"
         type="number"
         step={0.1}
-        value={weight}
-        onChange={(e) => setWeight(Number(e.target.value))}
+        value={weightInput}
+        onChange={(e) => setWeightInput(e.target.value)}
+        onBlur={() => {
+          if (weightInput === '') return;
+          const n = Number(weightInput);
+          if (Number.isNaN(n) || n < 0) setWeightInput('0');
+        }}
       />
       <button
         className="btn-primary"
