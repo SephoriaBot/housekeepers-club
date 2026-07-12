@@ -925,12 +925,12 @@ export default function Wallet() {
             {/* ── TODAY'S PAYCHECK CALCULATOR ── */}
             {isCrisis && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
-                🚨 Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Things you need are still protected.
+                Equity Mode Active — {crisisBills.length} bill(s) late or due within 3 days ({fmt(crisisTotal)} total). Fun money and general savings are zeroed until these are covered. Things you need are still protected.
               </div>
             )}
             {!isCrisis && urgentBills.length > 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
-                ⚠️ Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
+                Bills due within 7 days: {urgentBills.map(b => `${b.name} (${fmt(b.amount)}) in ${b.days}d`).join(" · ")}
               </div>
             )}
 
@@ -981,114 +981,6 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* ── BUDGET CALCULATOR ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">Budget Calculator</div>
-                <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Enter your wage and hours to estimate your take-home pay for your budget.
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                  <div>
-                    <div className="form-label">Hourly Wage ($)</div>
-                    <input type="number" className="form-input" placeholder="e.g. 19.50" value={calcRegWage} onChange={e => setCalcRegWage(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">OT Wage ($)</div>
-                    <input type="number" className="form-input" placeholder="e.g. 29.25" value={calcOtWage} onChange={e => setCalcOtWage(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">Regular Hours</div>
-                    <input type="number" className="form-input" placeholder="e.g. 40" value={calcRegHours} onChange={e => setCalcRegHours(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="form-label">OT Hours</div>
-                    <input type="number" className="form-input" placeholder="e.g. 5" value={calcOtHours} onChange={e => setCalcOtHours(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="form-label">Pay Period</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-                  {(Object.keys(PERIOD_LABELS) as Array<keyof typeof PERIOD_LABELS>).map(p => (
-                    <button key={p} className={calcPeriod === p ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"} onClick={() => setCalcPeriod(p as typeof calcPeriod)}>
-                      {PERIOD_LABELS[p]}
-                    </button>
-                  ))}
-                </div>
-
-                {calcHasInput && (
-                  <>
-                    <div style={{ background: "var(--accent)", borderRadius: 16, padding: 14, marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Gross Pay ({PERIOD_LABELS[calcPeriod]})</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{fmt(calcGrossPerPeriod)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green-dark)" }}>Est. Monthly Take-Home</span>
-                        <span style={{ fontSize: 18, fontWeight: 800, color: "var(--green-dark)" }}>{fmt(calcEstMonthlyTakeHome)}</span>
-                      </div>
-                    </div>
-                    <button className="btn btn-green" style={{ width: "100%", justifyContent: "center" }} onClick={saveBudgetCalc}>
-                      {budgetSavedMsg ? "Saved to Budget ✓" : "Save to Budget"}
-                    </button>
-                    <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 6 }}>
-                      Updates your hourly wage and take-home pay used across the app (snowball extra, hours-of-work, etc).
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* ── THINGS WE NEED ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">🛒 Things We Need</div>
-                {needs.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing urgent right now 🌱</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                    {needs.map(item => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
-                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
-                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
-                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input className="form-input" placeholder="Add a priority purchase…" value={newNeed} onChange={e => setNewNeed(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("need")} style={{ flex: 1 }} />
-                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("need")}>+</button>
-                </div>
-              </div>
-            </div>
-
-            {/* ── THINGS WE WANT ── */}
-            <div className="card">
-              <div className="card-body">
-                <div className="section-label">💛 Things We Want</div>
-                {wants.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 12 }}>Nothing on the wishlist yet 🌸</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                    {wants.map(item => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 14, background: item.done ? "var(--sage-light)" : "var(--accent)", border: "1.5px solid var(--border)" }}>
-                        <input type="checkbox" checked={item.done} onChange={() => togglePlannerItem(item)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--green-dark)" }} />
-                        <span style={{ flex: 1, fontSize: 13, color: item.done ? "var(--ink-muted)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
-                        <button onClick={() => deletePlannerItem(item.id)} className="btn btn-danger btn-sm">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input className="form-input" placeholder="Add something to save up for…" value={newWant} onChange={e => setNewWant(e.target.value)} onKeyDown={e => e.key === "Enter" && addPlannerItem("want")} style={{ flex: 1 }} />
-                  <button className="btn btn-primary btn-sm" onClick={() => addPlannerItem("want")}>+</button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
 
         {/* ══════════════════ BILLS VIEW ══════════════════ */}
         {view === "bills" && (
