@@ -288,22 +288,25 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           {sortedMeals.length > 0 ? (
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {sortedMeals.map((m, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flexShrink: 0,
-                    background: 'var(--white)', border: '1.5px solid var(--border)',
-                    borderRadius: 18, padding: '10px 14px', minWidth: 120,
-                  }}
-                >
-                  <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)', marginBottom: 4, fontFamily: 'IBM Plex Mono, monospace' }}>
-                    {m.meal_type}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
-                    {m.meal_name}
-                  </div>
-                </div>
-              ))}
+  <div
+    key={i}
+    onClick={() => onNavigate('planner')}
+    style={{
+      flexShrink: 0,
+      background: 'var(--white)', border: '1.5px solid var(--border)',
+      borderRadius: 18, padding: '10px 14px', minWidth: 120,
+      cursor: 'pointer',
+    }}
+  >
+    <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)', marginBottom: 4, fontFamily: 'IBM Plex Mono, monospace' }}>
+      {m.meal_type}
+    </div>
+    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
+      {m.meal_name}
+    </div>
+  </div>
+))}
+
             </div>
           ) : (
             <div className="meals-empty">
