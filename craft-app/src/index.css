@@ -5,11 +5,10 @@
   --surface: #fffbfa;
   --text: #3b2a2e;
 
-
   --primary: #f6cfd6;    /* soft pink */
-  --secondary: #f7b89c;      /* apricot */
-  --accent: #e8a0ac;       /* pale rose blush */
-  --mint: #f9dde2;         /* swapped mint for a dusty rose, keeps the "soft accent" role */
+  --secondary: #f7b89c;  /* apricot */
+  --accent: #e8a0ac;     /* pale rose blush */
+  --mint: #f9dde2;       /* dusty rose accent */
 
   --border: rgba(215, 150, 150, 0.35);
   --shadow: 0 14px 30px rgba(90, 30, 40, 0.10);
@@ -24,21 +23,21 @@
 
   --white: #ffffff;
   --cream: #fff7f0;
+  --blush: #fbe4df;       /* soft highlight bg — was referenced but never defined */
   --green-dark: #2f6b4f;
   --citrus-blue: #3b82c4;
   --sage: #8ba888;
   --sage-dark: #5f7a5c;
   --sage-light: #e8efe6;
-  --pink: #e8a0ac;         /* rose accent — was sage */
-  --pink-dark: #b56575;    /* deeper rose — was sage-dark */
-  --pink-light: #fbe1e5;   /* pale rose — was sage-light */
-  --sky: #6BBFD4;         /* snowball/ice category color */
-  --gold: #C4933F;        /* savings category color */
-  --gold-dark: #8B6000;   /* savings highlight text */
-  --gold-light: #FEFBE8;  /* savings highlight background */
-  --danger: #C0404A;      /* late/negative amounts */
-  --danger-bg: #FDE8E8;   /* late/negative background */
-
+  --pink: #e8a0ac;
+  --pink-dark: #b56575;
+  --pink-light: #fbe1e5;
+  --sky: #6BBFD4;
+  --gold: #C4933F;
+  --gold-dark: #8B6000;
+  --gold-light: #FEFBE8;
+  --danger: #C0404A;
+  --danger-bg: #FDE8E8;
 }
 
 /* ================= BASE RESET ================= */
@@ -51,8 +50,8 @@ body {
   margin: 0;
   background: radial-gradient(circle at top, #fffdfc, #fff3ef);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui;
-  overflow-x: hidden; /* ← prevents horizontal blowout globally */
+  font-family: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
 img {
@@ -66,82 +65,220 @@ a {
 }
 
 /* ================= APP LAYOUT ================= */
+/* No fixed sidebar — the app is one natural document flow that scrolls
+   as a page. TopNav is a slim header that scrolls away with the content;
+   its menu is an overlay sheet that only exists while open. */
 
 .app-shell {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  height: 100vh;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .main {
   padding: 20px;
-  overflow-y: auto;
-  overflow-x: hidden; /* ← stops child cards from escaping */
-  min-width: 0;       /* ← essential for grid children */
+  min-width: 0;
 }
 
-/* ================= SIDEBAR ================= */
+/* ================= TOPNAV ================= */
 
-.sidebar {
-  height: 100vh;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  background: linear-gradient(180deg, #fff1e6, #fff7e0);
-  border-right: 1px solid var(--border);
-}
-
-.sidebar-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.nav-item {
+.topbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fff1e6, #fff7e0);
+}
+
+.topbar-mark {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+
+.topbar-trigger {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(255,255,255,0.8);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--ink-soft);
   cursor: pointer;
   transition: 0.15s ease;
-  color: #5a463a;
 }
 
-.nav-item:hover {
-  transform: translateX(3px);
-  background: rgba(255,255,255,0.85);
+.topbar-trigger:hover {
+  background: rgba(255,255,255,0.9);
 }
 
-.nav-item.active {
-  background: white;
+.nav-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(59, 42, 46, 0.28);
+  z-index: 40;
+  animation: navFadeIn 0.18s ease;
+}
+
+.nav-sheet {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--cream);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  z-index: 41;
+  padding: 18px 20px 28px;
+  animation: navSlideDown 0.2s ease;
 }
 
-.nav-icon {
-  width: 32px;
-  height: 32px;
+.nav-sheet-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.7);
+  justify-content: space-between;
+  margin-bottom: 18px;
 }
 
-.nav-label {
+.nav-close {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.nav-dashboard-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
   font-weight: 600;
-  font-size: 14px;
+  color: var(--ink);
+  padding: 10px 2px;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
+  cursor: pointer;
+}
+
+.nav-dashboard-link.active {
+  color: var(--pink-dark);
+}
+
+.nav-group {
+  margin-bottom: 16px;
+}
+
+.nav-group-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-link {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 9px 2px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(215, 150, 150, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-link.active {
+  color: var(--pink-dark);
+  font-weight: 700;
+}
+
+.nav-link.active::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink-dark);
+  flex-shrink: 0;
+}
+
+@keyframes navFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes navSlideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ================= PAGE STRUCTURE ================= */
+/* These were used throughout the app but never defined — pages have been
+   rendering with browser-default text this whole time. */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+
+.page-loading {
+  padding: 48px 20px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
 }
 
 /* ================= CARD SYSTEM ================= */
-/*
-  ::before draws a dashed inner border as the card's interior stitching.
-*/
 
 .card,
 .stat-card,
@@ -167,6 +304,9 @@ a {
   position: relative;
   overflow: hidden;
   min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .card::before,
@@ -246,13 +386,7 @@ a {
   margin-top: 10px;
 }
 
-/* ================= LIST ITEMS ================= */
-
-.list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+/* ================= BADGES ================= */
 
 .badge {
   padding: 4px 10px;
@@ -270,6 +404,7 @@ input, textarea, select {
   background: #fffdfc;
   outline: none;
   min-width: 0;
+  font-family: 'Nunito Sans', sans-serif;
 }
 
 input:focus {
@@ -289,6 +424,7 @@ input:focus {
   color: white;
   box-shadow: 0 8px 18px rgba(0,0,0,0.08);
   transition: 0.15s ease;
+  font-family: 'Nunito Sans', sans-serif;
 }
 
 .btn:hover {
@@ -305,6 +441,7 @@ input:focus {
   color: var(--ink);
   box-shadow: 0 8px 18px rgba(0,0,0,0.08);
   transition: 0.15s ease;
+  font-family: 'Nunito Sans', sans-serif;
 }
 .btn-primary:hover { transform: translateY(-2px); }
 
@@ -317,14 +454,15 @@ input:focus {
   background: var(--surface);
   color: var(--ink-soft);
   transition: 0.15s ease;
+  font-family: 'Nunito Sans', sans-serif;
 }
 .btn-secondary:hover { transform: translateY(-2px); background: var(--sage-light); }
-
-
 
 /* ================= TYPOGRAPHY ================= */
 
 h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
   letter-spacing: -0.4px;
 }
 
@@ -335,27 +473,19 @@ h1 {
 }
 
 p {
-  font-size: 10px;
-  letter-spacing: -0.4px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  letter-spacing: -0.1px;
 }
 
 /* ================= MOBILE ================= */
 
 @media (max-width: 768px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    overflow-x: hidden;
-  }
-
-  .sidebar {
-    height: auto;
-    max-height: 40vh;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+  .topbar {
+    padding: 12px 16px;
   }
 
   .main {
-    height: auto;
-    padding: 8px;
+    padding: 12px;
   }
 }
