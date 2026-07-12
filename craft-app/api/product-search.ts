@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter(Boolean)
 
     results.sort((a: any, b: any) => Number(a.price || 9999) - Number(b.price || 9999))
-    return res.status(200).json(results.slice(0, 5))
+    return res.status(200).json(results.slice(0, 12))
   } catch (e) {
     console.error('handler error:', e)
     return res.status(200).json([])
