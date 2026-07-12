@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function SleepLogForm({ date, onSaved }: Props) {
-  const [hours, setHours] = useState<number>(7);
+  const [hoursInput, setHoursInput] = useState<string>('7');
   const [quality, setQuality] = useState<number>(3);
   const [saving, setSaving] = useState(false);
 
@@ -17,7 +17,7 @@ export default function SleepLogForm({ date, onSaved }: Props) {
     getTrackerLog('sleep', date).then((log) => {
       if (!active || !log) return;
       const v = log.value as SleepValue;
-      setHours(v.hours);
+      setHoursInput(v.hours != null ? String(v.hours) : '');
       setQuality(v.quality);
     });
     return () => {
@@ -28,6 +28,7 @@ export default function SleepLogForm({ date, onSaved }: Props) {
   async function handleSave() {
     setSaving(true);
     try {
+      const hours = hoursInput === '' ? 0 : Number(hoursInput);
       await upsertTrackerLog('sleep', date, { hours, quality });
       onSaved?.();
     } finally {
@@ -40,7 +41,7 @@ async function handleDelete() {
   setSaving(true);
   try {
     await deleteTrackerLog('sleep', date);
-    setHours(7);
+    setHoursInput('7');
     setQuality(3);
     onSaved?.();
   } finally {
@@ -60,8 +61,15 @@ async function handleDelete() {
         step={0.5}
         min={0}
         max={24}
-        value={hours}
-        onChange={(e) => setHours(Number(e.target.value))}
+        value={hoursInput}
+        onChange={(e) => setHoursInput(e.target.value)}
+        onBlur={() => {
+          if (hoursInput === '') return;
+          const n = Number(hoursInput);
+          if (Number.isNaN(n)) setHoursInput('0');
+          else if (n < 0) setHoursInput('0');
+          else if (n > 24) setHoursInput('24');
+        }}
       />
 
       <label className="form-label">Quality</label>
