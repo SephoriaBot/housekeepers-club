@@ -32,6 +32,11 @@ export default function PlantsPage() {
   const [infoPlant, setInfoPlant] = useState<GardenPlant | null>(null)
 const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [showManualAdd, setShowManualAdd] = useState(false)
+  const [manualName, setManualName] = useState('')
+  const [manualScientificName, setManualScientificName] = useState('')
+  const [manualSaving, setManualSaving] = useState(false)
+
   useEffect(() => {
     loadPlants()
     loadWaterings()
@@ -104,6 +109,48 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     if (data) setPlants(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
     setQuery('')
     setSearchResults([])
+  }
+
+  async function addManualPlant() {
+    const trimmedName = manualName.trim()
+    if (!trimmedName) return
+
+    // Manual entries have no perenual_id, so dedupe by name instead
+    const existing = plants.find(
+      p => p.perenual_id == null && p.name.toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (existing) {
+      await updateQuantity(existing.id, existing.quantity + 1)
+      setManualName('')
+      setManualScientificName('')
+      setShowManualAdd(false)
+      return
+    }
+
+    setManualSaving(true)
+    try {
+      const profile = await fetchPlantProfile(trimmedName)
+
+      const { data } = await supabase
+        .from('garden_plants')
+        .insert({
+          name: trimmedName,
+          scientific_name: manualScientificName.trim() || null,
+          perenual_id: null,
+          quantity: 1,
+          medicinal_note: profile?.medicinal_note ?? null,
+          perenual_details: profile,
+        })
+        .select()
+        .single()
+
+      if (data) setPlants(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      setManualName('')
+      setManualScientificName('')
+      setShowManualAdd(false)
+    } finally {
+      setManualSaving(false)
+    }
   }
 
 
@@ -200,6 +247,50 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Manual add */}
+          {!showManualAdd ? (
+            <button
+              onClick={() => setShowManualAdd(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--ink-muted)', fontWeight: 600, padding: '8px 0 0', textDecoration: 'underline' }}
+            >
+              Can't find it? Add manually
+            </button>
+          ) : (
+            <div style={{ marginTop: 10, padding: 14, border: '1.5px solid var(--border)', borderRadius: 12, background: 'var(--white)' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--ink-soft)', marginBottom: 8 }}>Add a plant manually</div>
+              <input
+                className="form-input"
+                placeholder="Plant name (e.g. Peace Rose)"
+                value={manualName}
+                onChange={e => setManualName(e.target.value)}
+                style={{ marginBottom: 8 }}
+              />
+              <input
+                className="form-input"
+                placeholder="Scientific name (optional)"
+                value={manualScientificName}
+                onChange={e => setManualScientificName(e.target.value)}
+                style={{ marginBottom: 10 }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-green"
+                  onClick={addManualPlant}
+                  disabled={manualSaving || !manualName.trim()}
+                  style={{ fontSize: '0.85rem', padding: '8px 14px' }}
+                >
+                  {manualSaving ? 'Adding…' : '+ Add'}
+                </button>
+                <button
+                  onClick={() => { setShowManualAdd(false); setManualName(''); setManualScientificName('') }}
+                  style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--ink-soft)' }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -383,4 +474,3 @@ const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
     </div>
   )
 }
-
