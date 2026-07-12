@@ -390,33 +390,19 @@ export default function Grocery() {
       })
     })
 
+    // Only show stores that have priced coverage for at least 30% of the tracked list.
+    // This filters out one-off niche/reseller matches without needing a name allowlist.
     const totalTracked = cartData.length
-
-    const allStores = Array.from(storeCounts.entries()).map(([store, count]) => ({
-      store,
-      count,
-      total: storeTotals.get(store) ?? 0,
-    }))
-
-    // Only stores that carry every item on the list qualify as a true "cheapest
-    // overall" candidate — a partial total isn't comparable across stores.
-    const fullCoverage = allStores
-      .filter(s => totalTracked > 0 && s.count === totalTracked)
-      .sort((a, b) => a.total - b.total)
-
-    if (fullCoverage.length > 0) {
-      return { stores: fullCoverage, fullCoverage: true }
-    }
-
-    // Fallback: nobody has everything. Show the closest partial matches so the
-    // feature isn't just empty, but keep it clearly labeled as partial coverage,
-    // not a true total, so it can't be mistaken for a real "cheapest store" total.
     const minCoverage = 0.3
-    const partial = allStores
+
+    return Array.from(storeCounts.entries())
+      .map(([store, count]) => ({
+        store,
+        count,
+        total: storeTotals.get(store) ?? 0
+      }))
       .filter(s => totalTracked > 0 && (s.count / totalTracked) >= minCoverage)
       .sort((a, b) => b.count - a.count || a.total - b.total)
-
-    return { stores: partial, fullCoverage: false }
   }
 
   const needs = items.filter(i => !i.checked)
@@ -588,14 +574,12 @@ export default function Grocery() {
 
       {/* store leaderboard — computed inline from current cart */}
       {(() => {
-        const { stores: tally, fullCoverage } = computeTally(cart)
+        const tally = computeTally(cart)
         const totalTracked = cart.length
         if (tally.length === 0) return null
         return (
           <div className={`card ${styles.savedPanel}`}>
-            <div className={styles.savedPanelTitle}>
-              {fullCoverage ? 'best store for your whole list' : 'no single store has everything — closest matches'}
-            </div>
+            <div className={styles.savedPanelTitle}>best store for your list</div>
             {tally.map((t, i) => (
               <div key={t.store} className={styles.tallyRow}>
                 <span className={styles.tallyRank}>{i + 1}</span>
@@ -604,9 +588,7 @@ export default function Grocery() {
                   <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
                 </div>
                 <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
-                <span className={styles.priceBadge}>
-                  ${t.total.toFixed(2)} {fullCoverage ? 'total' : 'est. (partial)'}
-                </span>
+                <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
               </div>
             ))}
           </div>
