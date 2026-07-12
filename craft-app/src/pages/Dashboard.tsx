@@ -21,7 +21,8 @@ interface Glance {
   groceryItems: number;
 }
 
-const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
 
 function getGreeting() {
   const h = new Date().getHours();
