@@ -1,17 +1,42 @@
 /// <reference types="node" />
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Collapses formatting noise so the same real store isn't split into
-// multiple "different" stores (e.g. "Walmart" vs "Walmart - Grocery").
-// This does NOT drop or curate stores — every seller Google Shopping
-// returns still shows up, just under one consistent name per seller.
-function cleanStoreName(raw: string): string {
-  let s = raw.trim()
-  // strip trailing qualifiers like " - Pickup & Delivery", " - Marketplace"
-  s = s.replace(/\s*-\s*(pickup( ?& ?delivery)?|delivery|marketplace|grocery|official store).*$/i, '')
-  s = s.replace(/\s+/g, ' ').trim()
-  return s
+// Known grocery/retail chains, mapped to a single canonical name so the same
+// store isn't split into duplicates by inconsistent formatting (casing,
+// "- Pickup & Delivery" tags, marketplace labels, etc). Anything NOT in this
+// list passes through untouched — nothing is filtered or dropped, this only
+// fixes name collisions for stores it actually recognizes.
+const KNOWN_STORES: Record<string, string> = {
+  'walmart': 'Walmart',
+  'target': 'Target',
+  'kroger': 'Kroger',
+  'costco': 'Costco',
+  "sam's club": "Sam's Club",
+  'whole foods': 'Whole Foods',
+  'safeway': 'Safeway',
+  'publix': 'Publix',
+  'aldi': 'Aldi',
+  'meijer': 'Meijer',
+  'h-e-b': 'H-E-B',
+  'heb': 'H-E-B',
+  "trader joe": "Trader Joe's",
+  'food lion': 'Food Lion',
+  'giant': 'Giant',
+  'wegmans': 'Wegmans',
+  'sprouts': 'Sprouts',
+  'cvs': 'CVS',
+  'walgreens': 'Walgreens',
 }
+
+function cleanStoreName(raw: string): string {
+  const trimmed = raw.trim().replace(/\s+/g, ' ')
+  const lower = trimmed.toLowerCase()
+  for (const key in KNOWN_STORES) {
+    if (lower.includes(key)) return KNOWN_STORES[key]
+  }
+  return trimmed
+}
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const q = (req.query.q || "").toString().trim()
@@ -43,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }))
 
     results.sort((a: any, b: any) => Number(a.price || 9999) - Number(b.price || 9999))
-    return res.status(200).json(results.slice(0, 12))
+    return res.status(200).json(results.slice(0, 20))
   } catch (e) {
     console.error('handler error:', e)
     return res.status(200).json([])
