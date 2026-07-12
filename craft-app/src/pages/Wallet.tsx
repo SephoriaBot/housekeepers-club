@@ -424,6 +424,18 @@ export default function Wallet() {
     setDailyHours(prev => ({ ...prev, [key]: { reg: prev[key]?.reg || "", ot: prev[key]?.ot || "", [field]: value } }));
   }
 
+const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
+  try {
+    return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
+  } catch {
+    return {};
+  }
+});
+
+useEffect(() => {
+  localStorage.setItem("extra_funds_log", JSON.stringify(extraFunds));
+}, [extraFunds]);
+
   const effectiveOtWage = parseFloat(otWageOverride) > 0 ? parseFloat(otWageOverride) : budget.hourly_wage * 1.5;
   const netHourlyWage = budget.hourly_wage > 0 ? budget.hourly_wage * (1 - taxRate / 100) : 0;
   const netOtWage = effectiveOtWage > 0 ? effectiveOtWage * (1 - taxRate / 100) : 0;
@@ -441,12 +453,12 @@ export default function Wallet() {
       const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
       const hoursToday = regHoursToday + otHoursToday;
       const earnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
-      runningBalance += earnedToday - billsTotal;
-      return { date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday, hoursToday, earnedToday, balance: runningBalance };
+      runningBalance += earnedToday + extraToday - billsTotal;
+      return { date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday, hoursToday, earnedToday, extraToday, balance: runningBalance };
     });
     return { rows, endingBalance: runningBalance };
   }
-
+  const extraToday = parseFloat(extraFunds[key]) || 0;
   const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, parseFloat(currentBalanceInput) || 0), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, currentBalanceInput]);
   const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, week1Result.endingBalance]);
 
@@ -908,9 +920,40 @@ export default function Wallet() {
                                   onChange={e => setDailyHourField(row.key, "ot", e.target.value)}
                                   style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
                                 />
+
+                              <div style={{ marginTop: 8 }}>
+  <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>
+    Expected Extra Funds
+  </span>
+
+  <input
+    type="number"
+    className="form-input"
+    placeholder="0"
+    value={extraFunds[row.key] || ""}
+    onChange={e =>
+      setExtraFunds(prev => ({
+        ...prev,
+        [row.key]: e.target.value,
+      }))
+    }
+  />
+</div>
                                 {row.hoursToday > 0 && (
                                   <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
                                 )}
+                                {row.extraToday > 0 && (
+  <div
+    style={{
+      fontSize: 11,
+      color: "var(--gold)",
+      fontWeight: 700,
+      marginTop: 4,
+    }}
+  >
+    +{fmt(row.extraToday)} expected
+  </div>
+)}
                               </div>
                             </div>
                           );
