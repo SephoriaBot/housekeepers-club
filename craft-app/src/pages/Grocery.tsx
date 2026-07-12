@@ -372,9 +372,29 @@ export default function Grocery() {
     setPrices(prev => prev.filter(p => p.id !== id))
   }
 
+  // Instead of only counting stores that had a literal search hit for every
+  // item (which almost never happens), fill any gaps with the median price
+  // other stores charged for that same item in this cart. Every store that
+  // shows up anywhere then gets a complete, comparable total across the
+  // whole list — part real prices, part reasonable estimate — rather than
+  // being excluded or only partially totaled. This doesn't touch which
+  // stores/results come back from the search itself, only how they're
+  // combined into a per-store total.
   function computeTally(cartData: any[]) {
-    const storeCounts = new Map<string, number>()
-    const storeTotals = new Map<string, number>()
+    const totalTracked = cartData.length
+    if (totalTracked === 0) return []
+
+    const allStores = new Set<string>()
+    cartData.forEach(c => {
+      c.results?.forEach((r: any) => {
+        if (r.store && r.price != null) allStores.add(r.store)
+      })
+    })
+
+    // item -> (store -> cheapest real price at that store)
+    const perItemStorePrice = new Map<string, Map<string, number>>()
+    // item -> median price across whatever stores did have a result
+    const perItemMedian = new Map<string, number>()
 
     cartData.forEach(c => {
       const byStore = new Map<string, number>()
@@ -384,25 +404,47 @@ export default function Grocery() {
           byStore.set(r.store, r.price)
         }
       })
-      byStore.forEach((price, store) => {
-        storeCounts.set(store, (storeCounts.get(store) ?? 0) + 1)
-        storeTotals.set(store, (storeTotals.get(store) ?? 0) + price)
-      })
+      perItemStorePrice.set(c.item, byStore)
+
+      const prices = Array.from(byStore.values()).sort((a, b) => a - b)
+      if (prices.length > 0) {
+        const mid = Math.floor(prices.length / 2)
+        const median = prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2
+        perItemMedian.set(c.item, median)
+      }
     })
 
-    // Only show stores that have priced coverage for at least 30% of the tracked list.
-    // This filters out one-off niche/reseller matches without needing a name allowlist.
-    const totalTracked = cartData.length
-    const minCoverage = 0.3
+    const storeResults = Array.from(allStores).map(store => {
+      let total = 0
+      let realCount = 0
+      let estimatedCount = 0
+      let missingCount = 0 // item has zero results anywhere — nothing to fill in from
 
-    return Array.from(storeCounts.entries())
-      .map(([store, count]) => ({
-        store,
-        count,
-        total: storeTotals.get(store) ?? 0
-      }))
-      .filter(s => totalTracked > 0 && (s.count / totalTracked) >= minCoverage)
-      .sort((a, b) => b.count - a.count || a.total - b.total)
+      cartData.forEach(c => {
+        const realPrice = perItemStorePrice.get(c.item)?.get(store)
+        if (realPrice != null) {
+          total += realPrice
+          realCount++
+        } else {
+          const median = perItemMedian.get(c.item)
+          if (median != null) {
+            total += median
+            estimatedCount++
+          } else {
+            missingCount++
+          }
+        }
+      })
+
+      return { store, total, realCount, estimatedCount, missingCount }
+    })
+
+    // Only rank stores where every item on the list could be either priced
+    // or reasonably estimated — a store can't be "cheapest overall" if part
+    // of the list has literally no data anywhere to estimate from.
+    return storeResults
+      .filter(s => s.missingCount === 0)
+      .sort((a, b) => a.total - b.total)
   }
 
   const needs = items.filter(i => !i.checked)
@@ -576,18 +618,28 @@ export default function Grocery() {
       {(() => {
         const tally = computeTally(cart)
         const totalTracked = cart.length
-        if (tally.length === 0) return null
+        if (cart.length === 0) return null
+        if (tally.length === 0) {
+          return (
+            <div className={`card ${styles.savedPanel}`}>
+              <div className={styles.savedPanelTitle}>best store for your whole list</div>
+              <p style={{ fontSize: 12, color: 'var(--ink-muted)', padding: '0.5rem 0' }}>
+                at least one item on your list had zero search results anywhere, so no store total could be estimated yet
+              </p>
+            </div>
+          )
+        }
         return (
           <div className={`card ${styles.savedPanel}`}>
-            <div className={styles.savedPanelTitle}>best store for your list</div>
+            <div className={styles.savedPanelTitle}>best store for your whole list</div>
             {tally.map((t, i) => (
               <div key={t.store} className={styles.tallyRow}>
                 <span className={styles.tallyRank}>{i + 1}</span>
                 <span className={styles.tallyStore}>{t.store}</span>
                 <div className={styles.tallyBarTrack}>
-                  <div className={styles.tallyBarFill} style={{ width: `${(t.count / totalTracked) * 100}%` }} />
+                  <div className={styles.tallyBarFill} style={{ width: `${(t.realCount / totalTracked) * 100}%` }} />
                 </div>
-                <span className={styles.tallyCount}>{t.count}/{totalTracked} items</span>
+                <span className={styles.tallyCount}>{t.realCount}/{totalTracked} real</span>
                 <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
               </div>
             ))}
