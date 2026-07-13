@@ -169,13 +169,13 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('planner')}>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('dailyplanner')}>
       <div className="glance-value">{glance.appointmentsToday}</div>
       <div className="glance-label">Today's Appointments</div>
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('tracker')}>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('trackers')}>
       <div className="glance-value">{glance.trackerLogsToday}</div>
       <div className="glance-label">Logged Today</div>
     </div>
