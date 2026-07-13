@@ -15,9 +15,8 @@ interface MealEntry {
 }
 
 interface Glance {
-  plants: number;
-  pets: number;
-  recipes: number;
+  appointmentsToday: number;
+  trackerLogsToday: number;
   groceryItems: number;
 }
 
@@ -67,7 +66,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   const [focuses, setFocuses] = useState<Focus[]>([]);
   const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
   const [todayBills, setTodayBills] = useState<Bill[]>([]);
-  const [glance, setGlance] = useState<Glance>({ plants: 0, pets: 0, recipes: 0, groceryItems: 0 });
+  const [glance, setGlance] = useState<Glance>({ appointmentsToday: 0, trackerLogsToday: 0, groceryItems: 0 });
   const [newFocus, setNewFocus] = useState('');
   const [newFocusMins, setNewFocusMins] = useState('');
   const [addingFocus, setAddingFocus] = useState(false);
@@ -80,13 +79,16 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   }, []);
 
   async function loadAll() {
-    const [focusRes, mealsRes, billsRes, plantsRes, petsRes, recipesRes, groceryRes] = await Promise.all([
+    const startOfDay = `${todayStr}T00:00:00`;
+    const endOfDay = `${todayStr}T23:59:59`;
+
+    const [focusRes, mealsRes, billsRes, plannerRes, trackerRes, groceryRes] = await Promise.all([
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
       supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
       supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring').eq('due_day', new Date().getDate()),
-      supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
-      supabase.from('pets').select('id', { count: 'exact', head: true }),
-      supabase.from('recipes').select('id', { count: 'exact', head: true }),
+      supabase.from('appointments').select('id', { count: 'exact', head: true })
+        .gte('date_time', startOfDay).lte('date_time', endOfDay),
+      supabase.from('tracker_logs').select('id', { count: 'exact', head: true }).eq('log_date', todayStr),
       supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
     ]);
 
@@ -94,9 +96,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
     setTodayMeals(mealsRes.data || []);
     setTodayBills(billsRes.data || []);
     setGlance({
-      plants: plantsRes.count || 0,
-      pets: petsRes.count || 0,
-      recipes: recipesRes.count || 0,
+      appointmentsToday: plannerRes.count || 0,
+      trackerLogsToday: trackerRes.count || 0,
       groceryItems: groceryRes.count || 0,
     });
   }
@@ -154,21 +155,20 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           <div className="section-label">At a Glance</div>
          <div className="dashboard-grid">
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('plants')}>
-      <div className="glance-value">{glance.plants}</div>
-      <div className="glance-label">Plants</div>
+    <div className="card stat-card glance-card glance-card-link" onClick={() => onNavigate('wallet')}>
+      <div className="glance-label">💰 Wallet</div>
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('pets')}>
-      <div className="glance-value">{glance.pets}</div>
-      <div className="glance-label">Pets</div>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('planner')}>
+      <div className="glance-value">{glance.appointmentsToday}</div>
+      <div className="glance-label">Today's Appointments</div>
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('recipes')}>
-      <div className="glance-value">{glance.recipes}</div>
-      <div className="glance-label">Recipes</div>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('tracker')}>
+      <div className="glance-value">{glance.trackerLogsToday}</div>
+      <div className="glance-label">Logged Today</div>
     </div>
   </div>
   <div className="glance-wrap">
