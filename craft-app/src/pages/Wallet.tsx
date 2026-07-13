@@ -159,6 +159,21 @@ function hoursOfWork(amount: number, wage: number) {
   return (amount / wage).toFixed(1);
 }
 
+// ── ANYTIME PAY RAMP ──
+// Anytime Pay availability isn't a flat percentage — it climbs through the
+// work week. Week runs Sunday(0) → Saturday(6); ramps linearly from 40% on
+// Sunday to 70% by Saturday. The un-withdrawn remainder for each day is held
+// and released as a single lump "payday catch-up" on the following
+// Wednesday, mirroring how the real deposit works.
+const ANYTIME_PAY_START_PCT = 0.40;
+const ANYTIME_PAY_CAP_PCT = 0.70;
+
+function rampPercentForDate(d: Date) {
+  const dow = d.getDay(); // 0 = Sun ... 6 = Sat
+  return ANYTIME_PAY_START_PCT + (ANYTIME_PAY_CAP_PCT - ANYTIME_PAY_START_PCT) * (dow / 6);
+}
+
+
 const PERIOD_MULTIPLIERS: Record<string, number> = {
   weekly: 52 / 12,
   biweekly: 26 / 12,
@@ -439,11 +454,9 @@ useEffect(() => {
   const netHourlyWage = budget.hourly_wage > 0 ? budget.hourly_wage * (1 - taxRate / 100) : 0;
   const netOtWage = effectiveOtWage > 0 ? effectiveOtWage * (1 - taxRate / 100) : 0;
 
-  // Build each day's row: bills due, hours logged (regular + OT entered
-  // separately per day), earnings, and a running balance carried forward
-  // from your real Current Balance — today onward only, nothing replayed.
-  function buildWeekRows(weekDays: Date[], startingBalance: number) {
+    function buildWeekRows(weekDays: Date[], startingBalance: number, initialHeld: number) {
     let runningBalance = startingBalance;
+    let heldBack = initialHeld;
     const rows = weekDays.map(d => {
       const key = dateKey(d);
       const extraToday = parseFloat(extraFunds[key]) || 0;
@@ -452,15 +465,45 @@ useEffect(() => {
       const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
       const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
       const hoursToday = regHoursToday + otHoursToday;
-      const earnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
-      runningBalance += earnedToday + extraToday - billsTotal;
-      return { date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday, hoursToday, earnedToday, extraToday, balance: runningBalance };
+      const fullEarnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
+
+      const rampPct = rampPercentForDate(d);
+      const availableToday = fullEarnedToday * rampPct;
+      const heldToday = fullEarnedToday - availableToday;
+      heldBack += heldToday;
+
+      const isWednesday = d.getDay() === 3;
+      let releasedToday = 0;
+      if (isWednesday) {
+        releasedToday = heldBack;
+        heldBack = 0;
+      }
+
+      runningBalance += availableToday + releasedToday + extraToday - billsTotal;
+
+      return {
+        date: d,
+        key,
+        billsToday,
+        billsTotal,
+        regHoursToday,
+        otHoursToday,
+        hoursToday,
+        earnedToday: fullEarnedToday,
+        availableToday,
+        heldToday,
+        releasedToday,
+        rampPct,
+        extraToday,
+        balance: runningBalance,
+      };
     });
-    return { rows, endingBalance: runningBalance };
+    return { rows, endingBalance: runningBalance, endingHeld: heldBack };
   }
 
-  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, budget.current_balance || 0), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance]);
-  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, week1Result.endingBalance]);
+
+    const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, budget.current_balance || 0, 0), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance]);
+  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance, week1Result.endingHeld), [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, week1Result.endingBalance, week1Result.endingHeld]);
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
@@ -828,7 +871,7 @@ useEffect(() => {
               <div className="card-body">
                 <div className="section-label">📅 Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Runs from today forward — no past days, no already-paid bills cluttering it up. Log the hours you're working (or plan to work) each day and watch your running balance move.
+                  Runs from today forward — Log the hours you're working (or plan to work) each day and watch your running balance move.
                 </div>
 
                 <div style={{ marginBottom: 14 }}>
@@ -928,10 +971,24 @@ useEffect(() => {
                                   style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
                                 />
 
-                                {row.hoursToday > 0 && (
-                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
+                                                                {row.hoursToday > 0 && (
+                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.availableToday)}</span>
                                 )}
-                                                              </div>
+                              </div>
+
+                              {row.hoursToday > 0 && (
+                                <div style={{ fontSize: 9, color: "var(--ink-muted)", marginTop: 3 }}>
+                                  {Math.round(row.rampPct * 100)}% available today
+                                  {row.heldToday > 0.005 && ` · ${fmt(row.heldToday)} held until Wed`}
+                                </div>
+                              )}
+
+                              {row.releasedToday > 0.005 && (
+                                <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginTop: 4 }}>
+                                  💰 +{fmt(row.releasedToday)} payday catch-up
+                                </div>
+                              )}
+
 
 <div style={{ marginTop: 8 }}>
   <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>
