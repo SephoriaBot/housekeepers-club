@@ -41,6 +41,11 @@ function getGreeting() {
   return 'Winding down';
 }
 
+function fmt(n: number) {
+  if (n == null || isNaN(n)) return '$0.00';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+}
+
 function Sprig() {
   return (
     <svg className="sprig" width="30" height="30" viewBox="0 0 30 30" fill="none">
@@ -67,6 +72,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
   const [todayBills, setTodayBills] = useState<Bill[]>([]);
   const [glance, setGlance] = useState<Glance>({ appointmentsToday: 0, trackerLogsToday: 0, groceryItems: 0 });
+  const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [newFocus, setNewFocus] = useState('');
   const [newFocusMins, setNewFocusMins] = useState('');
   const [addingFocus, setAddingFocus] = useState(false);
@@ -82,7 +88,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
     const startOfDay = `${todayStr}T00:00:00`;
     const endOfDay = `${todayStr}T23:59:59`;
 
-    const [focusRes, mealsRes, billsRes, plannerRes, trackerRes, groceryRes] = await Promise.all([
+    const [focusRes, mealsRes, billsRes, plannerRes, trackerRes, groceryRes, budgetRes] = await Promise.all([
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
       supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
       supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring').eq('due_day', new Date().getDate()),
@@ -90,6 +96,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
         .gte('date_time', startOfDay).lte('date_time', endOfDay),
       supabase.from('tracker_logs').select('id', { count: 'exact', head: true }).eq('log_date', todayStr),
       supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
+      supabase.from('budget').select('current_balance').eq('id', 1).maybeSingle(),
     ]);
 
     setFocuses(focusRes.data || []);
@@ -100,6 +107,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
       trackerLogsToday: trackerRes.count || 0,
       groceryItems: groceryRes.count || 0,
     });
+    setCurrentBalance(budgetRes.data?.current_balance || 0);
   }
 
   async function addFocus() {
@@ -155,7 +163,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           <div className="section-label">At a Glance</div>
          <div className="dashboard-grid">
   <div className="glance-wrap">
-    <div className="card stat-card glance-card glance-card-link" onClick={() => onNavigate('wallet')}>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('wallet')}>
+      <div className="glance-value">{fmt(currentBalance)}</div>
       <div className="glance-label">💰 Wallet</div>
     </div>
   </div>
