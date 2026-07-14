@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import styles from './Cook.module.css'
 import { supabase } from '../lib/supabase'
+import { ChefHat, AlertCircle, Check, ArrowLeft, ArrowRight } from 'lucide-react'
 
 const CONVERSIONS = {
   us: [
@@ -31,7 +31,7 @@ interface MealData {
 
 export default function Cook() {
   const initialMeal = null
-const [savedMeals, setSavedMeals] = useState<{ spoonacular_id: number; name: string }[]>([])
+  const [savedMeals, setSavedMeals] = useState<{ spoonacular_id: number; name: string }[]>([])
   const [meal, setMeal] = useState<MealData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -39,190 +39,288 @@ const [savedMeals, setSavedMeals] = useState<{ spoonacular_id: number; name: str
   const [unit, setUnit] = useState<'us' | 'metric'>('us')
 
   useEffect(() => {
-  loadSavedMeals()
+    loadSavedMeals()
 
-  if (initialMeal) {
-    fetchMeal(initialMeal)
+    if (initialMeal) {
+      fetchMeal(initialMeal)
+    }
+  }, [])
+
+  async function loadSavedMeals() {
+    const { data } = await supabase
+      .from('meals')
+      .select('spoonacular_id, name')
+      .order('name')
+
+    setSavedMeals(data ?? [])
   }
-}, [])
-
-async function loadSavedMeals() {
-  const { data } = await supabase
-    .from('meals')
-    .select('spoonacular_id, name')
-    .order('name')
-
-  setSavedMeals(data ?? [])
-}
 
   async function fetchMeal(id: number) {
-  setLoading(true)
-  setError('')
-  setMeal(null)
-  setStep(0)
+    setLoading(true)
+    setError('')
+    setMeal(null)
+    setStep(0)
 
-  try {
-    const res = await fetch(
-      `https://api.spoonacular.com/recipes/${id}/information?apiKey=${import.meta.env.VITE_SPOONACULAR_API_KEY}`
-    )
+    try {
+      const res = await fetch(
+        `https://api.spoonacular.com/recipes/${id}/information?apiKey=${import.meta.env.VITE_SPOONACULAR_API_KEY}`
+      )
 
-    const data = await res.json()
+      const data = await res.json()
 
-    setMeal({
-      id: String(data.id),
-      title: data.title,
-      thumb: data.image,
-      category: data.dishTypes?.join(', ') || '',
-      ingredients: (data.extendedIngredients || []).map((i: any) => ({
-        name: i.name,
-        measure: i.originalMeasure || i.original || ''
-      })),
-      steps:
-        data.analyzedInstructions?.[0]?.steps?.map((s: any) => s.step) ??
-        ['No instructions available']
-    })
-  } catch {
-    setError('Could not load recipe.')
+      setMeal({
+        id: String(data.id),
+        title: data.title,
+        thumb: data.image,
+        category: data.dishTypes?.join(', ') || '',
+        ingredients: (data.extendedIngredients || []).map((i: any) => ({
+          name: i.name,
+          measure: i.originalMeasure || i.original || ''
+        })),
+        steps:
+          data.analyzedInstructions?.[0]?.steps?.map((s: any) => s.step) ??
+          ['No instructions available']
+      })
+    } catch {
+      setError('Could not load recipe.')
+    }
+
+    setLoading(false)
   }
-
-  setLoading(false)
-}
 
   const progressPct = meal
     ? meal.steps.length > 1 ? Math.round((step / (meal.steps.length - 1)) * 100) : 100
     : 0
 
+  function pillStyle() {
+    return {
+      fontSize: '0.68rem', fontWeight: 700, color: 'var(--pink-dark)',
+      background: 'var(--white)', border: '1px solid var(--pink-light)',
+      borderRadius: 999, padding: '3px 10px',
+    } as React.CSSProperties
+  }
+
   return (
-    <div className={styles.page}>
+    <div>
+      <div className="page-header">
+        <h2>Cook 🍳</h2>
+      </div>
 
-<div className={styles.mealPicker}>
-  <div className={styles.pickerLabel}>choose one of your saved meals</div>
+      <div className="page-body">
 
-  <div className={styles.chips}>
-    {savedMeals.map(m => (
-      <button
-        key={m.name}
-        className={`${styles.chip} ${meal?.title === m.name ? styles.active : ''}`}
-        onClick={() => fetchMeal(m.spoonacular_id)}
-      >
-        {m.name}
-      </button>
-    ))}
-  </div>
-
-  {savedMeals.length === 0 && (
-    <div className="empty-state">
-      Save some meals from the Suggestions page first.
-    </div>
-  )}
-</div>
-
-      <div className={`card ${styles.cookCard}`}>
-        {!meal && !loading && !error && (
-          <div className="empty-state">
-            <i className="ti ti-chef-hat" aria-hidden="true" />
-            search for a recipe above to get started
+        <section>
+          <div className="section-label">Choose One of Your Saved Meals</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {savedMeals.map(m => {
+              const active = meal?.title === m.name
+              return (
+                <button
+                  key={m.name}
+                  onClick={() => fetchMeal(m.spoonacular_id)}
+                  style={{
+                    background: active ? 'var(--pink-dark)' : 'var(--white)',
+                    color: active ? '#fff' : 'var(--ink-soft)',
+                    border: `1.5px solid ${active ? 'var(--pink-dark)' : 'var(--border)'}`,
+                    borderRadius: 999, padding: '6px 14px', fontSize: '0.8rem',
+                    fontWeight: active ? 700 : 600, cursor: 'pointer',
+                    fontFamily: "'Nunito Sans', sans-serif",
+                  }}
+                >
+                  {m.name}
+                </button>
+              )
+            })}
           </div>
-        )}
+          {savedMeals.length === 0 && (
+            <p style={{ fontSize: '0.82rem', color: 'var(--ink-muted)', marginTop: 8 }}>
+              Save some meals from the Suggestions page first.
+            </p>
+          )}
+        </section>
 
-        {loading && (
-          <div className="empty-state">
-            <div className={styles.spinner} />
-            <span style={{fontSize:12,color:'var(--text-soft)'}}>loading recipe...</span>
-          </div>
-        )}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {!meal && !loading && !error && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink-muted)' }}>
+              <ChefHat size={26} style={{ color: 'var(--pink-dark)', marginBottom: 10 }} />
+              <div style={{ fontSize: '0.85rem' }}>Search for a recipe above to get started</div>
+            </div>
+          )}
 
-        {error && (
-          <div className="empty-state">
-            <i className="ti ti-alert-circle" aria-hidden="true" />
-            {error}
-          </div>
-        )}
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+              <div style={{
+                width: 24, height: 24, margin: '0 auto 10px',
+                border: '2.5px solid var(--pink-light)', borderTopColor: 'var(--pink-dark)',
+                borderRadius: '50%', animation: 'cookSpin 0.7s linear infinite',
+              }} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--ink-muted)' }}>Loading recipe…</span>
+            </div>
+          )}
 
-        {meal && !loading && (
-          <>
-            <div className={styles.recipeHeader}>
-              {meal.thumb && <img src={meal.thumb} alt={meal.title} className={styles.recipeThumb} />}
-              <div className={styles.recipeHeaderText}>
-                <h2 className={styles.recipeTitle}>{meal.title}</h2>
-                <div className={styles.recipeMeta}>
-                  <span className={styles.pill}>{meal.category}</span>
-                  <span className={styles.pill}>{meal.steps.length} steps</span>
-                  <span className={styles.pill}>{meal.ingredients.length} ingredients</span>
+          {error && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--danger)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <AlertCircle size={20} />
+              <span style={{ fontSize: '0.85rem' }}>{error}</span>
+            </div>
+          )}
+
+          {meal && !loading && (
+            <>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: 'var(--blush)', padding: '16px 18px',
+              }}>
+                {meal.thumb && (
+                  <img src={meal.thumb} alt={meal.title} style={{
+                    width: 96, height: 96, objectFit: 'cover',
+                    borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                  }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 style={{ margin: '0 0 8px', fontSize: '1.15rem', color: 'var(--pink-dark)' }}>{meal.title}</h2>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {meal.category && <span style={pillStyle()}>{meal.category}</span>}
+                    <span style={pillStyle()}>{meal.steps.length} steps</span>
+                    <span style={pillStyle()}>{meal.ingredients.length} ingredients</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className={styles.body}>
-              {/* INGREDIENTS */}
-              <div className={styles.ingCol}>
-                <div className={styles.ingTitle}>
-                  ingredients
-                  <div className={styles.unitToggle}>
-                    <button className={`${styles.unitBtn} ${unit === 'us' ? styles.unitActive : ''}`} onClick={() => setUnit('us')}>US</button>
-                    <button className={`${styles.unitBtn} ${unit === 'metric' ? styles.unitActive : ''}`} onClick={() => setUnit('metric')}>metric</button>
+              <div className="cook-grid" style={{ display: 'grid', gridTemplateColumns: '230px 1fr', minHeight: 440 }}>
+
+                {/* INGREDIENTS */}
+                <div style={{ borderRight: '1px solid var(--border)', padding: 16, display: 'flex', flexDirection: 'column' }}>
+                  <div className="section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <span>Ingredients</span>
+                    <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                      <button
+                        onClick={() => setUnit('us')}
+                        style={{
+                          background: unit === 'us' ? 'var(--pink-dark)' : 'none', color: unit === 'us' ? '#fff' : 'var(--ink-muted)',
+                          border: 'none', padding: '3px 8px', fontSize: '0.6rem', cursor: 'pointer',
+                          fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase',
+                        }}
+                      >US</button>
+                      <button
+                        onClick={() => setUnit('metric')}
+                        style={{
+                          background: unit === 'metric' ? 'var(--pink-dark)' : 'none', color: unit === 'metric' ? '#fff' : 'var(--ink-muted)',
+                          border: 'none', padding: '3px 8px', fontSize: '0.6rem', cursor: 'pointer',
+                          fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase',
+                        }}
+                      >Metric</button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 14 }}>
+                    {meal.ingredients.map((ing, i) => {
+                      const isActive = meal.steps[step]?.toLowerCase().includes(ing.name.toLowerCase())
+                      return (
+                        <div key={i} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                          padding: '6px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem',
+                          background: isActive ? 'var(--blush)' : 'transparent',
+                          borderLeft: isActive ? '2px solid var(--pink-dark)' : '2px solid transparent',
+                          transition: 'background 0.1s',
+                        }}>
+                          <span style={{ flex: 1, color: 'var(--ink)' }}>{ing.name}</span>
+                          <span style={{ color: 'var(--pink-dark)', fontWeight: 600, fontSize: '0.72rem', textAlign: 'right', minWidth: 65, marginLeft: 8 }}>{ing.measure}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div style={{ background: 'var(--cream)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', marginTop: 'auto' }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--ink-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'IBM Plex Mono', monospace" }}>
+                      Quick Conversions
+                    </div>
+                    {CONVERSIONS[unit].map((c, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', padding: '2px 0', color: 'var(--ink-muted)' }}>
+                        <span>{c.from}</span>
+                        <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{c.to}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className={styles.ingList}>
-                  {meal.ingredients.map((ing, i) => {
-                    const isActive = meal.steps[step]?.toLowerCase().includes(ing.name.toLowerCase())
-                    return (
-                      <div key={i} className={`${styles.ingRow} ${isActive ? styles.ingHighlight : ''}`}>
-                        <span className={styles.ingName}>{ing.name}</span>
-                        <span className={styles.ingAmt}>{ing.measure}</span>
-                      </div>
-                    )
-                  })}
-                </div>
+                {/* STEPS */}
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+                  <div className="section-label">Steps</div>
 
-                <div className={styles.convBox}>
-                  <div className={styles.convTitle}>quick conversions</div>
-                  {CONVERSIONS[unit].map((c, i) => (
-                    <div key={i} className={styles.convRow}>
-                      <span>{c.from}</span><span>{c.to}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                  <div style={{ height: 6, background: 'var(--border)', borderRadius: 999, marginBottom: 14, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 999, width: `${progressPct}%`,
+                      background: 'linear-gradient(90deg, var(--secondary), var(--pink-dark))',
+                      transition: 'width 0.3s',
+                    }} />
+                  </div>
 
-              {/* STEPS */}
-              <div className={styles.stepsCol}>
-                <div className={styles.stepsTitle}>steps</div>
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
-                </div>
-                <div className={styles.stepsList}>
-                  {meal.steps.map((s, i) => {
-                    const state = i < step ? 'done' : i === step ? 'active' : 'pending'
-                    return (
-                      <div key={i} className={`${styles.stepCard} ${styles[state]}`} onClick={() => setStep(i)}>
-                        <div className={styles.stepNum}>
-                          {i < step
-                            ? <i className="ti ti-check" style={{fontSize:10}} aria-hidden="true" />
-                            : i + 1}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                    {meal.steps.map((s, i) => {
+                      const state = i < step ? 'done' : i === step ? 'active' : 'pending'
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => setStep(i)}
+                          style={{
+                            border: `1.5px solid ${state === 'active' ? 'var(--pink-dark)' : 'var(--border)'}`,
+                            background: state === 'active' ? 'var(--blush)' : 'var(--white)',
+                            borderRadius: 'var(--radius-md)', padding: '10px 12px',
+                            cursor: 'pointer', opacity: state === 'done' ? 0.55 : 1,
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: 20, height: 20, borderRadius: '50%', marginBottom: 6,
+                            background: state === 'active' ? 'var(--pink-dark)' : state === 'done' ? 'var(--pink-dark)' : 'var(--cream)',
+                            border: `1px solid ${state === 'pending' ? 'var(--border)' : 'var(--pink-dark)'}`,
+                            color: state === 'pending' ? 'var(--ink-muted)' : '#fff',
+                            fontSize: '0.62rem', fontWeight: 700,
+                          }}>
+                            {i < step ? <Check size={11} /> : i + 1}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', lineHeight: 1.55, color: state === 'done' ? 'var(--ink-muted)' : 'var(--ink)' }}>
+                            {s}
+                          </div>
                         </div>
-                        <div className={styles.stepText}>{s}</div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
 
-                <div className={styles.navRow}>
-                  <button className="btn-ghost" style={{flex:1,justifyContent:'center'}} disabled={step === 0} onClick={() => setStep(s => s - 1)}>
-                    <i className="ti ti-arrow-left" aria-hidden="true" /> prev
-                  </button>
-                  <button className="btn-primary" style={{flex:1,justifyContent:'center'}} onClick={() => step < meal.steps.length - 1 ? setStep(s => s + 1) : undefined}>
-                    {step === meal.steps.length - 1
-                      ? <><i className="ti ti-check" aria-hidden="true" /> done!</>
-                      : <>next <i className="ti ti-arrow-right" aria-hidden="true" /></>}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      disabled={step === 0}
+                      onClick={() => setStep(s => s - 1)}
+                    >
+                      <ArrowLeft size={14} /> Prev
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={() => step < meal.steps.length - 1 ? setStep(s => s + 1) : undefined}
+                    >
+                      {step === meal.steps.length - 1
+                        ? <><Check size={14} /> Done!</>
+                        : <>Next <ArrowRight size={14} /></>}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
+
       </div>
+
+      <style>{`
+        @keyframes cookSpin { to { transform: rotate(360deg); } }
+        @media (max-width: 800px) {
+          .cook-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }
