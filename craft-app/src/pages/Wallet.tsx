@@ -264,9 +264,15 @@ export default function Wallet() {
     return s ? parseFloat(s) : 20;
   });
   const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
+  const [healthDeduction, setHealthDeduction] = useState<number>(() => {
+  const s = localStorage.getItem("weekly_health_deduction");
+  return s ? parseFloat(s) : 62.38;
+});
 
   useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
   useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
+  useEffect(() => { localStorage.setItem("weekly_health_deduction", healthDeduction.toString()); }, [healthDeduction]);
+
 
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
@@ -504,10 +510,12 @@ export default function Wallet() {
 
     // Saturday closes the period: tax the FULL gross total once, then
     // subtract whatever gross cash was already advanced during the week.
-    if (dow === 6) {
-      const netOwedForPeriod = periodEarnedGross * (1 - taxRate / 100);
+        if (dow === 6) {
+      const taxableGross = Math.max(0, periodEarnedGross - healthDeduction);
+      const netOwedForPeriod = taxableGross * (1 - taxRate / 100);
       pendingPayout += Math.max(0, netOwedForPeriod - periodWithdrawnGross);
     }
+
 
     let releasedToday = 0;
     if (dow === 3 && pendingPayout > 0) {
@@ -925,6 +933,13 @@ export default function Wallet() {
                     <div className="form-label">Tax Withholding (%)</div>
                     <input type="number" className="form-input" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} />
                   </div>
+
+                                  <div>
+                    <div className="form-label">Weekly Health Premium ($)</div>
+                    <input type="number" className="form-input" value={healthDeduction} onChange={e => setHealthDeduction(parseFloat(e.target.value) || 0)} />
+                  </div>
+
+
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
