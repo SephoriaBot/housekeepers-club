@@ -846,7 +846,7 @@ export default function Wallet() {
   };
 
   const VIEW_TITLES: Record<typeof view, string> = {
-    home: "Welcome to Your Piggybank",
+    home: "Piggybank",
     bills: "🏠 Bills",
     debts: "💳 Debts",
   };
