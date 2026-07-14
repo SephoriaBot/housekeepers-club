@@ -121,10 +121,6 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
               </div>
             )}
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--ink-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-              Which room are we tackling today? ✨
-            </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {ROOMS.map(r => (
                 <button
