@@ -165,25 +165,25 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   <div className="glance-wrap">
     <div className="card stat-card glance-card" onClick={() => onNavigate('wallet')}>
       <div className="glance-value">{fmt(currentBalance)}</div>
-      <div className="glance-label">💰 Wallet</div>
+      <div className="glance-label">PiggyBank</div>
     </div>
   </div>
   <div className="glance-wrap">
     <div className="card stat-card glance-card" onClick={() => onNavigate('dailyplanner')}>
       <div className="glance-value">{glance.appointmentsToday}</div>
-      <div className="glance-label">Today's Appointments</div>
+      <div className="glance-label">Appointments & Schedule</div>
     </div>
   </div>
   <div className="glance-wrap">
     <div className="card stat-card glance-card" onClick={() => onNavigate('trackers')}>
       <div className="glance-value">{glance.trackerLogsToday}</div>
-      <div className="glance-label">Logged Today</div>
+      <div className="glance-label">Tracker Logs</div>
     </div>
   </div>
   <div className="glance-wrap">
     <div className="card stat-card glance-card" onClick={() => onNavigate('grocery')}>
       <div className="glance-value">{glance.groceryItems}</div>
-      <div className="glance-label">On the List</div>
+      <div className="glance-label">Grocery List</div>
     </div>
   </div>
 </div>
@@ -347,7 +347,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
 
         {/* ── TODAY'S BILLS ── */}
         <section>
-          <div className="section-label">🏠 Bills Due Today</div>
+          <div className="section-label">Bills Due Today</div>
 
           {todayBills.length === 0 ? (
             <div className="meals-empty">
