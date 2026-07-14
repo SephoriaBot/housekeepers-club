@@ -457,16 +457,16 @@ useEffect(() => {
 function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
   let runningBalance = startingBalance;
 
-  // Find the Sunday before the first visible day.
+  const payoutByDate: Record<string, number> = {};
+
   const start = new Date(allDays[0]);
   start.setDate(start.getDate() - start.getDay());
 
   let periodEarned = 0;
   let periodWithdrawn = 0;
-  const payoutByDate: Record<string, number> = {};
 
-  // Replay the current pay week before the visible calendar.
-  for (let d = new Date(start); d < allDays[0]; d.setDate(d.getDate() + 1)) {
+  // Build payouts from previous days first
+  for (let d = new Date(start); d <= allDays[allDays.length - 1]; d.setDate(d.getDate() + 1)) {
     const key = dateKey(d);
     const dow = d.getDay();
 
@@ -485,24 +485,24 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
     periodEarned += earned;
 
     const maxWithdrawable = periodEarned * rampPercentForDate(d);
-    const withdrawn = Math.max(0, maxWithdrawable - periodWithdrawn);
-    periodWithdrawn += withdrawn;
+    const available = Math.max(0, maxWithdrawable - periodWithdrawn);
+    periodWithdrawn += available;
 
     if (dow === 6) {
-  const nextWednesday = new Date(d);
-  nextWednesday.setDate(d.getDate() + 4);
+      const nextWednesday = new Date(d);
+      nextWednesday.setDate(d.getDate() + 4);
 
-  payoutByDate[dateKey(nextWednesday)] = Math.max(
-    0,
-    periodEarned - periodWithdrawn
-  );
-}
+      payoutByDate[dateKey(nextWednesday)] =
+        Math.max(0, periodEarned - periodWithdrawn);
+    }
+  }
 
-const releasedToday = payoutByDate[key] || 0;
+  periodEarned = 0;
+  periodWithdrawn = 0;
 
   const rows = allDays.map(d => {
     const key = dateKey(d);
-    const dow = d.getDay(); // 0 Sun ... 6 Sat
+    const dow = d.getDay();
 
     if (dow === 0) {
       periodEarned = 0;
@@ -510,53 +510,65 @@ const releasedToday = payoutByDate[key] || 0;
     }
 
     const extraToday = parseFloat(extraFunds[key]) || 0;
+
     const billsToday = billsByDate[key] || [];
     const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
 
     const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
     const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
+
     const hoursToday = regHoursToday + otHoursToday;
 
     const fullEarnedToday =
-      netHourlyWage > 0
-        ? regHoursToday * netHourlyWage + otHoursToday * netOtWage
-        : 0;
+      regHoursToday * netHourlyWage +
+      otHoursToday * netOtWage;
 
     periodEarned += fullEarnedToday;
 
     const rampPct = rampPercentForDate(d);
+
     const maxWithdrawableSoFar = periodEarned * rampPct;
-    const availableToday = Math.max(0, maxWithdrawableSoFar - periodWithdrawn);
+
+    const availableToday = Math.max(
+      0,
+      maxWithdrawableSoFar - periodWithdrawn
+    );
+
     periodWithdrawn += availableToday;
 
-   let releasedToday = 0;
+    const releasedToday = payoutByDate[key] || 0;
 
-if (dow === 3) {
-  const previousSaturday = new Date(d);
-  previousSaturday.setDate(d.getDate() - 4);
+    runningBalance +=
+      availableToday +
+      releasedToday +
+      extraToday -
+      billsTotal;
 
-  const saturdayKey = dateKey(previousSaturday);
-
-  const saturdayRow = rows.find(r => r.key === saturdayKey);
-
-  if (saturdayRow) {
-    releasedToday = Math.max(0, saturdayRow.heldInPool);
-  }
-}
-
-    runningBalance += availableToday + releasedToday + extraToday - billsTotal;
-    const heldInPool = Math.max(0, periodEarned - periodWithdrawn);
+    const heldInPool = Math.max(
+      0,
+      periodEarned - periodWithdrawn
+    );
 
     return {
-      date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday,
-      hoursToday, earnedToday: fullEarnedToday, availableToday, releasedToday,
-      rampPct, heldInPool, extraToday, balance: runningBalance,
+      date: d,
+      key,
+      billsToday,
+      billsTotal,
+      regHoursToday,
+      otHoursToday,
+      hoursToday,
+      earnedToday: fullEarnedToday,
+      availableToday,
+      releasedToday,
+      rampPct,
+      heldInPool,
+      extraToday,
+      balance: runningBalance,
     };
   });
 
   return { rows, endingBalance: runningBalance };
 }
-
 
 
 
