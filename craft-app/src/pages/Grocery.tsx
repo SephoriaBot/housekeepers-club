@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import type { GroceryItem } from '../types/legacy'
 import { supabase } from '../lib/supabase'
-import styles from './Grocery.module.css'
+import {
+  ShoppingCart, ListChecks, RotateCcw, X, History, ClipboardList,
+  MapPin, Save, Trash2, ArrowLeft, CheckCircle2,
+  ChevronUp, ChevronDown, ExternalLink, Plus,
+} from 'lucide-react'
 
 interface SavedList { id: string; name: string; items: string[]; created_at: string }
 
@@ -450,372 +454,434 @@ export default function Grocery() {
   const needs = items.filter(i => !i.checked)
   const have  = items.filter(i =>  i.checked)
 
-  return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}><i className="ti ti-shopping-cart" aria-hidden="true" /> grocery list</h1>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn-primary" onClick={openBasicsModal}>
-            <i className="ti ti-list-details" aria-hidden="true" /> build basics list
-          </button>
-          <button className="btn-primary" onClick={buildSmartCart}>
-            <i className="ti ti-shopping-cart" aria-hidden="true" /> Build Smart Cart
-          </button>
-          <button className="btn-primary" onClick={refreshSmartCart}>
-            <i className="ti ti-refresh" aria-hidden="true" /> Refresh
-          </button>
-          <button className="btn-primary" onClick={clearSmartCart}>
-            <i className="ti ti-x" aria-hidden="true" /> Clear
-          </button>
+  // Shared row treatment for grocery items — matches the token-based
+  // list-row pattern used on DailyPlanner (white/blush background,
+  // 1.5px border, --radius-md corners) instead of a bespoke module style.
+  function itemRowStyle(checked: boolean) {
+    return {
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '8px 10px', borderRadius: 'var(--radius-md)',
+      background: checked ? 'var(--blush)' : 'var(--white)',
+      border: `1.5px solid ${checked ? 'var(--pink-light)' : 'var(--border)'}`,
+      fontSize: '0.82rem',
+    } as React.CSSProperties
+  }
 
-          <button className="btn-primary" onClick={() => setShowSaved(!showSaved)}>
-            <i className="ti ti-history" aria-hidden="true" /> saved lists {savedLists.length > 0 && `(${savedLists.length})`}
+  function priceBadgeStyle(stale: boolean) {
+    return {
+      fontSize: '0.68rem', fontWeight: 700, whiteSpace: 'nowrap' as const,
+      padding: '2px 9px', borderRadius: 999, flexShrink: 0,
+      color: stale ? 'var(--gold-dark)' : 'var(--sage-dark)',
+      background: stale ? 'var(--gold-light)' : 'var(--sage-light)',
+    }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <h2>Grocery List 🛒</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={openBasicsModal}>
+            <ListChecks size={14} /> Build Basics List
           </button>
-          <button className="btn-primary" onClick={openShoppingList} disabled={!needs.length}>
-            <i className="ti ti-clipboard-list" aria-hidden="true" /> copy list & open notes
+          <button className="btn btn-primary" onClick={buildSmartCart}>
+            <ShoppingCart size={14} /> Build Smart Cart
+          </button>
+          <button className="btn btn-secondary" onClick={refreshSmartCart}>
+            <RotateCcw size={14} /> Refresh
+          </button>
+          <button className="btn btn-ghost" onClick={clearSmartCart}>
+            <X size={14} /> Clear
+          </button>
+          <button className="btn btn-secondary" onClick={() => setShowSaved(!showSaved)}>
+            <History size={14} /> Saved Lists {savedLists.length > 0 && `(${savedLists.length})`}
+          </button>
+          <button className="btn btn-primary" onClick={openShoppingList} disabled={!needs.length}>
+            <ClipboardList size={14} /> Copy List &amp; Open Notes
           </button>
         </div>
       </div>
 
-      {/* Build Basics List modal */}
-      {showBasicsModal && (
-        <div className="modal-overlay" onClick={() => setShowBasicsModal(false)}>
-          <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{basicsPreset ? `${BASICS_PRESETS[basicsPreset].emoji} ${BASICS_PRESETS[basicsPreset].label}` : 'Build a Basics List'}</h3>
-              <button className="close-btn" onClick={() => setShowBasicsModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              {!basicsPreset ? (
-                <>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16 }}>
-                    Pick a starting point — you'll be able to customize before adding anything.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {Object.entries(BASICS_PRESETS).map(([key, preset]) => (
-                      <button
-                        key={key}
-                        onClick={() => selectPreset(key)}
-                        className="card"
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
-                          background: '#fff', color: 'var(--ink)',
-                        }}
-                      >
-                        <span style={{ fontSize: '1.4rem' }}>{preset.emoji}</span>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{preset.label}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>{preset.items.length} staple items</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
-                      Uncheck anything you don't want — {basicsChecked.size} of {BASICS_PRESETS[basicsPreset].items.length} selected
+      <div className="page-body">
+
+        {/* Build Basics List modal */}
+        {showBasicsModal && (
+          <div className="modal-overlay" onClick={() => setShowBasicsModal(false)}>
+            <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>{basicsPreset ? `${BASICS_PRESETS[basicsPreset].emoji} ${BASICS_PRESETS[basicsPreset].label}` : 'Build a Basics List'}</h3>
+                <button className="close-btn" onClick={() => setShowBasicsModal(false)}><X size={16} /></button>
+              </div>
+              <div className="modal-body">
+                {!basicsPreset ? (
+                  <>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16 }}>
+                      Pick a starting point — you'll be able to customize before adding anything.
                     </p>
-                    <button className="btn-ghost btn-sm" onClick={backToPresets}>
-                      <i className="ti ti-arrow-left" aria-hidden="true" /> back
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 360, overflowY: 'auto' }}>
-                    {BASICS_PRESETS[basicsPreset].items.map(item => {
-                      const checked = basicsChecked.has(item.name)
-                      const alreadyOnList = items.some(i => i.name.toLowerCase() === item.name.toLowerCase())
-                      return (
-                        <label
-                          key={item.name}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {Object.entries(BASICS_PRESETS).map(([key, preset]) => (
+                        <button
+                          key={key}
+                          onClick={() => selectPreset(key)}
+                          className="card"
                           style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            padding: '9px 12px', borderRadius: 10, cursor: 'pointer',
-                            background: checked ? 'var(--cream)' : '#fff',
-                            border: '1.5px solid var(--border)',
-                            opacity: alreadyOnList ? 0.55 : 1,
-                            color: 'var(--ink)',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+                            background: 'var(--white)', color: 'var(--ink)',
                           }}
                         >
-                          <input type="checkbox" checked={checked} onChange={() => toggleBasicItem(item.name)} />
-                          <span style={{ flex: 1, fontSize: '0.86rem', color: 'var(--ink)' }}>{item.name}</span>
-                          <span style={{ fontSize: '0.76rem', color: 'var(--ink-muted)' }}>{item.qty}</span>
-                          {alreadyOnList && <span style={{ fontSize: '0.7rem', color: 'var(--ink-muted)' }}>on list</span>}
-                        </label>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-            {basicsPreset && (
-              <div className="modal-footer">
-                <button className="btn-ghost" onClick={() => setShowBasicsModal(false)}>Cancel</button>
-                <button className="btn-primary" onClick={addBasicsToList} disabled={addingBasics || basicsChecked.size === 0}>
-                  {addingBasics ? 'Adding...' : `Add ${basicsChecked.size} item${basicsChecked.size === 1 ? '' : 's'} to list`}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* location input */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-        <i className="ti ti-map-pin" aria-hidden="true" />
-        <input
-          type="text"
-          placeholder="city, state (e.g. Richmond, Virginia)..."
-          value={location}
-          onChange={e => saveLocation(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && buildSmartCart()}
-          style={{ width: 280 }}
-        />
-        <button className="btn-primary" onClick={buildSmartCart} disabled={!location}>
-          <i className="ti ti-search" aria-hidden="true" /> search
-        </button>
-      </div>
-
-      {/* save list row */}
-      <div className={styles.saveRow}>
-        <input type="text" placeholder="name this list (optional)..." value={listName}
-          onChange={e => setListName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && saveList()}
-          style={{ flex: 2 }} />
-        <button className="btn-primary" onClick={saveList} disabled={saving || !items.length}>
-          <i className="ti ti-device-floppy" aria-hidden="true" /> save list
-        </button>
-        {have.length > 0 && (
-          <button className="btn-ghost" onClick={clearChecked}>
-            <i className="ti ti-trash" aria-hidden="true" /> clear checked
-          </button>
-        )}
-      </div>
-
-      {/* saved lists panel */}
-      {showSaved && (
-        <div className={`card ${styles.savedPanel}`}>
-          <div className={styles.savedPanelTitle}>saved lists</div>
-          {savedLists.length === 0
-            ? <p style={{ fontSize: 12, color: 'var(--ink-muted)', padding: '0.5rem 0' }}>no saved lists yet</p>
-            : savedLists.map(list => (
-              <div key={list.id} className={styles.savedListRow}>
-                <div>
-                  <div className={styles.savedListName}>{list.name}</div>
-                  <div className={styles.savedListItems}>{list.items.slice(0, 5).join(' · ')}{list.items.length > 5 ? ` +${list.items.length - 5} more` : ''}</div>
-                </div>
-                <button className={styles.removeBtn} onClick={() => deleteSavedList(list.id)}>
-                  <i className="ti ti-trash" aria-hidden="true" />
-                </button>
-              </div>
-            ))
-          }
-        </div>
-      )}
-
-      {/* store leaderboard — computed inline from current cart */}
-      {(() => {
-        const tally = computeTally(cart)
-        const totalTracked = cart.length
-        if (cart.length === 0) return null
-        if (tally.length === 0) {
-          return (
-            <div className={`card ${styles.savedPanel}`}>
-              <div className={styles.savedPanelTitle}>best store for your whole list</div>
-              <p style={{ fontSize: 12, color: 'var(--ink-muted)', padding: '0.5rem 0' }}>
-                at least one item on your list had zero search results anywhere, so no store total could be estimated yet
-              </p>
-            </div>
-          )
-        }
-        return (
-          <div className={`card ${styles.savedPanel}`}>
-            <div className={styles.savedPanelTitle}>best store for your whole list</div>
-            {tally.map((t, i) => (
-              <div key={t.store} className={styles.tallyRow}>
-                <span className={styles.tallyRank}>{i + 1}</span>
-                <span className={styles.tallyStore}>{t.store}</span>
-                <div className={styles.tallyBarTrack}>
-                  <div className={styles.tallyBarFill} style={{ width: `${(t.realCount / totalTracked) * 100}%` }} />
-                </div>
-                <span className={styles.tallyCount}>{t.realCount}/{totalTracked} real</span>
-                <span className={styles.priceBadge}>${t.total.toFixed(2)} est.</span>
-              </div>
-            ))}
-          </div>
-        )
-      })()}
-
-      {loading ? (
-        <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
-      ) : (
-        <div className={styles.layout}>
-          <div className="card">
-            <div className={styles.colHeader}>
-              <span><i className="ti ti-list-check" aria-hidden="true" /> need to buy</span>
-              <span className={styles.count}>{needs.length} items</span>
-            </div>
-            <div className={styles.list}>
-              {needs.length === 0
-                ? <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-muted)', padding: '1rem' }}>list is clear!</p>
-                : needs.map(item => {
-                  const cheapest = cheapestFor(item.name)
-                  const itemPrices = pricesFor(item.name)
-                  const isOpen = expandedItem === item.id
-                  return (
-                    <div key={item.id} className={styles.itemWrap}>
-                      <div className={styles.item}>
-                        <input type="checkbox" onChange={() => toggle(item.id, item.checked)} />
-                        <span className={styles.itemName}>{item.name}</span>
-                        <span className={styles.itemQty}>{item.qty}</span>
-                        {cheapest && (
-                          <span className={`${styles.priceBadge} ${isStale(cheapest.updated_at) ? styles.priceStale : ''}`}>
-                            ${cheapest.price.toFixed(2)} @ {cheapest.store}
-                          </span>
-                        )}
-                        <button className={styles.priceToggle} onClick={() => searchOnInstacart(item.id, item.name)} title="search on Instacart">
-                          <i className="ti ti-shopping-cart-plus" aria-hidden="true" />
-                        </button>
-                        <button className={styles.priceToggle} onClick={() => setExpandedItem(isOpen ? null : item.id)}>
-                          <i className={`ti ti-chevron-${isOpen ? 'up' : 'down'}`} aria-hidden="true" />
-                        </button>
-                        <button className={styles.removeBtn} onClick={() => removeItem(item.id)}>
-                          <i className="ti ti-trash" aria-hidden="true" />
-                        </button>
-                      </div>
-
-                      {isOpen && (
-                        <div className={styles.priceDrawer}>
-                          {itemPrices.length === 0 ? (
-                            <p className={styles.noPrices}>no prices logged yet</p>
-                          ) : (
-                            <div className={styles.priceList}>
-                              {itemPrices.map(p => (
-                                <div key={p.id} className={styles.priceRow}>
-                                  <span className={styles.priceStore}>{p.store}</span>
-                                  <span className={styles.priceAmt}>${p.price.toFixed(2)}</span>
-                                  <span className={`${styles.priceDate} ${isStale(p.updated_at) ? styles.priceStale : ''}`}>{p.updated_at}</span>
-                                  <button className={styles.removeBtn} onClick={() => deletePrice(p.id)}>
-                                    <i className="ti ti-x" aria-hidden="true" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className={styles.priceAddRow}>
-                            <input
-                              type="text"
-                              placeholder="store..."
-                              value={priceForm.store}
-                              onChange={e => setPriceForm(f => ({ ...f, store: e.target.value }))}
-                              style={{ flex: 2 }}
-                            />
-                            <input
-                              type="number"
-                              placeholder="price"
-                              value={priceForm.price}
-                              onChange={e => setPriceForm(f => ({ ...f, price: e.target.value }))}
-                              onKeyDown={e => e.key === 'Enter' && addPrice(item.name)}
-                              style={{ flex: 1 }}
-                            />
-                            <button className="btn-primary" style={{ padding: '6px 10px' }} onClick={() => addPrice(item.name)}>
-                              <i className="ti ti-plus" aria-hidden="true" />
-                            </button>
+                          <span style={{ fontSize: '1.4rem' }}>{preset.emoji}</span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{preset.label}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>{preset.items.length} staple items</div>
                           </div>
-                        </div>
-                      )}
+                        </button>
+                      ))}
                     </div>
-                  )
-                })
-              }
-            </div>
-            <div className={styles.addRow}>
-              <input type="text" placeholder="add item..." value={newItem}
-                onChange={e => setNewItem(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addItem()}
-                style={{ flex: 2 }} />
-              <input type="text" placeholder="qty" value={newQty}
-                onChange={e => setNewQty(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addItem()}
-                style={{ flex: 1, minWidth: 0 }} />
-              <button className="btn-primary" style={{ padding: '7px 12px' }} onClick={addItem}>
-                <i className="ti ti-plus" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className={styles.colHeader}>
-              <span><i className="ti ti-circle-check" aria-hidden="true" /> already have</span>
-              <span className={styles.count}>{have.length} items</span>
-            </div>
-            <div className={styles.list}>
-              {have.length === 0
-                ? <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-muted)', padding: '1rem' }}>nothing checked off yet</p>
-                : have.map(item => (
-                  <div key={item.id} className={`${styles.item} ${styles.checked}`}>
-                    <input type="checkbox" checked onChange={() => toggle(item.id, item.checked)} />
-                    <span className={styles.itemName}>{item.name}</span>
-                    <span className={styles.itemQty}>{item.qty}</span>
-                    <button className={styles.removeBtn} onClick={() => removeItem(item.id)}>
-                      <i className="ti ti-trash" aria-hidden="true" />
-                    </button>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* smart cart */}
-      <div className="card">
-        <div className={styles.colHeader}>
-          <span><i className="ti ti-shopping-cart" aria-hidden="true" /> smart cart</span>
-          <span className={styles.count}>{cart.length} items</span>
-        </div>
-
-        {loadingCart && <p style={{ fontSize: 13, color: 'var(--ink-muted)', padding: '1rem' }}>finding prices...</p>}
-
-        {!loadingCart && cart.length === 0 && (
-          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-muted)', padding: '1rem' }}>
-            enter your city and state above, then build a smart cart to see prices
-          </p>
-        )}
-
-        {!loadingCart && cart.length > 0 && cart.map((c, i) => {
-          const sorted = [...(c.results ?? [])].sort((a: any, b: any) => Number(a.price ?? 9999) - Number(b.price ?? 9999))
-          const cheapest = sorted[0]
-          const priciest = sorted[sorted.length - 1]
-          const bigDiff = cheapest && priciest && (priciest.price - cheapest.price) >= 1
-
-          return (
-            <div key={i} className={styles.itemWrap}>
-              <div className={styles.item}>
-                <span className={styles.itemName}>{c.item}</span>
-                {cheapest && (
+                  </>
+                ) : (
                   <>
-                    <span className={styles.priceBadge}>${Number(cheapest.price).toFixed(2)}</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-muted)' }}>{cheapest.store}</span>
-                    {bigDiff && (
-                      <span style={{ fontSize: 11, color: 'var(--accent-warm)', fontWeight: 600 }}>
-                        save ${(priciest.price - cheapest.price).toFixed(2)} vs {priciest.store}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
+                        Uncheck anything you don't want — {basicsChecked.size} of {BASICS_PRESETS[basicsPreset].items.length} selected
+                      </p>
+                      <button className="btn btn-ghost btn-sm" onClick={backToPresets}>
+                        <ArrowLeft size={13} /> Back
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 360, overflowY: 'auto' }}>
+                      {BASICS_PRESETS[basicsPreset].items.map(item => {
+                        const checked = basicsChecked.has(item.name)
+                        const alreadyOnList = items.some(i => i.name.toLowerCase() === item.name.toLowerCase())
+                        return (
+                          <label
+                            key={item.name}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              padding: '9px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                              background: checked ? 'var(--blush)' : 'var(--white)',
+                              border: `1.5px solid ${checked ? 'var(--pink-light)' : 'var(--border)'}`,
+                              opacity: alreadyOnList ? 0.55 : 1,
+                              color: 'var(--ink)',
+                            }}
+                          >
+                            <input type="checkbox" checked={checked} onChange={() => toggleBasicItem(item.name)} />
+                            <span style={{ flex: 1, fontSize: '0.86rem', color: 'var(--ink)' }}>{item.name}</span>
+                            <span style={{ fontSize: '0.76rem', color: 'var(--ink-muted)' }}>{item.qty}</span>
+                            {alreadyOnList && <span style={{ fontSize: '0.7rem', color: 'var(--ink-muted)' }}>on list</span>}
+                          </label>
+                        )
+                      })}
+                    </div>
                   </>
                 )}
               </div>
-              {sorted.length > 1 && (
-                <div style={{ paddingLeft: 16, fontSize: 12, color: 'var(--ink-muted)' }}>
-                  {sorted.slice(1).map((r: any, j: number) => (
-                    <span key={j} style={{ marginRight: 12 }}>{r.store} ${Number(r.price).toFixed(2)}</span>
-                  ))}
+              {basicsPreset && (
+                <div className="modal-footer">
+                  <button className="btn btn-ghost" onClick={() => setShowBasicsModal(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={addBasicsToList} disabled={addingBasics || basicsChecked.size === 0}>
+                    {addingBasics ? 'Adding...' : `Add ${basicsChecked.size} item${basicsChecked.size === 1 ? '' : 's'} to list`}
+                  </button>
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* location input */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <MapPin size={16} style={{ color: 'var(--ink-muted)', flexShrink: 0 }} />
+          <input
+            className="form-input"
+            type="text"
+            placeholder="City, state (e.g. Richmond, Virginia)…"
+            value={location}
+            onChange={e => saveLocation(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && buildSmartCart()}
+            style={{ width: 280 }}
+          />
+          <button className="btn btn-primary" onClick={buildSmartCart} disabled={!location}>
+            Search
+          </button>
+        </div>
+
+        {/* save list row */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Name this list (optional)…"
+            value={listName}
+            onChange={e => setListName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && saveList()}
+            style={{ flex: 2 }}
+          />
+          <button className="btn btn-primary" onClick={saveList} disabled={saving || !items.length}>
+            <Save size={14} /> Save List
+          </button>
+          {have.length > 0 && (
+            <button className="btn btn-ghost" onClick={clearChecked}>
+              <Trash2 size={14} /> Clear Checked
+            </button>
+          )}
+        </div>
+
+        {/* saved lists panel */}
+        {showSaved && (
+          <div className="card">
+            <div className="section-label">Saved Lists</div>
+            {savedLists.length === 0
+              ? <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', padding: '4px 0' }}>No saved lists yet.</p>
+              : savedLists.map(list => (
+                <div key={list.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 0', borderBottom: '1px dashed var(--border)', gap: 10,
+                }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--ink)' }}>{list.name}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>
+                      {list.items.slice(0, 5).join(' · ')}{list.items.length > 5 ? ` +${list.items.length - 5} more` : ''}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteSavedList(list.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', opacity: 0.5, flexShrink: 0 }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            }
+          </div>
+        )}
+
+        {/* store leaderboard — computed inline from current cart */}
+        {(() => {
+          const tally = computeTally(cart)
+          const totalTracked = cart.length
+          if (cart.length === 0) return null
+          if (tally.length === 0) {
+            return (
+              <div className="card">
+                <div className="section-label">Best Store for Your Whole List</div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', padding: '4px 0' }}>
+                  At least one item on your list had zero search results anywhere, so no store total could be estimated yet.
+                </p>
+              </div>
+            )
+          }
+          return (
+            <div className="card">
+              <div className="section-label">Best Store for Your Whole List</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {tally.map((t, i) => (
+                  <div key={t.store} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem' }}>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                      background: 'var(--pink-dark)', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.68rem', fontWeight: 700,
+                    }}>{i + 1}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)', minWidth: 70, flexShrink: 0 }}>{t.store}</span>
+                    <div style={{ flex: 1, height: 8, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 999,
+                        width: `${(t.realCount / totalTracked) * 100}%`,
+                        background: 'linear-gradient(90deg, var(--secondary), var(--pink-dark))',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', minWidth: 46, textAlign: 'right', flexShrink: 0 }}>
+                      {t.realCount}/{totalTracked} real
+                    </span>
+                    <span style={priceBadgeStyle(false)}>${t.total.toFixed(2)} est.</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )
-        })}
+        })()}
+
+        {loading ? (
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.8rem' }}>Loading…</p>
+        ) : (
+          <div className="grid-2" style={{ alignItems: 'start' }}>
+            <div className="card">
+              <div className="section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ListChecks size={13} /> Need to Buy</span>
+                <span style={{ fontWeight: 500 }}>{needs.length} items</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto', marginBottom: 12 }}>
+                {needs.length === 0
+                  ? <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--ink-muted)', padding: '1rem' }}>List is clear!</p>
+                  : needs.map(item => {
+                    const cheapest = cheapestFor(item.name)
+                    const itemPrices = pricesFor(item.name)
+                    const isOpen = expandedItem === item.id
+                    return (
+                      <div key={item.id}>
+                        <div style={itemRowStyle(false)}>
+                          <input type="checkbox" onChange={() => toggle(item.id, item.checked)} style={{ accentColor: 'var(--pink)', flexShrink: 0 }} />
+                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>{item.name}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>{item.qty}</span>
+                          {cheapest && (
+                            <span style={priceBadgeStyle(isStale(cheapest.updated_at))}>
+                              ${cheapest.price.toFixed(2)} @ {cheapest.store}
+                            </span>
+                          )}
+                          <button onClick={() => searchOnInstacart(item.id, item.name)} title="Search on Instacart"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', flexShrink: 0 }}>
+                            <ExternalLink size={13} />
+                          </button>
+                          <button onClick={() => setExpandedItem(isOpen ? null : item.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', flexShrink: 0 }}>
+                            {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                          </button>
+                          <button onClick={() => removeItem(item.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', opacity: 0.4, display: 'flex', flexShrink: 0 }}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        {isOpen && (
+                          <div style={{ padding: '8px 12px 4px 34px', background: 'var(--cream)', borderRadius: '0 0 var(--radius-md) var(--radius-md)' }}>
+                            {itemPrices.length === 0 ? (
+                              <p style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', padding: '4px 0 8px' }}>No prices logged yet.</p>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                                {itemPrices.map(p => (
+                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', padding: '4px 0' }}>
+                                    <span style={{ flex: 2, fontWeight: 600, color: 'var(--ink)' }}>{p.store}</span>
+                                    <span style={{ flex: 1, color: 'var(--pink-dark)', fontWeight: 600 }}>${p.price.toFixed(2)}</span>
+                                    <span style={{ flex: 1, color: isStale(p.updated_at) ? 'var(--gold-dark)' : 'var(--ink-muted)', fontSize: '0.66rem' }}>{p.updated_at}</span>
+                                    <button onClick={() => deletePrice(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', opacity: 0.5 }}>
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                              <input
+                                className="form-input"
+                                type="text"
+                                placeholder="Store…"
+                                value={priceForm.store}
+                                onChange={e => setPriceForm(f => ({ ...f, store: e.target.value }))}
+                                style={{ flex: 2, fontSize: '0.78rem', padding: '6px 8px' }}
+                              />
+                              <input
+                                className="form-input"
+                                type="number"
+                                placeholder="Price"
+                                value={priceForm.price}
+                                onChange={e => setPriceForm(f => ({ ...f, price: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && addPrice(item.name)}
+                                style={{ flex: 1, fontSize: '0.78rem', padding: '6px 8px' }}
+                              />
+                              <button className="btn btn-primary" style={{ padding: '6px 10px' }} onClick={() => addPrice(item.name)}>
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                }
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input className="form-input" type="text" placeholder="Add item…" value={newItem}
+                  onChange={e => setNewItem(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addItem()}
+                  style={{ flex: 2 }} />
+                <input className="form-input" type="text" placeholder="Qty" value={newQty}
+                  onChange={e => setNewQty(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addItem()}
+                  style={{ flex: 1, minWidth: 0 }} />
+                <button className="btn btn-primary" style={{ padding: '8px 12px' }} onClick={addItem}>
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><CheckCircle2 size={13} /> Already Have</span>
+                <span style={{ fontWeight: 500 }}>{have.length} items</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 420, overflowY: 'auto' }}>
+                {have.length === 0
+                  ? <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--ink-muted)', padding: '1rem' }}>Nothing checked off yet.</p>
+                  : have.map(item => (
+                    <div key={item.id} style={itemRowStyle(true)}>
+                      <input type="checkbox" checked onChange={() => toggle(item.id, item.checked)} style={{ accentColor: 'var(--pink)', flexShrink: 0 }} />
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink-muted)', textDecoration: 'line-through' }}>{item.name}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>{item.qty}</span>
+                      <button onClick={() => removeItem(item.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', opacity: 0.4, display: 'flex', flexShrink: 0 }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* smart cart */}
+        <div className="card">
+          <div className="section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ShoppingCart size={13} /> Smart Cart</span>
+            <span style={{ fontWeight: 500 }}>{cart.length} items</span>
+          </div>
+
+          {loadingCart && <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', padding: '1rem 0' }}>Finding prices…</p>}
+
+          {!loadingCart && cart.length === 0 && (
+            <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--ink-muted)', padding: '1rem' }}>
+              Enter your city and state above, then build a smart cart to see prices.
+            </p>
+          )}
+
+          {!loadingCart && cart.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {cart.map((c, i) => {
+                const sorted = [...(c.results ?? [])].sort((a: any, b: any) => Number(a.price ?? 9999) - Number(b.price ?? 9999))
+                const cheapest = sorted[0]
+                const priciest = sorted[sorted.length - 1]
+                const bigDiff = cheapest && priciest && (priciest.price - cheapest.price) >= 1
+
+                return (
+                  <div key={i}>
+                    <div style={itemRowStyle(false)}>
+                      <span style={{ flex: 1, minWidth: 0, color: 'var(--ink)', fontWeight: 600 }}>{c.item}</span>
+                      {cheapest && (
+                        <>
+                          <span style={priceBadgeStyle(false)}>${Number(cheapest.price).toFixed(2)}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>{cheapest.store}</span>
+                          {bigDiff && (
+                            <span style={{ fontSize: '0.68rem', color: 'var(--gold-dark)', fontWeight: 700 }}>
+                              save ${(priciest.price - cheapest.price).toFixed(2)} vs {priciest.store}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {sorted.length > 1 && (
+                      <div style={{ paddingLeft: 16, paddingTop: 4, fontSize: '0.72rem', color: 'var(--ink-muted)' }}>
+                        {sorted.slice(1).map((r: any, j: number) => (
+                          <span key={j} style={{ marginRight: 12 }}>{r.store} ${Number(r.price).toFixed(2)}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )
