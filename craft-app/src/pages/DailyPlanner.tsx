@@ -168,7 +168,7 @@ export default function DailyPlanner() {
         <div>
           <h2>Planner</h2>
           <p style={{ color: allDone ? 'var(--pink-dark)' : 'var(--ink-muted)' }}>
-            {allDone ? '🌸 All done! What a day~' : `${doneCount} of ${tasks.length} done today`}
+            {allDone ? 'All done! Good job.' : `${doneCount} of ${tasks.length} done today`}
           </p>
         </div>
         {tasks.length > 0 && (
