@@ -526,15 +526,20 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
     const availableToday = Math.max(0, maxWithdrawableSoFar - periodWithdrawn);
     periodWithdrawn += availableToday;
 
-    if (dow === 6) {
-      pendingPayout += Math.max(0, periodEarned - periodWithdrawn);
-    }
+   let releasedToday = 0;
 
-    let releasedToday = 0;
-    if (dow === 3 && pendingPayout > 0) {
-      releasedToday = pendingPayout;
-      pendingPayout = 0;
-    }
+if (dow === 3) {
+  const previousSaturday = new Date(d);
+  previousSaturday.setDate(d.getDate() - 4);
+
+  const saturdayKey = dateKey(previousSaturday);
+
+  const saturdayRow = rows.find(r => r.key === saturdayKey);
+
+  if (saturdayRow) {
+    releasedToday = Math.max(0, saturdayRow.heldInPool);
+  }
+}
 
     runningBalance += availableToday + releasedToday + extraToday - billsTotal;
     const heldInPool = Math.max(0, periodEarned - periodWithdrawn);
