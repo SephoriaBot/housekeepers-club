@@ -465,7 +465,8 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
     const key = dateKey(d);
     const dow = d.getDay(); // 0 Sun ... 6 Sat
 
-    // Sunday starts a brand new Anytime Pay period
+    // Sunday starts a brand new Anytime Pay pool — this keeps the ramp %
+    // aligned to "how far into THIS pool's week am I", not just weekday name.
     if (dow === 0) {
       periodEarned = 0;
       periodWithdrawn = 0;
@@ -484,6 +485,8 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
         ? regHoursToday * netHourlyWage + otHoursToday * netOtWage
         : 0;
 
+    // Add today's earnings into the running pool BEFORE calculating what's
+    // withdrawable — this is the cumulative running total you're asking for.
     periodEarned += fullEarnedToday;
 
     const rampPct = rampPercentForDate(d);
@@ -491,14 +494,13 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
     const availableToday = Math.max(0, maxWithdrawableSoFar - periodWithdrawn);
     periodWithdrawn += availableToday;
 
-    // Saturday closes out the period — whatever's still unwithdrawn becomes
-    // the pending lump sum that lands on the following Wednesday.
+    // Saturday closes the pool. Whatever's still sitting unwithdrawn becomes
+    // the pending lump sum for the following Wednesday.
     if (dow === 6) {
       pendingPayout += Math.max(0, periodEarned - periodWithdrawn);
     }
 
-    // Wednesday is payday — release whatever's pending from the period(s)
-    // that closed since the last payday.
+    // Wednesday releases whatever's pending from the most recently closed pool.
     let releasedToday = 0;
     if (dow === 3 && pendingPayout > 0) {
       releasedToday = pendingPayout;
@@ -529,6 +531,7 @@ function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
 
   return { rows, endingBalance: runningBalance };
 }
+
 
 
 
