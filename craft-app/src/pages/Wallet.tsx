@@ -456,9 +456,46 @@ useEffect(() => {
 
 function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
   let runningBalance = startingBalance;
+
+  // Find the Sunday before the first visible day.
+  const start = new Date(allDays[0]);
+  start.setDate(start.getDate() - start.getDay());
+
   let periodEarned = 0;
   let periodWithdrawn = 0;
   let pendingPayout = 0;
+
+  // Replay the current pay week before the visible calendar.
+  for (let d = new Date(start); d < allDays[0]; d.setDate(d.getDate() + 1)) {
+    const key = dateKey(d);
+    const dow = d.getDay();
+
+    if (dow === 0) {
+      periodEarned = 0;
+      periodWithdrawn = 0;
+    }
+
+    const regHours = parseFloat(dailyHours[key]?.reg) || 0;
+    const otHours = parseFloat(dailyHours[key]?.ot) || 0;
+
+    const earned =
+      regHours * netHourlyWage +
+      otHours * netOtWage;
+
+    periodEarned += earned;
+
+    const maxWithdrawable = periodEarned * rampPercentForDate(d);
+    const withdrawn = Math.max(0, maxWithdrawable - periodWithdrawn);
+    periodWithdrawn += withdrawn;
+
+    if (dow === 6) {
+      pendingPayout += Math.max(0, periodEarned - periodWithdrawn);
+    }
+
+    if (dow === 3) {
+      pendingPayout = 0;
+    }
+  }
 
   const rows = allDays.map(d => {
     const key = dateKey(d);
