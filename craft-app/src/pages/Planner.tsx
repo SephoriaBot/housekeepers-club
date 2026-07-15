@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { WeekPlan, Meal } from '../types/legacy'
 import { supabase } from '../lib/supabase'
-import styles from './Planner.module.css'
+import { Sparkles, Plus, X, Heart, Salad, ChefHat, Trash2, Check, Loader2, ShoppingCart } from 'lucide-react'
 
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 const MEAL_TYPES = ['breakfast','lunch','dinner'] as const
@@ -160,130 +160,162 @@ export default function Planner({ onNavigate }: PlannerProps) {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>this week</h1>
+    <div>
+      <div className="page-header">
+        <h2>This Week</h2>
         <button className="btn btn-primary" onClick={() => onNavigate('suggest')}>
-  <i className="ti ti-sparkles" aria-hidden="true" /> get meal ideas
-</button>
-
+          <Sparkles size={14} /> Get Meal Ideas
+        </button>
       </div>
 
-      {loading ? <p style={{color:'var(--ink-muted)',fontSize:13}}>loading...</p> : (
-        <>
-          <div className={styles.grid}>
-            {DAYS.map(day => (
-              <div key={day} className="card" style={{overflow:'hidden'}}>
-                <div className={styles.dayLabel}>{day}</div>
-                <div className={styles.dayMeals}>
-                  {MEAL_TYPES.map(type => {
-                    const meal = plan[day]?.[type]
-                    return (
-                      <div key={type}
-                        className={`${styles.slot} ${meal ? styles.filled : ''}`}
-                        onClick={() => meal ? clearSlot(day, type) : setSelecting({day, type})}
-                        title={meal ? 'click to clear' : `add ${type}`}
+      <div className="page-body">
+        {loading ? <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Loading…</p> : (
+          <>
+            <div className="planner-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, overflowX: 'auto', minWidth: 0 }}>
+              {DAYS.map(day => (
+                <div key={day} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{
+                    background: 'var(--blush)', color: 'var(--pink-dark)', fontSize: '0.62rem', fontWeight: 700,
+                    textAlign: 'center', padding: '5px 4px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}>
+                    {day}
+                  </div>
+                  <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {MEAL_TYPES.map(type => {
+                      const meal = plan[day]?.[type]
+                      return (
+                        <div
+                          key={type}
+                          onClick={() => meal ? clearSlot(day, type) : setSelecting({ day, type: type })}
+                          title={meal ? 'Click to clear' : `Add ${type}`}
+                          style={{
+                            borderRadius: 'var(--radius-sm)', padding: '5px 6px', cursor: 'pointer',
+                            minHeight: 30, display: 'flex', alignItems: meal ? 'flex-start' : 'center', gap: 4,
+                            flexDirection: meal ? 'column' : 'row',
+                            border: meal ? '1.5px solid var(--pink-light)' : '1px dashed var(--border)',
+                            background: meal ? 'var(--blush)' : 'transparent',
+                            color: meal ? 'var(--ink)' : 'var(--ink-muted)',
+                            fontSize: '0.6rem', transition: 'background 0.1s',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.52rem', color: 'var(--pink-dark)', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>
+                            {type[0].toUpperCase()}
+                          </span>
+                          {meal
+                            ? <span style={{ fontSize: '0.6rem', lineHeight: 1.3 }}>{meal}</span>
+                            : <Plus size={9} style={{ opacity: 0.4 }} />
+                          }
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {selecting && (
+              <div className="modal-overlay" onClick={() => setSelecting(null)}>
+                <div className="modal" style={{ maxWidth: 340, maxHeight: '70vh' }} onClick={e => e.stopPropagation()}>
+                  <div className="modal-header" style={{ background: 'var(--blush)', color: 'var(--pink-dark)' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Pick a meal for {selecting.day} {selecting.type}</span>
+                    <button className="close-btn" onClick={() => setSelecting(null)}><X size={16} /></button>
+                  </div>
+                  <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {meals.length === 0 && (
+                      <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', padding: '1rem', textAlign: 'center' }}>
+                        No saved meals yet — visit Suggest Meals to add some
+                      </p>
+                    )}
+                    {meals.map(m => (
+                      <div
+                        key={m.id}
+                        onClick={() => assignMeal(m.name)}
+                        style={{
+                          padding: '10px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                          border: '1.5px solid var(--border)', background: 'var(--white)', transition: 'background 0.1s',
+                        }}
                       >
-                        <span className={styles.slotType}>{type[0]}</span>
-                        {meal
-                          ? <span className={styles.slotMeal}>{meal}</span>
-                          : <i className="ti ti-plus" style={{fontSize:9,opacity:0.4}} aria-hidden="true" />
-                        }
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 2, color: 'var(--ink)' }}>{m.name}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>{m.time}</span>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                          {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <section style={{ marginTop: 8 }}>
+              <h2 style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Heart size={16} style={{ color: 'var(--pink)' }} /> Saved Meals
+              </h2>
+              {meals.length === 0 ? (
+                <div className="empty-state">
+                  <Salad size={20} />
+                  No saved meals yet — go to Suggest Meals to find some
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+                  {meals.map(m => {
+                    const hasIngredients = (m.ingredients ?? []).length > 0
+                    return (
+                      <div key={m.id} className="card">
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: 5, color: 'var(--ink)' }}>{m.name}</div>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            style={{ flexShrink: 0, padding: '2px 6px' }}
+                            onClick={() => deleteMeal(m.id)}
+                            title="Delete meal"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ color: 'var(--ink-muted)', fontSize: '0.68rem' }}>{m.time}</span>
+                          {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: '0.68rem', padding: '4px 8px', flex: 1, justifyContent: 'center' }}
+                            onClick={() => onNavigate('cook')}
+                          >
+                            <ChefHat size={12} /> Cook This
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            style={{ fontSize: '0.68rem', padding: '4px 8px', flex: 1, justifyContent: 'center' }}
+                            onClick={() => sendToGroceryList(m)}
+                            disabled={!hasIngredients || addingId === m.id}
+                            title={!hasIngredients ? 'No ingredients saved for this meal' : ''}
+                          >
+                            {addedId === m.id
+                              ? <><Check size={12} /> Added!</>
+                              : addingId === m.id
+                                ? <><Loader2 size={12} style={{ animation: 'spin 0.7s linear infinite' }} /> Adding...</>
+                                : <><ShoppingCart size={12} /> Add to List</>}
+                          </button>
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
 
-          {selecting && (
-            <div className={styles.overlay} onClick={() => setSelecting(null)}>
-              <div className={styles.picker} onClick={e => e.stopPropagation()}>
-                <div className={styles.pickerHeader}>
-                  <span>pick a meal for {selecting.day} {selecting.type}</span>
-                  <button className="btn-ghost" style={{padding:'4px 8px'}} onClick={() => setSelecting(null)}>
-                    <i className="ti ti-x" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className={styles.pickerMeals}>
-                  {meals.length === 0 && (
-                    <p style={{fontSize:12,color:'var(--ink-muted)',padding:'1rem',textAlign:'center'}}>
-                      no saved meals yet — visit suggest meals to add some
-                    </p>
-                  )}
-                  {meals.map(m => (
-                    <div key={m.id} className={styles.pickerMeal} onClick={() => assignMeal(m.name)}>
-                      <span className={styles.pickerName}>{m.name}</span>
-                      <span className={styles.pickerTime}>{m.time}</span>
-                      <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:3}}>
-                        {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className={styles.savedSection}>
-            <h2 className={styles.sectionTitle}><i className="ti ti-heart" aria-hidden="true" /> saved meals</h2>
-            {meals.length === 0 ? (
-              <div className="empty-state">
-                <i className="ti ti-salad" aria-hidden="true" />
-                no saved meals yet — go to suggest meals to find some
-              </div>
-            ) : (
-              <div className={styles.mealsGrid}>
-                {meals.map(m => {
-                  const hasIngredients = (m.ingredients ?? []).length > 0
-                  return (
-                    <div key={m.id} className={`card ${styles.mealCard}`}>
-                      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:6}}>
-                        <div className={styles.mealName}>{m.name}</div>
-                        <button
-                          className="btn-danger btn-sm"
-                          style={{flexShrink:0,padding:'2px 6px'}}
-                          onClick={() => deleteMeal(m.id)}
-                          title="delete meal"
-                        >
-                          <i className="ti ti-trash" aria-hidden="true" />
-                        </button>
-                      </div>
-                      <div className={styles.mealMeta}>
-                        <span style={{color:'var(--ink-muted)',fontSize:11}}>{m.time}</span>
-                        {m.tags.map(t => <span key={t} className={`tag ${t}`}>{t}</span>)}
-                      </div>
-                      <div style={{display:'flex',gap:6,marginTop:6}}>
-                        <button
-                          className="btn-ghost"
-                          style={{fontSize:11,padding:'4px 8px',flex:1,justifyContent:'center'}}
-                          onClick={() => onNavigate('cook')}
-                        >
-                          <i className="ti ti-chef-hat" aria-hidden="true" /> cook this
-                        </button>
-                        <button
-                          className="btn-primary"
-                          style={{fontSize:11,padding:'4px 8px',flex:1,justifyContent:'center'}}
-                          onClick={() => sendToGroceryList(m)}
-                          disabled={!hasIngredients || addingId === m.id}
-                          title={!hasIngredients ? 'no ingredients saved for this meal' : ''}
-                        >
-                          {addedId === m.id
-                            ? <><i className="ti ti-check" aria-hidden="true" /> added!</>
-                            : addingId === m.id
-                              ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> adding...</>
-                              : <><i className="ti ti-shopping-cart" aria-hidden="true" /> add to list</>}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 700px) {
+          .planner-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
+        }
+      `}</style>
     </div>
   )
 }
