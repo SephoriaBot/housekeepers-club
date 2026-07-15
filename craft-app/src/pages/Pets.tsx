@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import styles from './Pets.module.css'
 import DrGroq from '../components/pets/DrGroq'
-import { Cat, Dog, Bird, Rabbit, Fish, PawPrint, type LucideIcon } from 'lucide-react'
+import { Cat, Dog, Bird, Rabbit, Fish, PawPrint, Pencil, X, Plus, type LucideIcon } from 'lucide-react'
 
 interface Pet {
   id: string
@@ -63,6 +62,18 @@ const EMPTY_PET_FORM = {
   name: '', species: 'cat', breed: '', age: '', weight: '', notes: '',
   vet_name: '', vet_phone: '', insurance_provider: '', insurance_policy: '',
   feeding_routine: '', personality: '', hiding_spots: ''
+}
+
+const iconBtnStyle: React.CSSProperties = {
+  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)',
+  padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0.6,
+}
+
+function pillMeta(color?: string): React.CSSProperties {
+  return {
+    fontSize: '0.75rem', color: color ?? 'var(--ink-muted)', background: 'var(--cream)',
+    padding: '2px 8px', borderRadius: 999,
+  }
 }
 
 export default function Pets() {
@@ -257,13 +268,13 @@ export default function Pets() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div>
+      <div className="page-header">
         <div>
-          <p className={styles.eyebrow}>Garden & Home</p>
-          <h1 className={styles.title}>My Pets</h1>
+          <div className="section-label" style={{ marginBottom: 4 }}>Garden &amp; Home</div>
+          <h2 style={{ margin: 0 }}>My Pets</h2>
         </div>
-        <button className="btn-primary" onClick={openAddPet}>+ Add Pet</button>
+        <button className="btn btn-primary" onClick={openAddPet}><Plus size={14} /> Add Pet</button>
       </div>
 
       {/* Add/Edit pet modal */}
@@ -272,10 +283,10 @@ export default function Pets() {
           <div className="modal" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingPetId ? 'Edit Pet' : 'Add a Pet'}</h3>
-              <button className="close-btn" onClick={() => setShowPetModal(false)}>✕</button>
+              <button className="close-btn" onClick={() => setShowPetModal(false)}><X size={16} /></button>
             </div>
             <div className="modal-body">
-              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Basic Info</div>
+              <div className="section-label" style={{ marginBottom: 12 }}>Basic Info</div>
               <div className="form-group">
                 <label className="form-label">Name *</label>
                 <input className="form-input" value={petForm.name} onChange={e => setPetForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Luna" />
@@ -309,7 +320,7 @@ export default function Pets() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Vet & Insurance</div>
+              <div className="section-label" style={{ margin: '16px 0 12px' }}>Vet &amp; Insurance</div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label className="form-label">Vet Name</label>
@@ -331,7 +342,7 @@ export default function Pets() {
                 </div>
               </div>
 
-              <div style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '16px 0 12px' }}>Catsitter Info</div>
+              <div className="section-label" style={{ margin: '16px 0 12px' }}>Catsitter Info</div>
               <div className="form-group">
                 <label className="form-label">Feeding Routine</label>
                 <textarea className="form-textarea" value={petForm.feeding_routine} onChange={e => setPetForm(f => ({ ...f, feeding_routine: e.target.value }))} placeholder="e.g. 1/4 cup dry in the morning, half a can wet at night" />
@@ -350,188 +361,211 @@ export default function Pets() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-ghost" onClick={() => setShowPetModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={savePet}>{editingPetId ? 'Save Changes' : 'Add Pet'}</button>
+              <button className="btn btn-ghost" onClick={() => setShowPetModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={savePet}>{editingPetId ? 'Save Changes' : 'Add Pet'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {loading ? (
-        <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>loading...</p>
-      ) : pets.length === 0 ? (
-        <div className="empty-state">
-          <PawPrint size={40} style={{ marginBottom: 12, color: 'var(--ink-muted)' }} />
-          <p>No pets yet — add your first one above!</p>
-        </div>
-      ) : (
-        <div className={styles.layout}>
-
-          {/* Pet list */}
-          <div className={styles.petList}>
-            {pets.map(pet => (
-              <div
-                key={pet.id}
-                className={`${styles.petCard} ${selectedPet?.id === pet.id ? styles.petCardActive : ''}`}
-                onClick={() => setSelectedPet(pet)}
-              >
-                <span className={styles.petEmoji}>
-                  <SpeciesIcon species={pet.species} size={28} style={{ color: 'var(--ink)' }} />
-                </span>
-                <div className={styles.petInfo}>
-                  <div className={styles.petName}>{pet.name}</div>
-                  <div className={styles.petMeta}>{pet.breed || pet.species}</div>
-                </div>
-                <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); openEditPet(pet) }} title="edit">✎</button>
-                <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); deletePet(pet.id) }} title="delete">✕</button>
-              </div>
-            ))}
+      <div className="page-body">
+        {loading ? (
+          <p style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Loading…</p>
+        ) : pets.length === 0 ? (
+          <div className="empty-state">
+            <PawPrint size={40} style={{ marginBottom: 12, color: 'var(--ink-muted)' }} />
+            <p>No pets yet — add your first one above!</p>
           </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 24, alignItems: 'start' }}>
 
-          {/* Pet detail */}
-          {selectedPet && (
-            <div className={styles.detail}>
-
-              {/* Pet summary */}
-              <div className={`card ${styles.petSummary}`}>
-                <div className={styles.summaryLeft}>
-                  <span className={styles.summaryEmoji}>
-                    <SpeciesIcon species={selectedPet.species} size={40} style={{ color: 'var(--ink)' }} />
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                      <h2 className={styles.summaryName}>{selectedPet.name}</h2>
-                      <button className="btn-ghost btn-sm" onClick={() => openEditPet(selectedPet)}>✎ Edit</button>
+            {/* Pet list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {pets.map(pet => {
+                const active = selectedPet?.id === pet.id
+                return (
+                  <div
+                    key={pet.id}
+                    onClick={() => setSelectedPet(pet)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 14px', background: active ? 'var(--blush)' : 'var(--white)',
+                      border: `1.5px dashed ${active ? 'var(--pink)' : 'var(--border)'}`,
+                      borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    <SpeciesIcon species={pet.species} size={26} style={{ color: 'var(--ink)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--ink)' }}>{pet.name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', textTransform: 'capitalize', marginTop: 2 }}>{pet.breed || pet.species}</div>
                     </div>
-                    <p className={styles.summaryMeta}>
-                      {[selectedPet.breed, selectedPet.age ? `${selectedPet.age} yrs` : null, selectedPet.weight ? `${selectedPet.weight} lbs` : null].filter(Boolean).join(' · ')}
-                    </p>
-                    {selectedPet.vet_name && (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 4 }}>
-                        🏥 {selectedPet.vet_name}{selectedPet.vet_phone ? ` · ${selectedPet.vet_phone}` : ''}
-                      </p>
-                    )}
-                    {selectedPet.insurance_provider && (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 2 }}>
-                        🛡 {selectedPet.insurance_provider}{selectedPet.insurance_policy ? ` · ${selectedPet.insurance_policy}` : ''}
-                      </p>
-                    )}
+                    <button onClick={e => { e.stopPropagation(); openEditPet(pet) }} title="Edit" style={iconBtnStyle}><Pencil size={13} /></button>
+                    <button onClick={e => { e.stopPropagation(); deletePet(pet.id) }} title="Delete" style={iconBtnStyle}><X size={13} /></button>
                   </div>
-                </div>
-              </div>
+                )
+              })}
+            </div>
 
-              {/* Tabs */}
-              <div className={styles.tabs}>
-                {(['feeding', 'vaccinations', 'weight', 'sitter', 'troubleshoot'] as const).map(t => (
-                  <button key={t} className={`${styles.tabBtn} ${tab === t ? styles.tabActive : ''}`} onClick={() => setTab(t)}>
-                    {t === 'sitter' ? '🏠 catsitter' : t === 'feeding' ? '🍽 feeding' : t === 'vaccinations' ? '💉 vaccines' : t === 'weight' ? '⚖️ weight' : '🩺 ask dr. groq'}
-                  </button>
-                ))}
-              </div>
+            {/* Pet detail */}
+            {selectedPet && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Feeding log */}
-              {tab === 'feeding' && (
-                <div className={styles.section}>
-                  <div className={styles.addRow}>
-                    <select className="form-select" value={feedingForm.food_type} onChange={e => setFeedingForm(f => ({ ...f, food_type: e.target.value }))} style={{ flex: 1 }}>
-                      <option value="wet">Wet</option>
-                      <option value="dry">Dry</option>
-                      <option value="both">Both</option>
-                      <option value="treat">Treat</option>
-                      <option value="other">Other</option>
-                    </select>
-                    <input className="form-input" placeholder="Amount (optional)" value={feedingForm.amount} onChange={e => setFeedingForm(f => ({ ...f, amount: e.target.value }))} style={{ flex: 1 }} />
-                    <select className="form-select" value={feedingForm.ate_well ? 'yes' : 'no'} onChange={e => setFeedingForm(f => ({ ...f, ate_well: e.target.value === 'yes' }))} style={{ flex: 1 }}>
-                      <option value="yes">Ate well ✓</option>
-                      <option value="no">Didn't finish</option>
-                    </select>
-                    <input className="form-input" type="datetime-local" value={feedingForm.fed_at} onChange={e => setFeedingForm(f => ({ ...f, fed_at: e.target.value }))} style={{ flex: 1 }} />
-                    <button className="btn-primary" onClick={addFeeding}>Log</button>
-                  </div>
-                  <div className="form-group" style={{ marginTop: 8 }}>
-                    <input className="form-input" placeholder="Notes (optional)" value={feedingForm.notes} onChange={e => setFeedingForm(f => ({ ...f, notes: e.target.value }))} />
-                  </div>
-                  {feedings.length === 0 ? (
-                    <p className={styles.empty}>No feedings logged yet</p>
-                  ) : feedings.map(f => (
-                    <div key={f.id} className={`card ${styles.recordRow}`}>
-                      <div className={styles.recordMain}>
-                        <span className={styles.recordName}>{f.food_type}{f.amount ? ` — ${f.amount}` : ''}</span>
-                        <span className={styles.recordMeta}>{formatDateTime(f.fed_at)}</span>
-                        <span className={styles.recordMeta} style={{ color: f.ate_well ? 'var(--green-dark)' : '#b91c1c' }}>
-                          {f.ate_well ? '✓ Ate well' : '⚠ Didn\'t finish'}
-                        </span>
-                        {f.notes && <span className={styles.recordNotes}>{f.notes}</span>}
+                {/* Pet summary */}
+                <div className="card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <SpeciesIcon species={selectedPet.species} size={38} style={{ color: 'var(--ink)', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                        <h2 style={{ margin: 0, fontSize: '1.3rem' }}>{selectedPet.name}</h2>
+                        <button className="btn btn-ghost btn-sm" onClick={() => openEditPet(selectedPet)}><Pencil size={12} /> Edit</button>
                       </div>
-                      <button className={styles.deleteBtn} onClick={() => deleteFeeding(f.id)}>✕</button>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: 3 }}>
+                        {[selectedPet.breed, selectedPet.age ? `${selectedPet.age} yrs` : null, selectedPet.weight ? `${selectedPet.weight} lbs` : null].filter(Boolean).join(' · ')}
+                      </p>
+                      {selectedPet.vet_name && (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 4 }}>
+                          🏥 {selectedPet.vet_name}{selectedPet.vet_phone ? ` · ${selectedPet.vet_phone}` : ''}
+                        </p>
+                      )}
+                      {selectedPet.insurance_provider && (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginTop: 2 }}>
+                          🛡 {selectedPet.insurance_provider}{selectedPet.insurance_policy ? ` · ${selectedPet.insurance_policy}` : ''}
+                        </p>
+                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
 
-              {/* Vaccinations */}
-              {tab === 'vaccinations' && (
-                <div className={styles.section}>
-                  <div className={styles.addRow}>
-                    <input className="form-input" placeholder="Vaccine name..." value={vacForm.name} onChange={e => setVacForm(f => ({ ...f, name: e.target.value }))} style={{ flex: 2 }} />
-                    <input className="form-input" type="date" value={vacForm.date_given} onChange={e => setVacForm(f => ({ ...f, date_given: e.target.value }))} style={{ flex: 1 }} />
-                    <input className="form-input" type="date" value={vacForm.next_due} onChange={e => setVacForm(f => ({ ...f, next_due: e.target.value }))} style={{ flex: 1 }} />
-                    <button className="btn-primary" onClick={addVaccination}>Add</button>
-                  </div>
-                  <div className={styles.addRowLabels}>
-                    <span style={{ flex: 2 }}>Name</span>
-                    <span style={{ flex: 1 }}>Date given</span>
-                    <span style={{ flex: 1 }}>Next due</span>
-                  </div>
-                  {vaccinations.length === 0 ? (
-                    <p className={styles.empty}>No vaccinations recorded yet</p>
-                  ) : vaccinations.map(v => (
-                    <div key={v.id} className={`card ${styles.recordRow}`}>
-                      <div className={styles.recordMain}>
-                        <span className={styles.recordName}>{v.name}</span>
-                        {v.date_given && <span className={styles.recordMeta}>Given: {v.date_given}</span>}
-                        {v.next_due && (
-                          <span className={`${styles.recordMeta} ${isOverdue(v.next_due) ? styles.overdue : isDueSoon(v.next_due) ? styles.dueSoon : ''}`}>
-                            Due: {v.next_due} {isOverdue(v.next_due) ? '⚠️ overdue' : isDueSoon(v.next_due) ? '⏰ soon' : ''}
+                {/* Tabs */}
+                <div style={{ display: 'flex', gap: 4, background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 6 }}>
+                  {(['feeding', 'vaccinations', 'weight', 'sitter', 'troubleshoot'] as const).map(t => {
+                    const active = tab === t
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        style={{
+                          flex: 1, padding: '8px 10px', border: 'none', borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                          fontFamily: "'IBM Plex Mono', monospace", cursor: 'pointer', transition: 'all 0.15s',
+                          background: active ? 'var(--pink-dark)' : 'transparent',
+                          color: active ? '#fff' : 'var(--ink-muted)',
+                        }}
+                      >
+                        {t === 'sitter' ? '🏠 Catsitter' : t === 'feeding' ? '🍽 Feeding' : t === 'vaccinations' ? '💉 Vaccines' : t === 'weight' ? '⚖️ Weight' : '🩺 Ask Dr. Groq'}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Feeding log */}
+                {tab === 'feeding' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <select className="form-select" value={feedingForm.food_type} onChange={e => setFeedingForm(f => ({ ...f, food_type: e.target.value }))} style={{ flex: 1 }}>
+                        <option value="wet">Wet</option>
+                        <option value="dry">Dry</option>
+                        <option value="both">Both</option>
+                        <option value="treat">Treat</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <input className="form-input" placeholder="Amount (optional)" value={feedingForm.amount} onChange={e => setFeedingForm(f => ({ ...f, amount: e.target.value }))} style={{ flex: 1 }} />
+                      <select className="form-select" value={feedingForm.ate_well ? 'yes' : 'no'} onChange={e => setFeedingForm(f => ({ ...f, ate_well: e.target.value === 'yes' }))} style={{ flex: 1 }}>
+                        <option value="yes">Ate well ✓</option>
+                        <option value="no">Didn't finish</option>
+                      </select>
+                      <input className="form-input" type="datetime-local" value={feedingForm.fed_at} onChange={e => setFeedingForm(f => ({ ...f, fed_at: e.target.value }))} style={{ flex: 1 }} />
+                      <button className="btn btn-primary" onClick={addFeeding}>Log</button>
+                    </div>
+                    <div className="form-group">
+                      <input className="form-input" placeholder="Notes (optional)" value={feedingForm.notes} onChange={e => setFeedingForm(f => ({ ...f, notes: e.target.value }))} />
+                    </div>
+                    {feedings.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: 'var(--ink-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>No feedings logged yet</p>
+                    ) : feedings.map(f => (
+                      <div key={f.id} className="card" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{f.food_type}{f.amount ? ` — ${f.amount}` : ''}</span>
+                          <span style={pillMeta()}>{formatDateTime(f.fed_at)}</span>
+                          <span style={pillMeta(f.ate_well ? 'var(--sage-dark)' : 'var(--danger)')}>
+                            {f.ate_well ? '✓ Ate well' : "⚠ Didn't finish"}
                           </span>
-                        )}
-                        {v.notes && <span className={styles.recordNotes}>{v.notes}</span>}
+                          {f.notes && <span style={{ fontSize: '0.78rem', color: 'var(--ink-soft)', width: '100%', marginTop: 2 }}>{f.notes}</span>}
+                        </div>
+                        <button onClick={() => deleteFeeding(f.id)} style={iconBtnStyle}><X size={13} /></button>
                       </div>
-                      <button className={styles.deleteBtn} onClick={() => deleteVaccination(v.id)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Weight */}
-              {tab === 'weight' && (
-                <div className={styles.section}>
-                  <div className={styles.addRow}>
-                    <input className="form-input" type="number" placeholder="Weight..." value={weightForm.weight} onChange={e => setWeightForm(f => ({ ...f, weight: e.target.value }))} style={{ flex: 1 }} />
-                    <select className="form-select" value={weightForm.unit} onChange={e => setWeightForm(f => ({ ...f, unit: e.target.value }))} style={{ flex: 1 }}>
-                      <option value="lbs">lbs</option>
-                      <option value="kg">kg</option>
-                    </select>
-                    <input className="form-input" type="date" value={weightForm.recorded_at} onChange={e => setWeightForm(f => ({ ...f, recorded_at: e.target.value }))} style={{ flex: 1 }} />
-                    <button className="btn-primary" onClick={addWeight}>Add</button>
+                    ))}
                   </div>
-                  {weights.length === 0 ? (
-                    <p className={styles.empty}>No weight entries yet</p>
-                  ) : weights.map(w => (
-                    <div key={w.id} className={`card ${styles.recordRow}`}>
-                      <div className={styles.recordMain}>
-                        <span className={styles.recordName}>{w.weight} {w.unit}</span>
-                        <span className={styles.recordMeta}>{w.recorded_at}</span>
-                      </div>
-                      <button className={styles.deleteBtn} onClick={() => deleteWeight(w.id)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                )}
 
-              {/* Catsitter card */}
-              {tab === 'sitter' && (
-                <div className={styles.section}>
+                {/* Vaccinations */}
+                {tab === 'vaccinations' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input className="form-input" placeholder="Vaccine name..." value={vacForm.name} onChange={e => setVacForm(f => ({ ...f, name: e.target.value }))} style={{ flex: 2 }} />
+                      <input className="form-input" type="date" value={vacForm.date_given} onChange={e => setVacForm(f => ({ ...f, date_given: e.target.value }))} style={{ flex: 1 }} />
+                      <input className="form-input" type="date" value={vacForm.next_due} onChange={e => setVacForm(f => ({ ...f, next_due: e.target.value }))} style={{ flex: 1 }} />
+                      <button className="btn btn-primary" onClick={addVaccination}>Add</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, padding: '0 4px', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace" }}>
+                      <span style={{ flex: 2 }}>Name</span>
+                      <span style={{ flex: 1 }}>Date given</span>
+                      <span style={{ flex: 1 }}>Next due</span>
+                    </div>
+                    {vaccinations.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: 'var(--ink-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>No vaccinations recorded yet</p>
+                    ) : vaccinations.map(v => (
+                      <div key={v.id} className="card" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{v.name}</span>
+                          {v.date_given && <span style={pillMeta()}>Given: {v.date_given}</span>}
+                          {v.next_due && (
+                            <span style={
+                              isOverdue(v.next_due)
+                                ? { ...pillMeta(), color: 'var(--danger)', background: 'var(--danger-bg)' }
+                                : isDueSoon(v.next_due)
+                                  ? { ...pillMeta(), color: 'var(--gold-dark)', background: 'var(--gold-light)' }
+                                  : pillMeta()
+                            }>
+                              Due: {v.next_due} {isOverdue(v.next_due) ? '⚠️ overdue' : isDueSoon(v.next_due) ? '⏰ soon' : ''}
+                            </span>
+                          )}
+                          {v.notes && <span style={{ fontSize: '0.78rem', color: 'var(--ink-soft)', width: '100%', marginTop: 2 }}>{v.notes}</span>}
+                        </div>
+                        <button onClick={() => deleteVaccination(v.id)} style={iconBtnStyle}><X size={13} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Weight */}
+                {tab === 'weight' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input className="form-input" type="number" placeholder="Weight..." value={weightForm.weight} onChange={e => setWeightForm(f => ({ ...f, weight: e.target.value }))} style={{ flex: 1 }} />
+                      <select className="form-select" value={weightForm.unit} onChange={e => setWeightForm(f => ({ ...f, unit: e.target.value }))} style={{ flex: 1 }}>
+                        <option value="lbs">lbs</option>
+                        <option value="kg">kg</option>
+                      </select>
+                      <input className="form-input" type="date" value={weightForm.recorded_at} onChange={e => setWeightForm(f => ({ ...f, recorded_at: e.target.value }))} style={{ flex: 1 }} />
+                      <button className="btn btn-primary" onClick={addWeight}>Add</button>
+                    </div>
+                    {weights.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: 'var(--ink-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>No weight entries yet</p>
+                    ) : weights.map(w => (
+                      <div key={w.id} className="card" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{w.weight} {w.unit}</span>
+                          <span style={pillMeta()}>{w.recorded_at}</span>
+                        </div>
+                        <button onClick={() => deleteWeight(w.id)} style={iconBtnStyle}><X size={13} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Catsitter card */}
+                {tab === 'sitter' && (
                   <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <SpeciesIcon species={selectedPet.species} size={20} style={{ color: 'var(--ink)' }} />
@@ -540,42 +574,42 @@ export default function Pets() {
 
                     {selectedPet.feeding_routine ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🍽 Feeding Routine</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>🍽 Feeding Routine</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.feeding_routine}</p>
                       </div>
                     ) : null}
 
                     {selectedPet.personality ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>😸 Personality</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>😸 Personality</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.personality}</p>
                       </div>
                     ) : null}
 
                     {selectedPet.hiding_spots ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>📍 Hiding Spots</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>📍 Hiding Spots</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.hiding_spots}</p>
                       </div>
                     ) : null}
 
                     {selectedPet.vet_name || selectedPet.vet_phone ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🏥 Vet</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>🏥 Vet</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)' }}>{selectedPet.vet_name}{selectedPet.vet_phone ? ` · ${selectedPet.vet_phone}` : ''}</p>
                       </div>
                     ) : null}
 
                     {selectedPet.insurance_provider ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>🛡 Insurance</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>🛡 Insurance</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)' }}>{selectedPet.insurance_provider}{selectedPet.insurance_policy ? ` · Policy: ${selectedPet.insurance_policy}` : ''}</p>
                       </div>
                     ) : null}
 
                     {selectedPet.notes ? (
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>📝 Other Notes</div>
+                        <div className="section-label" style={{ marginBottom: 4 }}>📝 Other Notes</div>
                         <p style={{ fontSize: '0.9rem', color: 'var(--ink)', lineHeight: 1.6 }}>{selectedPet.notes}</p>
                       </div>
                     ) : null}
@@ -584,20 +618,28 @@ export default function Pets() {
                       <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)' }}>No catsitter info yet — edit this pet to add feeding routine, personality, and hiding spots.</p>
                     )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Ask Dr. Groq */}
-              {tab === 'troubleshoot' && (
-                <div className={styles.section}>
-                  <DrGroq pet={selectedPet} />
-                </div>
-              )}
+                {/* Ask Dr. Groq */}
+                {tab === 'troubleshoot' && (
+                  <div>
+                    <DrGroq pet={selectedPet} />
+                  </div>
+                )}
 
-            </div>
-          )}
-        </div>
-      )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @media (max-width: 700px) {
+          .page-body > div[style*="grid-template-columns: 220px"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
