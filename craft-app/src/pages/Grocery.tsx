@@ -158,13 +158,30 @@ export default function Grocery() {
   }
 
   async function addItem() {
-    const name = newItem.trim()
-    if (!name) return
-    const { data } = await supabase
-      .from('grocery_items')
-      .insert({ name, qty: newQty.trim(), checked: false })
-      .select().single()
-    if (data) setItems(prev => [...prev, data])
+    const raw = newItem.trim()
+    if (!raw) return
+
+    const names = raw.split(',').map(s => s.trim()).filter(Boolean)
+    if (names.length === 0) return
+
+    if (names.length === 1) {
+      // single item — the qty field applies as normal
+      const { data } = await supabase
+        .from('grocery_items')
+        .insert({ name: names[0], qty: newQty.trim(), checked: false })
+        .select().single()
+      if (data) setItems(prev => [...prev, data])
+    } else {
+      // multiple comma-separated items — one qty doesn't apply to all of
+      // them, so each gets added blank and can be filled in individually
+      const rows = names.map(name => ({ name, qty: '', checked: false }))
+      const { data } = await supabase
+        .from('grocery_items')
+        .insert(rows)
+        .select()
+      if (data) setItems(prev => [...prev, ...data])
+    }
+
     setNewItem('')
     setNewQty('')
   }
@@ -790,7 +807,7 @@ export default function Grocery() {
                 }
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <input className="form-input" type="text" placeholder="Add item…" value={newItem}
+                <input className="form-input" type="text" placeholder="Add item… (or item, item, item)" value={newItem}
                   onChange={e => setNewItem(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addItem()}
                   style={{ flex: 2 }} />
