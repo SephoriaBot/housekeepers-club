@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import styles from './Suggest.module.css'
+import { SlidersHorizontal, Sparkles, Search, AlertCircle, Database, Salad, Loader2, Check, Plus } from 'lucide-react'
 
 const DIETS = ['vegetarian','vegan','gluten free','ketogenic','paleo','whole30']
 const INTOLERANCES = ['dairy','egg','gluten','peanut','soy','tree nut']
@@ -49,6 +49,16 @@ function stripHtml(html: string) {
 
 type Mode = 'random' | 'search'
 
+function chipStyle(active: boolean): React.CSSProperties {
+  return {
+    background: active ? 'var(--pink)' : 'var(--cream)',
+    border: `1px solid ${active ? 'var(--pink)' : 'var(--border)'}`,
+    borderRadius: 999, padding: '5px 13px', fontSize: '0.72rem',
+    color: active ? '#fff' : 'var(--ink-soft)', fontWeight: active ? 700 : 600,
+    cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Nunito Sans', sans-serif",
+  }
+}
+
 export default function Suggest() {
   const [mode, setMode] = useState<Mode>('random')
   const [query, setQuery] = useState('')
@@ -74,7 +84,7 @@ export default function Suggest() {
 
   async function fetchRecipes() {
     if (mode === 'search' && !query.trim()) {
-      setError('type something to search for')
+      setError('Type something to search for')
       return
     }
 
@@ -112,8 +122,8 @@ export default function Suggest() {
       setMeals(results)
       if (!results.length) {
         setError(mode === 'search'
-          ? `no recipes found for "${query.trim()}" — try different words or fewer filters`
-          : 'no recipes found for those filters — try adjusting them')
+          ? `No recipes found for "${query.trim()}" — try different words or fewer filters`
+          : 'No recipes found for those filters — try adjusting them')
       }
     } catch {
       setError('Could not load recipes — check your connection')
@@ -163,155 +173,164 @@ export default function Suggest() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={`card ${styles.genBox}`}>
-        <h2 className={styles.genTitle}><i className="ti ti-adjustments" aria-hidden="true" /> find recipes that work for you</h2>
-        <p className={styles.genSub}>search by name, or get a surprise pick</p>
+    <div>
+      <div className="page-body">
 
-        <div className={styles.filterSection}>
-          <div className={styles.chips}>
-            <button
-              className={`${styles.chip} ${mode === 'random' ? styles.active : ''}`}
-              onClick={() => switchMode('random')}
-            >
-              <i className="ti ti-sparkles" aria-hidden="true" /> surprise me
-            </button>
-            <button
-              className={`${styles.chip} ${mode === 'search' ? styles.active : ''}`}
-              onClick={() => switchMode('search')}
-            >
-              <i className="ti ti-search" aria-hidden="true" /> search
-            </button>
-          </div>
-        </div>
+        <div className="card">
+          <h2 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <SlidersHorizontal size={16} style={{ color: 'var(--pink)' }} /> Find Recipes That Work for You
+          </h2>
+          <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', marginBottom: 12 }}>Search by name, or get a surprise pick</p>
 
-        {mode === 'search' && (
-          <div className={styles.filterSection}>
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder="e.g. lemon pasta, chicken tacos..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') fetchRecipes() }}
-            />
-          </div>
-        )}
-
-        <div className={styles.filterSection}>
-          <div className={styles.filterLabel}>diet</div>
-          <div className={styles.chips}>
-            {DIETS.map(d => (
-              <button key={d} className={`${styles.chip} ${selectedDiets.has(d) ? styles.active : ''}`}
-                onClick={() => toggleSet(setSelectedDiets, d)}>{d}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.filterSection}>
-          <div className={styles.filterLabel}>avoid</div>
-          <div className={styles.chips}>
-            {INTOLERANCES.map(i => (
-              <button key={i} className={`${styles.chip} ${selectedIntolerances.has(i) ? styles.active : ''}`}
-                onClick={() => toggleSet(setSelectedIntolerances, i)}>{i}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.filterSection}>
-          <div className={styles.filterLabel}>cook time</div>
-          <div className={styles.chips}>
-            {MAX_TIMES.map(t => (
-              <button key={t.value} className={`${styles.chip} ${maxTime === t.value ? styles.active : ''}`}
-                onClick={() => setMaxTime(t.value)}>{t.label}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.filterSection}>
-          <div className={styles.filterLabel}>meal</div>
-          <div className={styles.chips}>
-            {MEAL_TYPES.map(m => (
-              <button
-                key={m.value}
-                className={`${styles.chip} ${mealType === m.value ? styles.active : ''}`}
-                onClick={() => setMealType(m.value)}
-              >
-                {m.label}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button style={chipStyle(mode === 'random')} onClick={() => switchMode('random')}>
+                <Sparkles size={12} style={{ marginRight: 4, verticalAlign: -1 }} /> Surprise Me
               </button>
-            ))}
-          </div>
-        </div>
-
-        {mealType === 'drink' && (
-          <div className={styles.filterSection}>
-            <div className={styles.filterLabel}>type</div>
-            <div className={styles.chips}>
-              <button
-                className={`${styles.chip} ${nonAlcoholicOnly ? styles.active : ''}`}
-                onClick={() => setNonAlcoholicOnly(v => !v)}
-              >
-                non-alcoholic only
+              <button style={chipStyle(mode === 'search')} onClick={() => switchMode('search')}>
+                <Search size={12} style={{ marginRight: 4, verticalAlign: -1 }} /> Search
               </button>
             </div>
           </div>
+
+          {mode === 'search' && (
+            <div style={{ marginBottom: 10 }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. lemon pasta, chicken tacos..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') fetchRecipes() }}
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="section-label" style={{ marginBottom: 5 }}>Diet</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {DIETS.map(d => (
+                <button key={d} style={chipStyle(selectedDiets.has(d))} onClick={() => toggleSet(setSelectedDiets, d)}>{d}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="section-label" style={{ marginBottom: 5 }}>Avoid</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {INTOLERANCES.map(i => (
+                <button key={i} style={chipStyle(selectedIntolerances.has(i))} onClick={() => toggleSet(setSelectedIntolerances, i)}>{i}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="section-label" style={{ marginBottom: 5 }}>Cook Time</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {MAX_TIMES.map(t => (
+                <button key={t.value} style={chipStyle(maxTime === t.value)} onClick={() => setMaxTime(t.value)}>{t.label}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="section-label" style={{ marginBottom: 5 }}>Meal</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {MEAL_TYPES.map(m => (
+                <button key={m.value} style={chipStyle(mealType === m.value)} onClick={() => setMealType(m.value)}>{m.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {mealType === 'drink' && (
+            <div style={{ marginBottom: 10 }}>
+              <div className="section-label" style={{ marginBottom: 5 }}>Type</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <button style={chipStyle(nonAlcoholicOnly)} onClick={() => setNonAlcoholicOnly(v => !v)}>
+                  non-alcoholic only
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button className="btn btn-primary" onClick={fetchRecipes} disabled={loading} style={{ marginTop: '0.5rem' }}>
+            {loading
+              ? <><Loader2 size={14} style={{ animation: 'suggestSpin 0.7s linear infinite' }} /> Loading...</>
+              : mode === 'search'
+                ? <><Search size={14} /> Search Recipes</>
+                : <><Sparkles size={14} /> Surprise Me</>}
+          </button>
+        </div>
+
+        {loading && (
+          <div style={{ height: 2, background: 'var(--pink-light)', borderRadius: 1, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: '40%', background: 'var(--pink)', animation: 'suggestSlide 1s ease-in-out infinite' }} />
+          </div>
         )}
 
-        <button className="btn-primary" onClick={fetchRecipes} disabled={loading} style={{marginTop:'0.75rem'}}>
-          {loading
-            ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> loading...</>
-            : mode === 'search'
-              ? <><i className="ti ti-search" aria-hidden="true" /> search recipes</>
-              : <><i className="ti ti-sparkles" aria-hidden="true" /> surprise me</>}
-        </button>
+        {error && (
+          <div className="empty-state">
+            <AlertCircle size={18} />
+            {error}
+          </div>
+        )}
+
+        {meals.length > 0 && (
+          <>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              background: 'var(--pink-light)', color: 'var(--pink-dark)',
+              fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+            }}>
+              <Database size={11} /> Recipes from Spoonacular
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+              {meals.map(m => (
+                <div key={m.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  {m.image && <img src={m.image} alt={m.title} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />}
+                  <div style={{ padding: '10px 12px 12px' }}>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 5, color: 'var(--ink)' }}>{m.title}</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', marginBottom: 6 }}>
+                      {m.vegan && <span className="tag vegan">vegan</span>}
+                      {m.vegetarian && !m.vegan && <span className="tag vegetarian">vegetarian</span>}
+                      {m.glutenFree && <span className="tag gluten-free">gluten-free</span>}
+                      {m.dairyFree && <span className="tag dairy-free">dairy-free</span>}
+                      <span style={{ fontSize: '0.64rem', color: 'var(--ink-muted)', marginLeft: 'auto' }}>{m.readyInMinutes} min</span>
+                    </div>
+                    {m.summary && <p style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', lineHeight: 1.4, marginBottom: 2 }}>{stripHtml(m.summary)}</p>}
+                    <button
+                      className="btn btn-ghost"
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '0.68rem', padding: '5px 8px', marginTop: 8 }}
+                      onClick={() => saveMeal(m)}
+                      disabled={saved.has(m.id) || savingId === m.id}
+                    >
+                      {saved.has(m.id)
+                        ? <><Check size={12} /> Saved!</>
+                        : savingId === m.id
+                          ? <><Loader2 size={12} style={{ animation: 'suggestSpin 0.7s linear infinite' }} /> Saving...</>
+                          : <><Plus size={12} /> Save to My Meals</>}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && !error && meals.length === 0 && (
+          <div className="empty-state">
+            <Salad size={20} />
+            {mode === 'search' ? 'Search for a recipe by name' : 'Hit Surprise Me for a random pick'}
+          </div>
+        )}
+
       </div>
 
-      {loading && <div className={styles.loadingBar}><div className={styles.loadingFill} /></div>}
-
-      {error && <div className="empty-state"><i className="ti ti-alert-circle" aria-hidden="true" />{error}</div>}
-
-      {meals.length > 0 && (
-        <>
-          <div className={styles.aiBadge}><i className="ti ti-database" aria-hidden="true" /> recipes from Spoonacular</div>
-          <div className={styles.resultsGrid}>
-            {meals.map(m => (
-              <div key={m.id} className={`card ${styles.mealCard}`}>
-                {m.image && <img src={m.image} alt={m.title} className={styles.mealThumb} />}
-                <div style={{padding:'10px 12px 12px'}}>
-                  <h3 className={styles.mealName}>{m.title}</h3>
-                  <div className={styles.mealTags}>
-                    {m.vegan && <span className={styles.tag}>vegan</span>}
-                    {m.vegetarian && !m.vegan && <span className={styles.tag}>vegetarian</span>}
-                    {m.glutenFree && <span className={styles.tag}>gluten-free</span>}
-                    {m.dairyFree && <span className={styles.tag}>dairy-free</span>}
-                    <span className={styles.mealTime}>{m.readyInMinutes} min</span>
-                  </div>
-                  {m.summary && <p className={styles.mealDesc}>{stripHtml(m.summary)}</p>}
-                  <button
-                    className="btn-ghost"
-                    style={{width:'100%',justifyContent:'center',fontSize:11,padding:'5px 8px',marginTop:8}}
-                    onClick={() => saveMeal(m)}
-                    disabled={saved.has(m.id) || savingId === m.id}
-                  >
-                    {saved.has(m.id)
-                      ? <><i className="ti ti-check" aria-hidden="true" /> saved!</>
-                      : savingId === m.id
-                        ? <><i className="ti ti-loader-2" style={{animation:'spin .7s linear infinite'}} aria-hidden="true" /> saving...</>
-                        : <><i className="ti ti-plus" aria-hidden="true" /> save to my meals</>}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {!loading && !error && meals.length === 0 && (
-        <div className="empty-state">
-          <i className="ti ti-salad" aria-hidden="true" />
-          {mode === 'search' ? 'search for a recipe by name' : 'hit surprise me for a random pick'}
-        </div>
-      )}
+      <style>{`
+        @keyframes suggestSpin { to { transform: rotate(360deg); } }
+        @keyframes suggestSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+      `}</style>
     </div>
   )
 }
