@@ -29,6 +29,16 @@ interface Bill {
   bill_year: number;
   recurring: boolean;
 }
+
+interface BillPaymentRow {
+  bill_id: string;
+  month: number;
+  year: number;
+  paid: boolean;
+  name?: string;
+  amount?: number;
+  due_day?: number;
+}
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 
@@ -87,11 +97,17 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   async function loadAll() {
     const startOfDay = `${todayStr}T00:00:00`;
     const endOfDay = `${todayStr}T23:59:59`;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
 
-    const [focusRes, mealsRes, billsRes, plannerRes, trackerRes, groceryRes, budgetRes] = await Promise.all([
+    const [focusRes, mealsRes, billsRes, paymentsRes, plannerRes, trackerRes, groceryRes, budgetRes] = await Promise.all([
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
       supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
-      supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring').eq('due_day', new Date().getDate()),
+      supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring'),
+      supabase.from('bill_payments').select('bill_id, month, year, paid, name, amount, due_day')
+        .eq('month', currentMonth).eq('year', currentYear),
       supabase.from('appointments').select('id', { count: 'exact', head: true })
         .gte('date_time', startOfDay).lte('date_time', endOfDay),
       supabase.from('tracker_logs').select('id', { count: 'exact', head: true }).eq('log_date', todayStr),
@@ -99,9 +115,36 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
       supabase.from('budget').select('current_balance').eq('id', 1).maybeSingle(),
     ]);
 
+    // A bill only counts as "due today" if it's actually in play this month
+    // (recurring, or a one-off scheduled for this exact month/year), its
+    // effective due day (respecting any per-month edit) lands on today, and
+    // it hasn't already been marked paid for this month.
+    const payments: BillPaymentRow[] = paymentsRes.data || [];
+    const paymentByBillId = new Map(payments.map(p => [p.bill_id, p]));
+
+    const dueToday = (billsRes.data || [])
+      .filter((bill: Bill) => {
+        const inPlayThisMonth = bill.recurring || (bill.bill_month === currentMonth && bill.bill_year === currentYear);
+        if (!inPlayThisMonth) return false;
+
+        const payment = paymentByBillId.get(bill.id);
+        if (payment?.paid) return false;
+
+        const effectiveDueDay = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+        return effectiveDueDay === currentDay;
+      })
+      .map((bill: Bill) => {
+        const payment = paymentByBillId.get(bill.id);
+        return {
+          ...bill,
+          name: bill.recurring ? (payment?.name ?? bill.name) : bill.name,
+          amount: bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount,
+        };
+      });
+
     setFocuses(focusRes.data || []);
     setTodayMeals(mealsRes.data || []);
-    setTodayBills(billsRes.data || []);
+    setTodayBills(dueToday);
     setGlance({
       appointmentsToday: plannerRes.count || 0,
       trackerLogsToday: trackerRes.count || 0,
