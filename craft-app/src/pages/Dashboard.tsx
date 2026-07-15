@@ -317,7 +317,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
               {sortedMeals.map((m, i) => (
   <div
     key={i}
-    onClick={() => onNavigate('planner')}
+    onClick={() => onNavigate('meals')}
     style={{
       flexShrink: 0,
       background: 'var(--white)', border: '1.5px solid var(--border)',
@@ -338,7 +338,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           ) : (
             <div className="meals-empty">
               <span>Nothing planned for today yet</span>
-              <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('planner')}>Plan meals</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('meals')}>Plan meals</button>
             </div>
           )}
                 </section>
