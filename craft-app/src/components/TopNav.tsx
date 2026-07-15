@@ -13,8 +13,6 @@ const SECTIONS = [
     label: 'Home',
     items: [
       { id: 'maidwizard', label: 'Maid Wizard' },
-      { id: 'plants', label: 'My Plants' },
-      { id: 'pets', label: 'My Pets' },
     ],
   },
   {
