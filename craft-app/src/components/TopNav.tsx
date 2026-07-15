@@ -29,9 +29,7 @@ const SECTIONS = [
     id: 'open-kitchen',
     label: 'Open Kitchen',
     items: [
-      { id: 'cook', label: 'Cook' },
-      { id: 'suggest', label: 'Suggestions' },
-      { id: 'planner', label: 'Meal Planner' },
+      { id: 'meals', label: 'Meals' },
       { id: 'grocery', label: 'Grocery List' },
     ],
   },
