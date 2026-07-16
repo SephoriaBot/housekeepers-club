@@ -161,7 +161,7 @@ function hoursOfWork(amount: number, wage: number) {
 
 // ── ANYTIME PAY RAMP ──
 // Anytime Pay availability isn't a flat percentage — it climbs through the
-// work week. Week runs Sunday(0) → Saturday(6); ramps linearly from 40% on
+// work week. Week runs Sunday(0) → Saturday(6); ramps linearly from 50% on
 // Sunday to 70% by Saturday. The percentage applies against the CUMULATIVE
 // pool of earnings since Sunday, not each day's earnings in isolation.
 // Whatever's still unwithdrawn when Saturday closes becomes a single lump
@@ -506,11 +506,21 @@ export default function Wallet() {
   // If the visible window starts mid-week (today isn't Sunday), the pool
   // is missing whatever was earned Sun–yesterday since those days are never
   // shown/logged. Seed it here so the ramp is applied against the true
-  // cumulative pool, not just what's been logged since today.
+  // cumulative pool, not just what's been logged since today. This has to
+  // seed BOTH the earned total and what would already have been withdrawn
+  // against it (same "max withdrawn every day" assumption the rest of this
+  // function uses) — seeding earned alone makes today think none of that
+  // prior gross was ever claimed, and dumps the whole thing onto today.
   if (allDays.length && allDays[0].getDay() !== 0 && priorWeekHours.weekStart === currentWeekStartKey()) {
     const priorReg = parseFloat(priorWeekHours.reg) || 0;
     const priorOt = parseFloat(priorWeekHours.ot) || 0;
-    periodEarnedGross = priorReg * grossHourlyWage + priorOt * grossOtWage;
+    const priorGross = priorReg * grossHourlyWage + priorOt * grossOtWage;
+
+    const yesterday = new Date(allDays[0]);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    periodEarnedGross = priorGross;
+    periodWithdrawnGross = priorGross * rampPercentForDate(yesterday);
   }
 
   const rows = allDays.map(d => {
@@ -945,7 +955,7 @@ export default function Wallet() {
               <div className="card-body">
                 <div className="section-label">📅 Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay availability ramps from 40% on Sunday to 70% by Saturday, applied against your cumulative pool for the week — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday.
+                  Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay availability ramps from 50% on Sunday to 70% by Saturday, applied against your cumulative pool for the week — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday.
                 </div>
 
                 {new Date().getDay() !== 0 && (
