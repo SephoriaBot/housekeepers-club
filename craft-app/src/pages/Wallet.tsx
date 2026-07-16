@@ -444,6 +444,31 @@ export default function Wallet() {
     setDailyHours(prev => ({ ...prev, [key]: { reg: prev[key]?.reg || "", ot: prev[key]?.ot || "", [field]: value } }));
   }
 
+  // ── Hours worked earlier in the current pay week, before "today" ──
+  // The Money Calendar only shows/logs hours from today forward, so if
+  // today isn't a Sunday, the pool for this first partial week would
+  // otherwise miss whatever was already earned Sun–yesterday. This seeds
+  // that gap. Keyed to the current week's Sunday so it auto-clears once a
+  // new pay week starts instead of silently carrying stale hours forward.
+  function currentWeekStartKey() {
+    const now = new Date();
+    const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    return dateKey(sunday);
+  }
+
+  const [priorWeekHours, setPriorWeekHours] = useState<{ weekStart: string; reg: string; ot: string }>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("prior_week_hours") || "null");
+      if (stored && stored.weekStart === currentWeekStartKey()) return stored;
+    } catch { /* fall through to blank */ }
+    return { weekStart: currentWeekStartKey(), reg: "", ot: "" };
+  });
+  useEffect(() => { localStorage.setItem("prior_week_hours", JSON.stringify(priorWeekHours)); }, [priorWeekHours]);
+
+  function setPriorWeekHourField(field: "reg" | "ot", value: string) {
+    setPriorWeekHours(prev => ({ ...prev, weekStart: currentWeekStartKey(), [field]: value }));
+  }
+
   const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
@@ -477,6 +502,16 @@ export default function Wallet() {
 
   const grossHourlyWage = budget.hourly_wage || 0;
   const grossOtWage = effectiveOtWage || 0;
+
+  // If the visible window starts mid-week (today isn't Sunday), the pool
+  // is missing whatever was earned Sun–yesterday since those days are never
+  // shown/logged. Seed it here so the ramp is applied against the true
+  // cumulative pool, not just what's been logged since today.
+  if (allDays.length && allDays[0].getDay() !== 0 && priorWeekHours.weekStart === currentWeekStartKey()) {
+    const priorReg = parseFloat(priorWeekHours.reg) || 0;
+    const priorOt = parseFloat(priorWeekHours.ot) || 0;
+    periodEarnedGross = priorReg * grossHourlyWage + priorOt * grossOtWage;
+  }
 
   const rows = allDays.map(d => {
     const key = dateKey(d);
@@ -539,7 +574,7 @@ export default function Wallet() {
 
   const moneyCalendarResult = useMemo(
     () => buildMoneyCalendarRows([...calendarWeeks.week1, ...calendarWeeks.week2], budget.current_balance || 0),
-    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance]
+    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, priorWeekHours]
   );
   const week1Result = { rows: moneyCalendarResult.rows.slice(0, 7) };
   const week2Result = { rows: moneyCalendarResult.rows.slice(7, 14) };
@@ -912,6 +947,38 @@ export default function Wallet() {
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
                   Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay availability ramps from 40% on Sunday to 70% by Saturday, applied against your cumulative pool for the week — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday.
                 </div>
+
+                {new Date().getDay() !== 0 && (
+                  <div style={{
+                    marginBottom: 14, padding: "10px 12px", borderRadius: "var(--radius-sm)",
+                    background: "var(--blush)", border: "1px solid var(--pink-light)",
+                  }}>
+                    <div className="form-label" style={{ marginBottom: 4 }}>
+                      Hours already worked this week (Sun–yesterday)
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 8 }}>
+                      The calendar below only starts from today, so this fills in the rest of the pool it can't see — otherwise this week's ramp % gets applied to a smaller pool than you've actually earned.
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="form-label" style={{ fontSize: 10 }}>Regular hrs</div>
+                        <input
+                          type="number" className="form-input" placeholder="0"
+                          value={priorWeekHours.reg}
+                          onChange={e => setPriorWeekHourField("reg", e.target.value)}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="form-label" style={{ fontSize: 10 }}>OT hrs</div>
+                        <input
+                          type="number" className="form-input" placeholder="0"
+                          value={priorWeekHours.ot}
+                          onChange={e => setPriorWeekHourField("ot", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: 14 }}>
                   <div className="form-label">Current Balance</div>
