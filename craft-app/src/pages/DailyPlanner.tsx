@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, RotateCcw, Calendar, NotebookText } from 'lucide-react';
+import { Plus, X, RotateCcw, Calendar, NotebookText, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
 import type { AppointmentNoteSelection } from '../components/planner/AppointmentNotesPanel';
@@ -158,6 +158,10 @@ export default function DailyPlanner() {
   const doneCount = tasks.filter(t => t.done).length;
   const allDone = tasks.length > 0 && doneCount === tasks.length;
 
+  // Incomplete tasks first, completed tasks sink to the bottom.
+  // Array.prototype.sort is stable, so order within each group is preserved.
+  const sortedTasks = [...tasks].sort((a, b) => Number(a.done) - Number(b.done));
+
   return (
     <div>
       {sparks.map(spark => (
@@ -213,41 +217,55 @@ export default function DailyPlanner() {
               {loading ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>Loading…</p>
               ) : tasks.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                  No tasks yet — add your first one below
-                </p>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 8, padding: '28px 16px', marginBottom: 16,
+                  border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-md)',
+                }}>
+                  <Heart size={26} style={{ color: 'var(--pink-light)' }} strokeWidth={1.5} />
+                  <p style={{
+                    fontSize: '0.85rem', color: 'var(--ink-muted)', margin: 0,
+                    lineHeight: 1.6, textAlign: 'center',
+                  }}>
+                    No tasks yet — add your first one below
+                  </p>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {tasks.map(task => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                  {sortedTasks.map(task => (
                     <div
                       key={task.id}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '12px 14px', borderRadius: 'var(--radius-md)',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '16px 18px', borderRadius: 'var(--radius-md)',
                         background: task.done ? 'var(--blush)' : 'var(--white)',
                         border: `1.5px solid ${task.done ? 'var(--pink-light)' : 'var(--border)'}`,
-                        transition: 'all 0.2s ease',
+                        opacity: task.done ? 0.55 : 1,
                       }}
                     >
                       <button
                         onClick={e => toggleTask(task, e)}
                         aria-label={task.done ? 'Mark not done' : 'Mark done'}
                         style={{
-                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${task.done ? 'var(--pink-dark)' : 'var(--border)'}`,
-                          background: task.done ? 'var(--pink-dark)' : 'transparent',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.15s ease', padding: 0,
+                          width: 24, height: 24, flexShrink: 0,
+                          border: 'none', background: 'none', padding: 0,
+                          cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
                         }}
                       >
-                        {task.done && <span style={{ color: 'white', fontSize: 10, fontWeight: 700 }}>✓</span>}
+                        <Heart
+                          size={21}
+                          strokeWidth={1.75}
+                          color={task.done ? 'var(--pink-dark)' : 'var(--border)'}
+                          fill={task.done ? 'var(--pink-dark)' : 'none'}
+                        />
                       </button>
 
                       <span style={{
-                        flex: 1, fontSize: '0.88rem', fontWeight: 600,
+                        flex: 1, fontSize: '0.92rem', fontWeight: 600,
+                        letterSpacing: '0.01em', lineHeight: 1.4,
                         color: task.done ? 'var(--ink-muted)' : 'var(--ink)',
                         textDecoration: task.done ? 'line-through' : 'none',
-                        transition: 'all 0.2s ease',
                       }}>
                         {task.label}
                       </span>
