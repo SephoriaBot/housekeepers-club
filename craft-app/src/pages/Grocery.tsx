@@ -246,6 +246,26 @@ export default function Grocery() {
     const cache = new Map()
     let firstError: string | null = null
 
+    // Pull any recent cached search results for these items first, so
+    // re-triggering a build (refresh, or clicking again while it looks
+    // slow) doesn't re-spend a SerpAPI search on something we already
+    // fetched a few hours ago. Cache lives 24h — long enough to cover a
+    // shopping session's worth of refreshes, short enough that prices
+    // don't go stale.
+    const CACHE_TTL_HOURS = 24
+    const cacheCutoff = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000).toISOString()
+    const normalizedNames = Array.from(new Set(needItems.map(i => i.name.toLowerCase().trim())))
+    const persistedCache = new Map<string, any[]>()
+
+    if (normalizedNames.length) {
+      const { data: cachedRows } = await supabase
+        .from('product_search_cache')
+        .select('item_name, results, fetched_at')
+        .in('item_name', normalizedNames)
+        .gte('fetched_at', cacheCutoff)
+      ;(cachedRows ?? []).forEach((row: any) => persistedCache.set(row.item_name, row.results))
+    }
+
     try {
       for (let i = 0; i < needItems.length; i += 3) {
         const batch = needItems.slice(i, i + 3)
@@ -254,6 +274,14 @@ export default function Grocery() {
           batch.map(async (item) => {
             if (cache.has(item.name)) {
               return cache.get(item.name)
+            }
+
+            const key = item.name.toLowerCase().trim()
+            const cachedResults = persistedCache.get(key)
+            if (cachedResults) {
+              const result = { item: item.name, results: cachedResults, cached: true }
+              cache.set(item.name, result)
+              return result
             }
 
             const controller = new AbortController()
@@ -275,12 +303,18 @@ export default function Grocery() {
               clearTimeout(timeout)
             }
 
-            const result = {
-              item: item.name,
-              results: Array.isArray(data.results) ? data.results : [],
-              error: data.error,
+            const resultsArr = Array.isArray(data.results) ? data.results : []
+
+            // Only persist successful lookups. A real API failure shouldn't
+            // get cached as if it were a confirmed "nothing found" — that
+            // would hide the failure behind a 24h cache hit next time.
+            if (!data.error) {
+              supabase.from('product_search_cache')
+                .upsert({ item_name: key, results: resultsArr, fetched_at: new Date().toISOString() })
+                .then(() => {})
             }
 
+            const result = { item: item.name, results: resultsArr, error: data.error }
             cache.set(item.name, result)
             return result
           })
@@ -898,6 +932,9 @@ export default function Grocery() {
                         <>
                           <span style={priceBadgeStyle(false)}>${Number(cheapest.price).toFixed(2)}</span>
                           <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>{cheapest.store}</span>
+                          {c.cached && (
+                            <span style={{ fontSize: '0.62rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>cached</span>
+                          )}
                           {bigDiff && (
                             <span style={{ fontSize: '0.68rem', color: 'var(--gold-dark)', fontWeight: 700 }}>
                               save ${(priciest.price - cheapest.price).toFixed(2)} vs {priciest.store}
