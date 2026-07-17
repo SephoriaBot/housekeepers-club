@@ -165,7 +165,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', padding: '60px 20px', gap: 16
           }}>
-            <div style={{
+            <div className="shape-teddy" style={{
               width: 56, height: 56, borderRadius: '50%',
               background: 'linear-gradient(135deg, #fbe1e5, #ffe0d1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
