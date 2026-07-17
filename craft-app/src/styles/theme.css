@@ -1,0 +1,85 @@
+/* ============================================
+   POLLY THEME TOKENS — Light (Cottagecore) / Dark (Moonlit Garden)
+   ============================================ */
+
+:root {
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Nunito Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --transition-theme: background-color 0.4s ease, color 0.4s ease,
+    border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* ---------- LIGHT: Cottagecore ---------- */
+[data-theme='light'] {
+  --color-bg: #fff8f0;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fffaf3;
+  --color-text: #4a3b32;
+  --color-text-muted: #8a7364;
+  --color-border: #e8d5c4;
+  --color-accent-pink: #f4b6c2;
+  --color-accent-apricot: #f5c99b;
+  --color-accent-strong: #e8879b;
+  --color-shadow: rgba(196, 154, 120, 0.18);
+}
+
+/* ---------- DARK: Moonlit Garden ---------- */
+[data-theme='dark'] {
+  --color-bg: #241b2f;
+  --color-surface: #322640;
+  --color-surface-raised: #3c2f4d;
+  --color-text: #f0e6d2;
+  --color-text-muted: #c2b3a8;
+  --color-border: #4a3b5c;
+  --color-accent-pink: #d98ba3;
+  --color-accent-apricot: #e0a85c;
+  --color-accent-strong: #f0a8bd;
+  --color-shadow: rgba(0, 0, 0, 0.45);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: var(--transition-theme);
+}
+
+/* ============================================
+   SHAPE SIGNATURE — light mode only
+   Hearts & teddy bear heads, via <ShapeDefs /> clipPaths
+   Apply .shape-heart or .shape-teddy to avatars, icon
+   badges, empty-state icons, stat pips — square-ish
+   elements, not text-heavy cards.
+   ============================================ */
+
+.shape-heart,
+.shape-teddy {
+  transition: var(--transition-theme), clip-path 0.4s ease;
+  aspect-ratio: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme='light'] .shape-heart {
+  clip-path: url(#polly-heart-clip);
+  border-radius: 0;
+}
+
+[data-theme='light'] .shape-teddy {
+  clip-path: url(#polly-teddy-clip);
+  border-radius: 0;
+}
+
+/* Dark mode: shapes stand down, revert to soft rounded */
+[data-theme='dark'] .shape-heart,
+[data-theme='dark'] .shape-teddy {
+  clip-path: none;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 12px var(--color-shadow);
+}
