@@ -48,7 +48,7 @@
 
   --primary: #6b4d5c;
   --secondary: #8a5f3f;
-  --accent: #d98ba3;
+--accent: #3a2a38;   /* dark muted rose, was acting as a light patch on dark bg */
   --mint: #3c2f4d;
 
   --border: rgba(217, 139, 163, 0.25);
