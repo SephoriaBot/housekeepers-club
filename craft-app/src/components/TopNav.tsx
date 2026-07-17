@@ -65,9 +65,12 @@ export default function TopNav({ currentPage, onNavigate }: TopNavProps) {
     <>
       <header className="topbar">
         <span className="topbar-mark">Polly</span>
-        <button className="topbar-trigger" onClick={() => setOpen(true)}>
-          {currentLabel} · Menu
-        </button>
+        <div className="topbar-actions">
+          <ThemeToggle />
+          <button className="topbar-trigger" onClick={() => setOpen(true)}>
+            {currentLabel} · Menu
+          </button>
+        </div>
       </header>
 
       {open && (
