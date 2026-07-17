@@ -3,22 +3,21 @@
 
 /* ================= TOKENS ================= */
 
+/* ================= TOKENS ================= */
+
+[data-theme='light'],
 :root {
   --bg: #fff5f3;
   --surface: #fffbfa;
   --text: #3b2a2e;
 
-  --primary: #f6cfd6;    /* soft pink */
-  --secondary: #f7b89c;  /* apricot */
-  --accent: #e8a0ac;     /* pale rose blush */
-  --mint: #f9dde2;       /* dusty rose accent */
+  --primary: #f6cfd6;
+  --secondary: #f7b89c;
+  --accent: #e8a0ac;
+  --mint: #f9dde2;
 
   --border: rgba(215, 150, 150, 0.35);
   --shadow: 0 14px 30px rgba(90, 30, 40, 0.10);
-
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 22px;
 
   --ink: #3b2a2e;
   --ink-soft: #5a3f42;
@@ -26,7 +25,7 @@
 
   --white: #ffffff;
   --cream: #fff7f0;
-  --blush: #fbe4df;       /* soft highlight bg — was referenced but never defined */
+  --blush: #fbe4df;
   --green-dark: #2f6b4f;
   --citrus-blue: #3b82c4;
   --sage: #8ba888;
@@ -42,6 +41,50 @@
   --danger: #C0404A;
   --danger-bg: #FDE8E8;
 }
+
+[data-theme='dark'] {
+  --bg: #241b2f;
+  --surface: #322640;
+  --text: #f0e6d2;
+
+  --primary: #6b4d5c;
+  --secondary: #8a5f3f;
+  --accent: #d98ba3;
+  --mint: #3c2f4d;
+
+  --border: rgba(217, 139, 163, 0.25);
+  --shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+
+  --ink: #f0e6d2;
+  --ink-soft: #d9c9b8;
+  --ink-muted: #9a8a94;
+
+  --white: #322640;
+  --cream: #3c2f4d;
+  --blush: #4a3b5c;
+  --green-dark: #6fae8a;
+  --citrus-blue: #6ba8d8;
+  --sage: #a3c4a0;
+  --sage-dark: #7fa07c;
+  --sage-light: #2f3a2d;
+  --pink: #d98ba3;
+  --pink-dark: #e8a8bc;
+  --pink-light: #4a3547;
+  --sky: #8fd4e8;
+  --gold: #e0a85c;
+  --gold-dark: #f0c078;
+  --gold-light: #3d3222;
+  --danger: #e0707a;
+  --danger-bg: #4a2426;
+}
+
+/* keep the radius tokens outside — they don't change by theme */
+:root {
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 22px;
+}
+
 
 /* ================= BASE RESET ================= */
 
