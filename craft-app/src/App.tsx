@@ -1,6 +1,7 @@
 import { useState, Suspense, lazy } from 'react';
 import TopNav from './components/TopNav';
-
+import { ThemeProvider } from './context/ThemeContext';
+import ShapeDefs from './components/ShapeDefs';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Meals = lazy(() => import('./pages/Meals'));
 const Grocery = lazy(() => import('./pages/Grocery'));
