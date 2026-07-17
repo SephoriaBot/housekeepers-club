@@ -4,40 +4,41 @@
 
 [data-theme='light'],
 :root {
-  --bg: #fff0f5;              /* was #fff5f3 — now a proper cotton-candy pink */
-  --surface: #ffffff;
-  --text: #5c2a3a;            /* deeper rose-brown, cozier than plain brown */
+  --bg: #fdf3f6;              /* soft pastel pink wash, not flooded */
+  --surface: #fffdfb;         /* creamy white for cards */
+  --text: #5c3a42;
 
-  --primary: #f9a8c1;         /* was #f6cfd6 — much more saturated bubblegum pink */
- --secondary: #ff8fa3;       /* strawberry slightly warmer */
-  --accent: #f2739a;          /* was #e8a0ac — this is your new "pop" color */
-  --mint: #ffe0ea;            /* soft pink instead of dusty rose */
+  --primary: #f6cddb;         /* pastel pink, dialed back */
+  --secondary: #faf3e3;       /* cream, replaces strawberry/peach */
+  --accent: #f0dfc0;          /* pale gold-cream wash for fills/highlights */
+  --mint: #fbe6ee;            /* pastel pink accent */
 
-  --border: rgba(242, 115, 154, 0.28);
-  --shadow: 0 14px 30px rgba(230, 80, 130, 0.14);
+  --border: rgba(230, 180, 195, 0.35);
+  --shadow: 0 14px 30px rgba(200, 140, 160, 0.12);
 
-  --ink: #5c2a3a;
-  --ink-soft: #8a4a5c;
-  --ink-muted: #c98ca0;
+  --ink: #5c3a42;
+  --ink-soft: #8a5c68;
+  --ink-muted: #bfa0a8;
 
   --white: #ffffff;
-  --cream: #fff5f8;
-  --blush: #ffd6e5;           /* was #fbe4df — now genuinely blush pink, not peach */
+  --cream: #fdf6ec;
+  --blush: #fce3ec;
   --green-dark: #2f6b4f;
   --citrus-blue: #3b82c4;
   --sage: #8ba888;
   --sage-dark: #5f7a5c;
   --sage-light: #e8efe6;
-  --pink: #f2739a;
-  --pink-dark: #d94f7a;       /* was #b56575 — brighter, more candy-coated */
-  --pink-light: #ffdce8;
+  --pink: #eab8c8;
+  --pink-dark: #c96f89;       /* kept legible — this is used as text/border in Wallet & focus checkboxes */
+  --pink-light: #fce3ec;
   --sky: #6BBFD4;
-  --gold: #C4933F;
+  --gold: #d4a94f;            /* slightly warmer/more metallic for sparkle */
   --gold-dark: #8B6000;
   --gold-light: #FEFBE8;
   --danger: #C0404A;
   --danger-bg: #FDE8E8;
 }
+
 
 
 [data-theme='dark'] {
@@ -76,7 +77,7 @@
   --danger-bg: #4a2426;
 }
 
-/* Light mode: soft pink glow on hover */
+/* Find this block from before: */
 [data-theme='light'] .card:hover,
 [data-theme='light'] .stat-card:hover,
 [data-theme='light'] .pet-card:hover,
@@ -88,6 +89,20 @@
 [data-theme='light'] .btn:hover,
 [data-theme='light'] .btn-primary:hover {
   box-shadow: 0 6px 18px rgba(242, 115, 154, 0.4);
+}
+
+/* Replace with: */
+[data-theme='light'] .card:hover,
+[data-theme='light'] .stat-card:hover,
+[data-theme='light'] .pet-card:hover,
+[data-theme='light'] .plant-card:hover,
+[data-theme='light'] .wizard-box:hover {
+  box-shadow: 0 8px 24px rgba(212, 169, 79, 0.25), 0 2px 8px rgba(230, 140, 165, 0.2);
+}
+
+[data-theme='light'] .btn:hover,
+[data-theme='light'] .btn-primary:hover {
+  box-shadow: 0 6px 18px rgba(212, 169, 79, 0.3);
 }
 
 
