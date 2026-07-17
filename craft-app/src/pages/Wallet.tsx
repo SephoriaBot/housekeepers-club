@@ -19,6 +19,7 @@ interface Budget {
   fixed_expenses: number;
   hourly_wage: number;
   current_balance: number;
+  health_deduction: number;
 }
 
 interface Bill {
@@ -71,18 +72,6 @@ interface PlannerItem {
   done: boolean;
   created_at: string;
 }
-
-const DEFAULT_DEBTS: Debt[] = [
-  { id: 1, name: "Amir",             balance: 225.00,   original_balance: 225.00,   apr: 0,    min_payment: 0,   deferred: false },
-  { id: 2, name: "Midland (Ulta)",   balance: 713.57,   original_balance: 713.57,   apr: 0,    min_payment: 20,  deferred: false },
-  { id: 3, name: "Cap One Secured",  balance: 655.66,   original_balance: 655.66,   apr: 20,   min_payment: 214, deferred: false },
-  { id: 4, name: "Elan / Atl Union", balance: 946.96,   original_balance: 946.96,   apr: 0,    min_payment: 28,  deferred: false },
-  { id: 5, name: "Discover-Cap One", balance: 1470.62,  original_balance: 1470.62,  apr: 22,   min_payment: 120, deferred: false },
-  { id: 6, name: "Apple-Halstead",   balance: 1659.71,  original_balance: 1659.71,  apr: 18,   min_payment: 0,   deferred: false },
-  { id: 7, name: "Nelnet AA",        balance: 3594.07,  original_balance: 3594.07,  apr: 2.75, min_payment: 0,   deferred: true  },
-  { id: 8, name: "Nelnet AB",        balance: 9142.30,  original_balance: 9142.30,  apr: 2.75, min_payment: 0,   deferred: true  },
-  { id: 9, name: "College Ave",      balance: 13700.24, original_balance: 13700.24, apr: 9.99, min_payment: 0,   deferred: true  },
-];
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -253,7 +242,7 @@ function EditableCell({ value, onChange, type = "number", style, className, plac
 
 export default function Wallet() {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0, current_balance: 0 });
+  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0, current_balance: 0, health_deduction: 0 });
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [nextId, setNextId] = useState(20);
@@ -277,14 +266,9 @@ export default function Wallet() {
     return s ? parseFloat(s) : 20;
   });
   const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
-  const [healthDeduction, setHealthDeduction] = useState<number>(() => {
-  const s = localStorage.getItem("weekly_health_deduction");
-  return s ? parseFloat(s) : 62.38;
-});
 
   useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
   useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
-  useEffect(() => { localStorage.setItem("weekly_health_deduction", healthDeduction.toString()); }, [healthDeduction]);
 
 
   // Budget calculator (landing page) — starts blank
@@ -333,8 +317,7 @@ export default function Wallet() {
           setNextId(Math.max(...fixed.map((d: Debt) => d.id)) + 1);
           await processMonthlyMinimums(fixed);
         } else {
-          await supabase.from("debts").insert(DEFAULT_DEBTS);
-          setDebts(DEFAULT_DEBTS);
+          setDebts([]);
         }
 
         if (budgetData) setBudget(prev => ({ ...prev, ...budgetData }));
@@ -574,7 +557,7 @@ export default function Wallet() {
     // Saturday closes the period: tax the FULL gross total once, then
     // subtract whatever gross cash was already advanced during the week.
         if (dow === 6) {
-      const taxableGross = Math.max(0, periodEarnedGross - healthDeduction);
+      const taxableGross = Math.max(0, periodEarnedGross - budget.health_deduction);
       const netOwedForPeriod = taxableGross * (1 - taxRate / 100);
       pendingPayout += Math.max(0, netOwedForPeriod - periodWithdrawnGross);
     }
@@ -1031,7 +1014,7 @@ export default function Wallet() {
 
                                   <div>
                     <div className="form-label">Weekly Health Premium ($)</div>
-                    <input type="number" className="form-input" value={healthDeduction} onChange={e => setHealthDeduction(parseFloat(e.target.value) || 0)} />
+                    <input type="number" className="form-input" value={budget.health_deduction || ""} placeholder="0.00" onChange={e => updateBudget("health_deduction", parseFloat(e.target.value) || 0)} />
                   </div>
 
 
