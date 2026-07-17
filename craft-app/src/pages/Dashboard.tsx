@@ -15,12 +15,30 @@ interface MealEntry {
 }
 
 interface Glance {
-  plants: number;
-  pets: number;
-  recipes: number;
+  appointmentsToday: number;
+  trackerLogsToday: number;
   groceryItems: number;
 }
 
+interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  due_day: number;
+  bill_month: number;
+  bill_year: number;
+  recurring: boolean;
+}
+
+interface BillPaymentRow {
+  bill_id: string;
+  month: number;
+  year: number;
+  paid: boolean;
+  name?: string;
+  amount?: number;
+  due_day?: number;
+}
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 
@@ -31,6 +49,11 @@ function getGreeting() {
   if (h < 17) return 'Good afternoon';
   if (h < 21) return 'Good evening';
   return 'Winding down';
+}
+
+function fmt(n: number) {
+  if (n == null || isNaN(n)) return '$0.00';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
 
 function Sprig() {
@@ -57,7 +80,9 @@ function StitchDivider() {
 export default function Dashboard({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [focuses, setFocuses] = useState<Focus[]>([]);
   const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
-  const [glance, setGlance] = useState<Glance>({ plants: 0, pets: 0, recipes: 0, groceryItems: 0 });
+  const [todayBills, setTodayBills] = useState<Bill[]>([]);
+  const [glance, setGlance] = useState<Glance>({ appointmentsToday: 0, trackerLogsToday: 0, groceryItems: 0 });
+  const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [newFocus, setNewFocus] = useState('');
   const [newFocusMins, setNewFocusMins] = useState('');
   const [addingFocus, setAddingFocus] = useState(false);
@@ -70,23 +95,62 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   }, []);
 
   async function loadAll() {
-    const [focusRes, mealsRes, plantsRes, petsRes, recipesRes, groceryRes] = await Promise.all([
+    const startOfDay = `${todayStr}T00:00:00`;
+    const endOfDay = `${todayStr}T23:59:59`;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
+
+    const [focusRes, mealsRes, billsRes, paymentsRes, plannerRes, trackerRes, groceryRes, budgetRes] = await Promise.all([
       supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
       supabase.from('week_plans').select('meal_type, meal_name').eq('day', todayName),
-      supabase.from('garden_plants').select('id', { count: 'exact', head: true }),
-      supabase.from('pets').select('id', { count: 'exact', head: true }),
-      supabase.from('recipes').select('id', { count: 'exact', head: true }),
+      supabase.from('bills').select('id, name, amount, due_day, bill_month, bill_year, recurring'),
+      supabase.from('bill_payments').select('bill_id, month, year, paid, name, amount, due_day')
+        .eq('month', currentMonth).eq('year', currentYear),
+      supabase.from('appointments').select('id', { count: 'exact', head: true })
+        .gte('date_time', startOfDay).lte('date_time', endOfDay),
+      supabase.from('tracker_logs').select('id', { count: 'exact', head: true }).eq('log_date', todayStr),
       supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
+      supabase.from('budget').select('current_balance').eq('id', 1).maybeSingle(),
     ]);
+
+    // A bill only counts as "due today" if it's actually in play this month
+    // (recurring, or a one-off scheduled for this exact month/year), its
+    // effective due day (respecting any per-month edit) lands on today, and
+    // it hasn't already been marked paid for this month.
+    const payments: BillPaymentRow[] = paymentsRes.data || [];
+    const paymentByBillId = new Map(payments.map(p => [p.bill_id, p]));
+
+    const dueToday = (billsRes.data || [])
+      .filter((bill: Bill) => {
+        const inPlayThisMonth = bill.recurring || (bill.bill_month === currentMonth && bill.bill_year === currentYear);
+        if (!inPlayThisMonth) return false;
+
+        const payment = paymentByBillId.get(bill.id);
+        if (payment?.paid) return false;
+
+        const effectiveDueDay = bill.recurring ? (payment?.due_day ?? bill.due_day) : bill.due_day;
+        return effectiveDueDay === currentDay;
+      })
+      .map((bill: Bill) => {
+        const payment = paymentByBillId.get(bill.id);
+        return {
+          ...bill,
+          name: bill.recurring ? (payment?.name ?? bill.name) : bill.name,
+          amount: bill.recurring ? (payment?.amount ?? bill.amount) : bill.amount,
+        };
+      });
 
     setFocuses(focusRes.data || []);
     setTodayMeals(mealsRes.data || []);
+    setTodayBills(dueToday);
     setGlance({
-      plants: plantsRes.count || 0,
-      pets: petsRes.count || 0,
-      recipes: recipesRes.count || 0,
+      appointmentsToday: plannerRes.count || 0,
+      trackerLogsToday: trackerRes.count || 0,
       groceryItems: groceryRes.count || 0,
     });
+    setCurrentBalance(budgetRes.data?.current_balance || 0);
   }
 
   async function addFocus() {
@@ -142,27 +206,27 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           <div className="section-label">At a Glance</div>
          <div className="dashboard-grid">
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('plants')}>
-      <div className="glance-value">{glance.plants}</div>
-      <div className="glance-label">Plants</div>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('wallet')}>
+      <div className="glance-value">{fmt(currentBalance)}</div>
+      <div className="glance-label">PiggyBank</div>
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('pets')}>
-      <div className="glance-value">{glance.pets}</div>
-      <div className="glance-label">Pets</div>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('dailyplanner')}>
+      <div className="glance-value">{glance.appointmentsToday}</div>
+      <div className="glance-label">Appointments & Schedule</div>
     </div>
   </div>
   <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('recipes')}>
-      <div className="glance-value">{glance.recipes}</div>
-      <div className="glance-label">Recipes</div>
+    <div className="card stat-card glance-card" onClick={() => onNavigate('trackers')}>
+      <div className="glance-value">{glance.trackerLogsToday}</div>
+      <div className="glance-label">Tracker Logs</div>
     </div>
   </div>
   <div className="glance-wrap">
     <div className="card stat-card glance-card" onClick={() => onNavigate('grocery')}>
       <div className="glance-value">{glance.groceryItems}</div>
-      <div className="glance-label">On the List</div>
+      <div className="glance-label">Grocery List</div>
     </div>
   </div>
 </div>
@@ -248,6 +312,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
                   <button
                     onClick={() => toggleFocus(f)}
                     aria-label={f.completed ? 'Mark not done' : 'Mark done'}
+                    className="shape-heart"
                     style={{
                       width: 20, height: 20, borderRadius: '50%',
                       border: `2px solid ${f.completed ? 'var(--pink-dark)' : 'var(--border)'}`,
@@ -296,7 +361,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
               {sortedMeals.map((m, i) => (
   <div
     key={i}
-    onClick={() => onNavigate('planner')}
+    onClick={() => onNavigate('meals')}
     style={{
       flexShrink: 0,
       background: 'var(--white)', border: '1.5px solid var(--border)',
@@ -317,7 +382,39 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
           ) : (
             <div className="meals-empty">
               <span>Nothing planned for today yet</span>
-              <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('planner')}>Plan meals</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('meals')}>Plan meals</button>
+            </div>
+          )}
+                </section>
+
+        <StitchDivider />
+
+        {/* ── TODAY'S BILLS ── */}
+        <section>
+          <div className="section-label">Bills Due Today</div>
+
+          {todayBills.length === 0 ? (
+            <div className="meals-empty">
+              No bills due today 🎉
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {todayBills.map(bill => (
+                <div
+                  key={bill.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    background: 'var(--white)',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 18,
+                    padding: '12px 14px',
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>{bill.name}</span>
+                  <strong>${bill.amount.toFixed(2)}</strong>
+                </div>
+              ))}
             </div>
           )}
         </section>

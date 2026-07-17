@@ -1,0 +1,39 @@
+.intro {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 12.5px;
+  color: var(--an-ink-soft, #8c7c6e);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.group {
+  margin-bottom: 20px;
+}
+
+.groupHeader {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--an-apricot, #f3a26d);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--an-line, #efe4d6);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  color: var(--an-ink-soft, #8c7c6e);
+}
+
+.emptyIcon {
+  color: var(--an-apricot, #f3a26d);
+  opacity: 0.7;
+}

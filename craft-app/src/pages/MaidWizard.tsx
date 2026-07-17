@@ -121,10 +121,6 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
               </div>
             )}
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--ink-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-              Which room are we tackling today? ✨
-            </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {ROOMS.map(r => (
                 <button
@@ -135,7 +131,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                     padding: '14px 18px', borderRadius: 16, cursor: 'pointer',
                     inset: '6px',
                     border: '2px dashed rgba(232,160,172,0.35)',
-                    background: '#FFFFFF',
+                    background: 'var(--surface)',
                     transition: 'all 0.15s ease',
                     textAlign: 'left',
                     color: 'var(--ink-soft)',
@@ -169,7 +165,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', padding: '60px 20px', gap: 16
           }}>
-            <div style={{
+            <div className="shape-teddy" style={{
               width: 56, height: 56, borderRadius: '50%',
               background: 'linear-gradient(135deg, #fbe1e5, #ffe0d1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -288,7 +284,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: 10,
                           padding: '8px 10px', borderRadius: 10,
-                          background: 'linear-gradient(135deg, #fff7f0, #fbe1e5)',
+                          background: 'linear-gradient(135deg, var(--cream), var(--blush))',
                           border: '1px solid #f6cfd6',
                           fontSize: '0.84rem', color: 'var(--ink)',
                         }}>
@@ -306,7 +302,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
             {allDone && (
               <div style={{
                 marginTop: 24, padding: '16px 20px', borderRadius: 16, textAlign: 'center',
-                background: 'linear-gradient(135deg, #fff7f0, #fbe1e5)',
+                background: 'linear-gradient(135deg, var(--cream), var(--blush))',
                 border: '1.5px solid #e8a0ac',
               }}>
                 <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🌸✨</div>
@@ -317,7 +313,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   style={{
                     marginTop: 12, padding: '8px 20px', borderRadius: 12, cursor: 'pointer',
                     background: 'linear-gradient(135deg, #e8a0ac, #f7b89c)',
-                    border: 'none', color: 'white', fontWeight: 600, fontSize: '0.85rem',
+                    border: 'none', color: 'var(--white)', fontWeight: 600, fontSize: '0.85rem',
                   }}
                 >
                   Clean another room ✨

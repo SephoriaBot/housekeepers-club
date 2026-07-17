@@ -18,6 +18,7 @@ interface Budget {
   take_home: number;
   fixed_expenses: number;
   hourly_wage: number;
+  current_balance: number;
 }
 
 interface Bill {
@@ -158,6 +159,34 @@ function hoursOfWork(amount: number, wage: number) {
   return (amount / wage).toFixed(1);
 }
 
+// ── ANYTIME PAY RAMP ──
+// Anytime Pay availability isn't a flat percentage — it climbs through the
+// work week. Week runs Sunday(0) → Saturday(6); ramps linearly from 40% on
+// Sunday to 70% by Saturday. The percentage applies against the CUMULATIVE
+// pool of earnings since Sunday, not each day's earnings in isolation.
+// Whatever's still unwithdrawn when Saturday closes becomes a single lump
+// "payday catch-up" that lands the following Wednesday.
+const ANYTIME_PAY_START_PCT = 0.50;
+const ANYTIME_PAY_CAP_PCT = 0.70;
+
+function rampPercentForDate(d: Date) {
+  const dow = d.getDay(); // 0 = Sun ... 6 = Sat
+  return ANYTIME_PAY_START_PCT + (ANYTIME_PAY_CAP_PCT - ANYTIME_PAY_START_PCT) * (dow / 6);
+}
+
+// Past a certain point in the week, availability stops climbing with the
+// day-of-week ramp and instead drops to a flat, lower percentage — meant to
+// model pulling back once you're deep into overtime territory for the week.
+const ANYTIME_PAY_OVERTIME_THRESHOLD_HOURS = 55;
+const ANYTIME_PAY_OVERTIME_CAP_PCT = 0.60;
+
+function effectiveRampPct(d: Date, cumulativeHoursThroughDay: number) {
+  if (cumulativeHoursThroughDay > ANYTIME_PAY_OVERTIME_THRESHOLD_HOURS) {
+    return ANYTIME_PAY_OVERTIME_CAP_PCT;
+  }
+  return rampPercentForDate(d);
+}
+
 const PERIOD_MULTIPLIERS: Record<string, number> = {
   weekly: 52 / 12,
   biweekly: 26 / 12,
@@ -224,7 +253,7 @@ function EditableCell({ value, onChange, type = "number", style, className, plac
 
 export default function Wallet() {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0 });
+  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0, current_balance: 0 });
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [nextId, setNextId] = useState(20);
@@ -248,11 +277,15 @@ export default function Wallet() {
     return s ? parseFloat(s) : 20;
   });
   const [otWageOverride, setOtWageOverride] = useState<string>(() => localStorage.getItem("ot_wage_override") || "");
-  const [currentBalanceInput, setCurrentBalanceInput] = useState<string>(() => localStorage.getItem("current_balance") || "");
+  const [healthDeduction, setHealthDeduction] = useState<number>(() => {
+  const s = localStorage.getItem("weekly_health_deduction");
+  return s ? parseFloat(s) : 62.38;
+});
 
   useEffect(() => { localStorage.setItem("tax_withholding_rate", taxRate.toString()); }, [taxRate]);
   useEffect(() => { localStorage.setItem("ot_wage_override", otWageOverride); }, [otWageOverride]);
-  useEffect(() => { localStorage.setItem("current_balance", currentBalanceInput); }, [currentBalanceInput]);
+  useEffect(() => { localStorage.setItem("weekly_health_deduction", healthDeduction.toString()); }, [healthDeduction]);
+
 
   // Budget calculator (landing page) — starts blank
   const [calcRegWage, setCalcRegWage] = useState("");
@@ -424,31 +457,155 @@ export default function Wallet() {
     setDailyHours(prev => ({ ...prev, [key]: { reg: prev[key]?.reg || "", ot: prev[key]?.ot || "", [field]: value } }));
   }
 
+  // ── Hours worked earlier in the current pay week, before "today" ──
+  // The Money Calendar only shows/logs hours from today forward, so if
+  // today isn't a Sunday, the pool for this first partial week would
+  // otherwise miss whatever was already earned Sun–yesterday. This seeds
+  // that gap. Keyed to the current week's Sunday so it auto-clears once a
+  // new pay week starts instead of silently carrying stale hours forward.
+  function currentWeekStartKey() {
+    const now = new Date();
+    const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    return dateKey(sunday);
+  }
+
+  const [priorWeekHours, setPriorWeekHours] = useState<{ weekStart: string; reg: string; ot: string }>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("prior_week_hours") || "null");
+      if (stored && stored.weekStart === currentWeekStartKey()) return stored;
+    } catch { /* fall through to blank */ }
+    return { weekStart: currentWeekStartKey(), reg: "", ot: "" };
+  });
+  useEffect(() => { localStorage.setItem("prior_week_hours", JSON.stringify(priorWeekHours)); }, [priorWeekHours]);
+
+  function setPriorWeekHourField(field: "reg" | "ot", value: string) {
+    setPriorWeekHours(prev => ({ ...prev, weekStart: currentWeekStartKey(), [field]: value }));
+  }
+
+  const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("extra_funds_log", JSON.stringify(extraFunds));
+  }, [extraFunds]);
+
   const effectiveOtWage = parseFloat(otWageOverride) > 0 ? parseFloat(otWageOverride) : budget.hourly_wage * 1.5;
   const netHourlyWage = budget.hourly_wage > 0 ? budget.hourly_wage * (1 - taxRate / 100) : 0;
   const netOtWage = effectiveOtWage > 0 ? effectiveOtWage * (1 - taxRate / 100) : 0;
 
-  // Build each day's row: bills due, hours logged (regular + OT entered
-  // separately per day), earnings, and a running balance carried forward
-  // from your real Current Balance — today onward only, nothing replayed.
-  function buildWeekRows(weekDays: Date[], startingBalance: number) {
-    let runningBalance = startingBalance;
-    const rows = weekDays.map(d => {
-      const key = dateKey(d);
-      const billsToday = billsByDate[key] || [];
-      const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
-      const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
-      const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
-      const hoursToday = regHoursToday + otHoursToday;
-      const earnedToday = netHourlyWage > 0 ? regHoursToday * netHourlyWage + otHoursToday * netOtWage : 0;
-      runningBalance += earnedToday - billsTotal;
-      return { date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday, hoursToday, earnedToday, balance: runningBalance };
-    });
-    return { rows, endingBalance: runningBalance };
+  // Build the 14-day Money Calendar. Anytime Pay ramp: each day's withdrawable
+  // amount is (today's ramp %) × (cumulative pool earned since Sunday) minus
+  // whatever's already been withdrawn from that pool this week. The pool
+  // resets fresh every Sunday. Whatever's left unwithdrawn when Saturday
+  // closes becomes a single lump "payday catch-up" released the following
+  // Wednesday — a real 4-day lag, matching how the actual deposit works.
+  // No lookback/replay of days before the visible window — this only uses
+  // hours actually logged on the visible dates.
+  function buildMoneyCalendarRows(allDays: Date[], startingBalance: number) {
+  let runningBalance = startingBalance;
+
+  let periodEarnedGross = 0;   // gross pool, untaxed, resets each Sunday
+  let periodWithdrawnGross = 0; // gross cash advanced so far this period
+  let periodHoursSoFar = 0;     // cumulative hours this week, drives the overtime ramp cap
+  let pendingPayout = 0;        // net amount owed, released the following Wednesday
+
+  const grossHourlyWage = budget.hourly_wage || 0;
+  const grossOtWage = effectiveOtWage || 0;
+
+  // If the visible window starts mid-week (today isn't Sunday), the pool
+  // is missing whatever was earned Sun–yesterday since those days are never
+  // shown/logged. Seed it here so the ramp is applied against the true
+  // cumulative pool, not just what's been logged since today. This has to
+  // seed BOTH the earned total and what would already have been withdrawn
+  // against it (same "max withdrawn every day" assumption the rest of this
+  // function uses) — seeding earned alone makes today think none of that
+  // prior gross was ever claimed, and dumps the whole thing onto today.
+  if (allDays.length && allDays[0].getDay() !== 0 && priorWeekHours.weekStart === currentWeekStartKey()) {
+    const priorReg = parseFloat(priorWeekHours.reg) || 0;
+    const priorOt = parseFloat(priorWeekHours.ot) || 0;
+    const priorHours = priorReg + priorOt;
+    const priorGross = priorReg * grossHourlyWage + priorOt * grossOtWage;
+
+    const yesterday = new Date(allDays[0]);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    periodEarnedGross = priorGross;
+    periodHoursSoFar = priorHours;
+    periodWithdrawnGross = priorGross * effectiveRampPct(yesterday, priorHours);
   }
 
-  const week1Result = useMemo(() => buildWeekRows(calendarWeeks.week1, parseFloat(currentBalanceInput) || 0), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, currentBalanceInput]);
-  const week2Result = useMemo(() => buildWeekRows(calendarWeeks.week2, week1Result.endingBalance), [calendarWeeks, billsByDate, dailyHours, netHourlyWage, netOtWage, week1Result.endingBalance]);
+  const rows = allDays.map(d => {
+    const key = dateKey(d);
+    const dow = d.getDay(); // 0 Sun ... 6 Sat
+
+    if (dow === 0) {
+      periodEarnedGross = 0;
+      periodWithdrawnGross = 0;
+      periodHoursSoFar = 0;
+    }
+
+    const extraToday = parseFloat(extraFunds[key]) || 0;
+    const billsToday = billsByDate[key] || [];
+    const billsTotal = billsToday.reduce((s, b) => s + b.amount, 0);
+
+    const regHoursToday = parseFloat(dailyHours[key]?.reg) || 0;
+    const otHoursToday = parseFloat(dailyHours[key]?.ot) || 0;
+    const hoursToday = regHoursToday + otHoursToday;
+
+    // Gross earnings — no tax applied here. Tax only hits once, at payout.
+    const fullEarnedToday =
+      grossHourlyWage > 0
+        ? regHoursToday * grossHourlyWage + otHoursToday * grossOtWage
+        : 0;
+
+    periodEarnedGross += fullEarnedToday;
+    periodHoursSoFar += hoursToday;
+
+    const rampPct = effectiveRampPct(d, periodHoursSoFar);
+    const maxWithdrawableGrossSoFar = periodEarnedGross * rampPct;
+    const availableToday = Math.max(0, maxWithdrawableGrossSoFar - periodWithdrawnGross);
+    periodWithdrawnGross += availableToday;
+
+    // Saturday closes the period: tax the FULL gross total once, then
+    // subtract whatever gross cash was already advanced during the week.
+        if (dow === 6) {
+      const taxableGross = Math.max(0, periodEarnedGross - healthDeduction);
+      const netOwedForPeriod = taxableGross * (1 - taxRate / 100);
+      pendingPayout += Math.max(0, netOwedForPeriod - periodWithdrawnGross);
+    }
+
+
+    let releasedToday = 0;
+    if (dow === 3 && pendingPayout > 0) {
+      releasedToday = pendingPayout;
+      pendingPayout = 0;
+    }
+
+    runningBalance += availableToday + releasedToday + extraToday - billsTotal;
+    const heldInPool = Math.max(0, periodEarnedGross - periodWithdrawnGross);
+
+    return {
+      date: d, key, billsToday, billsTotal, regHoursToday, otHoursToday,
+      hoursToday, earnedToday: fullEarnedToday, availableToday, releasedToday,
+      rampPct, heldInPool, extraToday, balance: runningBalance,
+    };
+  });
+
+  return { rows, endingBalance: runningBalance };
+}
+
+
+  const moneyCalendarResult = useMemo(
+    () => buildMoneyCalendarRows([...calendarWeeks.week1, ...calendarWeeks.week2], budget.current_balance || 0),
+    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, priorWeekHours]
+  );
+  const week1Result = { rows: moneyCalendarResult.rows.slice(0, 7) };
+  const week2Result = { rows: moneyCalendarResult.rows.slice(7, 14) };
 
   const monthBills = useMemo(() => {
     const filtered = bills.filter(bill => {
@@ -752,7 +909,7 @@ export default function Wallet() {
   };
 
   const VIEW_TITLES: Record<typeof view, string> = {
-    home: "Welcome to Your Piggybank",
+    home: "Piggybank",
     bills: "🏠 Bills",
     debts: "💳 Debts",
   };
@@ -816,14 +973,53 @@ export default function Wallet() {
               <div className="card-body">
                 <div className="section-label">📅 Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
-                  Runs from today forward — no past days, no already-paid bills cluttering it up. Log the hours you're working (or plan to work) each day and watch your running balance move.
+                  Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay availability ramps from 40% on Sunday to 70% by Saturday, applied against your cumulative pool for the week — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday. Past {ANYTIME_PAY_OVERTIME_THRESHOLD_HOURS} hours in a week, the ramp stops climbing and drops to a flat {Math.round(ANYTIME_PAY_OVERTIME_CAP_PCT * 100)}% instead.
                 </div>
+
+                {new Date().getDay() !== 0 && (
+                  <div style={{
+                    marginBottom: 14, padding: "10px 12px", borderRadius: "var(--radius-sm)",
+                    background: "var(--blush)", border: "1px solid var(--pink-light)",
+                  }}>
+                    <div className="form-label" style={{ marginBottom: 4 }}>
+                      Hours already worked this week (Sun–yesterday)
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 8 }}>
+                      The calendar below only starts from today, so this fills in the rest of the pool it can't see — otherwise this week's ramp % gets applied to a smaller pool than you've actually earned.
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="form-label" style={{ fontSize: 10 }}>Regular hrs</div>
+                        <input
+                          type="number" className="form-input" placeholder="0"
+                          value={priorWeekHours.reg}
+                          onChange={e => setPriorWeekHourField("reg", e.target.value)}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="form-label" style={{ fontSize: 10 }}>OT hrs</div>
+                        <input
+                          type="number" className="form-input" placeholder="0"
+                          value={priorWeekHours.ot}
+                          onChange={e => setPriorWeekHourField("ot", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: 14 }}>
                   <div className="form-label">Current Balance</div>
-                  <input type="number" className="form-input" placeholder="check your bank app, enter it here" value={currentBalanceInput} onChange={e => setCurrentBalanceInput(e.target.value)} style={{ fontSize: 18, fontWeight: 700 }} />
+                  <EditableCell
+                    type="number"
+                    className="form-input"
+                    placeholder="check your bank app, enter it here"
+                    value={budget.current_balance || ""}
+                    onChange={v => updateBudget("current_balance", parseFloat(v) || 0)}
+                    style={{ fontSize: 18, fontWeight: 700 }}
+                  />
                   <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 4 }}>
-                    The calendar's running balance starts from this number. Update it whenever you check your real balance for the most accurate picture — it won't drift correct on its own.
+                    The calendar's running balance starts from this number. Update it whenever you check your real balance for the most accurate picture — it won't drift correct on its own. Syncs across devices now.
                   </div>
                 </div>
 
@@ -832,6 +1028,13 @@ export default function Wallet() {
                     <div className="form-label">Tax Withholding (%)</div>
                     <input type="number" className="form-input" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} />
                   </div>
+
+                                  <div>
+                    <div className="form-label">Weekly Health Premium ($)</div>
+                    <input type="number" className="form-input" value={healthDeduction} onChange={e => setHealthDeduction(parseFloat(e.target.value) || 0)} />
+                  </div>
+
+
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
@@ -849,9 +1052,9 @@ export default function Wallet() {
                 <details style={{ marginBottom: 16 }}>
                   <summary style={{ fontSize: 11, color: "var(--pink-dark)", fontWeight: 600, cursor: "pointer" }}>Not sure what % to enter for tax withholding?</summary>
                   <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 8, lineHeight: 1.6 }}>
-                    Easiest way: grab a recent pay stub and find the line(s) for federal tax, state tax, Social Security, and Medicare. Add those dollar amounts together, divide by your gross pay for that same period, and multiply by 100 — that's your real withholding rate.
+                    Easiest way: grab a recent pay stub and find the line(s) for federal tax, state tax, Social Security, Medicare, and any benefits/401k deductions. Add those dollar amounts together, divide by your gross pay for that same period, and multiply by 100 — that's your real total withholding rate (not just tax).
                     <br /><br />
-                    No pay stub handy? Most hourly W-2 workers land somewhere around 15–25% total depending on state and filing status. 20% is a reasonable starting guess.
+                    No pay stub handy? Most hourly W-2 workers land somewhere around 15–25% for tax alone, often more once benefits are included. 20% is a reasonable tax-only starting guess.
                     <br /><br />
                     For a precise number, the IRS has a free calculator that walks you through it: <a href="https://www.irs.gov/individuals/tax-withholding-estimator" target="_blank" rel="noopener noreferrer" style={{ color: "var(--pink-dark)" }}>irs.gov/individuals/tax-withholding-estimator</a>
                   </div>
@@ -908,10 +1111,57 @@ export default function Wallet() {
                                   onChange={e => setDailyHourField(row.key, "ot", e.target.value)}
                                   style={{ flex: 1, fontSize: 12, padding: "4px 8px" }}
                                 />
+
                                 {row.hoursToday > 0 && (
-                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.earnedToday)}</span>
+                                  <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 700, whiteSpace: "nowrap" }}>+{fmt(row.availableToday)}</span>
                                 )}
                               </div>
+
+                              {row.hoursToday > 0 && (
+                                <div style={{ fontSize: 9, color: "var(--ink-muted)", marginTop: 3 }}>
+                                  {Math.round(row.rampPct * 100)}% of period pool available
+                                  {row.heldInPool > 0.005 && ` · ${fmt(row.heldInPool)} still held this period`}
+                                </div>
+                              )}
+
+                              {row.releasedToday > 0.005 && (
+                                <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginTop: 4 }}>
+                                  💰 +{fmt(row.releasedToday)} payday catch-up
+                                </div>
+                              )}
+
+                              <div style={{ marginTop: 8 }}>
+                                <span style={{ fontSize: 10, color: "var(--ink-muted)" }}>
+                                  Expected Extra Funds
+                                </span>
+
+                                <input
+                                  type="number"
+                                  className="form-input"
+                                  placeholder="0"
+                                  value={extraFunds[row.key] || ""}
+                                  onChange={e =>
+                                    setExtraFunds(prev => ({
+                                      ...prev,
+                                      [row.key]: e.target.value,
+                                    }))
+                                  }
+                                />
+                              </div>
+
+                              {row.extraToday > 0 && (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "var(--gold)",
+                                    fontWeight: 700,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  +{fmt(row.extraToday)} expected
+                                </div>
+                              )}
+
                             </div>
                           );
                         })}

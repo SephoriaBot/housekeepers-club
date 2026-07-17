@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, RotateCcw, Calendar, NotebookText } from 'lucide-react';
+import { Plus, X, RotateCcw, Calendar, NotebookText, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
 import type { AppointmentNoteSelection } from '../components/planner/AppointmentNotesPanel';
@@ -26,14 +26,27 @@ interface Spark {
   color: string;
 }
 
+// Sparks pull from the same token palette as the rest of the app
+// (pink-light / primary / secondary / accent / mint / gold-light)
+// instead of a one-off hex set, so the celebration matches the theme.
 const SPARK_COLORS = [
-  "#FFD6A5", // soft peach
-  "#FFE8A3", // warm cream yellow
-  "#F7D7A8", // light apricot
-  "#FFE1B3", // honey cream
-  "#EFD3A2", // muted gold
-  "#FFF1C9"  // soft buttery cream
+  '#fbe1e5', // pink-light
+  '#f6cfd6', // primary (soft pink)
+  '#f7b89c', // secondary (apricot)
+  '#e8a0ac', // accent (pale rose)
+  '#f9dde2', // mint (dusty rose accent)
+  '#FEFBE8', // gold-light
 ];
+
+function StitchDivider() {
+  return (
+    <div className="stitch-divider">
+      <span className="line" />
+      <span className="mark" />
+      <span className="line" />
+    </div>
+  );
+}
 
 export default function DailyPlanner() {
   const [tasks, setTasks] = useState<DailyTask[]>([]);
@@ -145,6 +158,10 @@ export default function DailyPlanner() {
   const doneCount = tasks.filter(t => t.done).length;
   const allDone = tasks.length > 0 && doneCount === tasks.length;
 
+  // Incomplete tasks first, completed tasks sink to the bottom.
+  // Array.prototype.sort is stable, so order within each group is preserved.
+  const sortedTasks = [...tasks].sort((a, b) => Number(a.done) - Number(b.done));
+
   return (
     <div>
       {sparks.map(spark => (
@@ -153,9 +170,9 @@ export default function DailyPlanner() {
 
       <div className="page-header">
         <div>
-          <h2>Daily Planner ✨</h2>
-          <p style={{ color: allDone ? 'var(--cream)' : undefined }}>
-            {allDone ? '🌸 All done! What a day~' : `${doneCount} of ${tasks.length} done today`}
+          <h2>Planner</h2>
+          <p style={{ color: allDone ? 'var(--pink-dark)' : 'var(--ink-muted)' }}>
+            {allDone ? 'All done! Good job.' : `${doneCount} of ${tasks.length} done today`}
           </p>
         </div>
         {tasks.length > 0 && (
@@ -168,10 +185,10 @@ export default function DailyPlanner() {
       <div className="page-body">
 
         {tasks.length > 0 && (
-          <div style={{ marginBottom: 24, maxWidth: 560 }}>
+          <div style={{ marginBottom: 4, maxWidth: 560 }}>
             <div style={{
               height: 10,
-              borderRadius: 99,
+              borderRadius: 999,
               background: 'var(--border)',
               overflow: 'hidden',
             }}>
@@ -179,72 +196,76 @@ export default function DailyPlanner() {
                 height: '100%',
                 width: `${(doneCount / tasks.length) * 100}%`,
                 background: allDone
-                  ? 'linear-gradient(90deg, #FFF1C9, #FFD6A5)'
-                  : 'linear-gradient(90deg, #F7D7A8, #FFE8A3)',
-                borderRadius: 99,
+                  ? 'linear-gradient(90deg, var(--pink-light), var(--pink-dark))'
+                  : 'linear-gradient(90deg, var(--secondary), var(--accent))',
+                borderRadius: 999,
                 transition: 'width 0.4s ease',
               }} />
             </div>
           </div>
         )}
 
-        <div className="grid-2" style={{ alignItems: 'start' }}>
+        <section className="grid-2" style={{ alignItems: 'start' }}>
 
           {/* Dailies checklist */}
-          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
+          <div className="card">
             <div className="card-body">
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16
-              }}>
-                <span style={{ fontSize: '1.1rem' }}>🌿</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  My Dailies
-                </span>
+              <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Daily Tasks</span>
               </div>
 
               {loading ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>Loading…</p>
               ) : tasks.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                  No tasks yet — add your first daily below 🌱
-                </p>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 8, padding: '28px 16px', marginBottom: 16,
+                  border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-md)',
+                }}>
+                  <Heart size={26} style={{ color: 'var(--pink-light)' }} strokeWidth={1.5} />
+                  <p style={{
+                    fontSize: '0.85rem', color: 'var(--ink-muted)', margin: 0,
+                    lineHeight: 1.6, textAlign: 'center',
+                  }}>
+                    No tasks yet — add your first one below
+                  </p>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {tasks.map(task => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                  {sortedTasks.map(task => (
                     <div
                       key={task.id}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 14,
-                        background: task.done
-                          ? 'linear-gradient(135deg, #FFE1B3, #EFD3A2)'
-                          : 'var(--cream)',
-                        border: `1.5px solid ${task.done ? '#EFD3A2' : 'var(--border)'}`,
-                        transition: 'all 0.2s ease',
-                        boxShadow: task.done ? '0 1px 6px rgba(201,166,240,0.15)' : 'none',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '16px 18px', borderRadius: 'var(--radius-md)',
+                        background: task.done ? 'var(--blush)' : 'var(--white)',
+                        border: `1.5px solid ${task.done ? 'var(--pink-light)' : 'var(--border)'}`,
+                        opacity: task.done ? 0.55 : 1,
                       }}
                     >
                       <button
                         onClick={e => toggleTask(task, e)}
+                        aria-label={task.done ? 'Mark not done' : 'Mark done'}
                         style={{
-                          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          border: `2px solid ${task.done ? '#EFD3A2' : 'var(--border)'}`,
-                          background: task.done
-                            ? 'linear-gradient(135deg, #EFD3A2, #FFE8A3)'
-                            : 'var(--white)',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.15s ease',
-                          boxShadow: task.done ? '0 1px 4px rgba(201,166,240,0.4)' : 'none',
+                          width: 24, height: 24, flexShrink: 0,
+                          border: 'none', background: 'none', padding: 0,
+                          cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
                         }}
                       >
-                        {task.done && <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>✓</span>}
+                        <Heart
+                          size={21}
+                          strokeWidth={1.75}
+                          color={task.done ? 'var(--pink-dark)' : 'var(--border)'}
+                          fill={task.done ? 'var(--pink-dark)' : 'none'}
+                        />
                       </button>
 
                       <span style={{
-                        flex: 1, fontSize: '0.88rem',
-                        color: task.done ? '#B98A5A' : 'var(--ink-muted)',
+                        flex: 1, fontSize: '0.92rem', fontWeight: 600,
+                        letterSpacing: '0.01em', lineHeight: 1.4,
+                        color: task.done ? 'var(--ink-muted)' : 'var(--ink)',
                         textDecoration: task.done ? 'line-through' : 'none',
-                        transition: 'all 0.2s ease',
                       }}>
                         {task.label}
                       </span>
@@ -267,11 +288,11 @@ export default function DailyPlanner() {
                   value={newTask}
                   onChange={e => setNewTask(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addTask()}
-                  style={{ flex: 1, borderRadius: 12 }}
+                  style={{ flex: 1 }}
                 />
                 <button
                   className="btn btn-primary"
-                  style={{ padding: '8px 14px', borderRadius: 12 }}
+                  style={{ padding: '10px 14px' }}
                   onClick={addTask}
                 >
                   <Plus size={14} />
@@ -281,18 +302,15 @@ export default function DailyPlanner() {
           </div>
 
           {/* Appointments */}
-          <div className="card" style={{ borderRadius: 18, border: '1.5px solid var(--border)' }}>
+          <div className="card">
             <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: '1.1rem' }}>🌸</span>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Upcoming
-                </span>
+              <div className="section-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Schedule & Appointments</span>
               </div>
 
               {appointments.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                  Nothing scheduled yet 🍃
+                  Nothing scheduled yet!
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -301,33 +319,35 @@ export default function DailyPlanner() {
                     return (
                       <div key={appt.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderRadius: 14,
-                        background: 'var(--cream)',
+                        padding: '12px 14px', borderRadius: 18,
+                        background: 'var(--white)',
                         border: '1.5px solid var(--border)',
                       }}>
                         <div style={{
-                          width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                          background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
+                          width: 30, height: 30, borderRadius: 'var(--radius-sm)', flexShrink: 0,
+                          background: 'var(--blush)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                          <Calendar size={13} style={{ color: '#B98A5A' }} />
+                          <Calendar size={13} style={{ color: 'var(--pink-dark)' }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink-muted)' }}>{appt.title}</div>
-                          <div style={{ fontSize: '0.74rem', color: '#B98A5A', marginTop: 2 }}>{formatApptDate(appt.date_time)}</div>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ink)' }}>{appt.title}</div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--ink-muted)', marginTop: 2, fontFamily: "'IBM Plex Mono', monospace" }}>
+                            {formatApptDate(appt.date_time)}
+                          </div>
                         </div>
                         {hasNote && (
                           <button
                             onClick={() => openNoteFor(appt)}
                             title="View attached note"
                             style={{
-                              background: 'linear-gradient(135deg, #FFE1B3, #EFD3A2)',
-                              border: 'none', borderRadius: 10, cursor: 'pointer',
-                              width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: 'var(--blush)',
+                              border: '1.5px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                               flexShrink: 0,
                             }}
                           >
-                            <NotebookText size={13} style={{ color: '#B98A5A' }} />
+                            <NotebookText size={13} style={{ color: 'var(--pink-dark)' }} />
                           </button>
                         )}
                         <button
@@ -348,7 +368,6 @@ export default function DailyPlanner() {
                   placeholder="Appointment title…"
                   value={newApptTitle}
                   onChange={e => setNewApptTitle(e.target.value)}
-                  style={{ borderRadius: 12 }}
                 />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -356,11 +375,11 @@ export default function DailyPlanner() {
                     type="datetime-local"
                     value={newApptDate}
                     onChange={e => setNewApptDate(e.target.value)}
-                    style={{ flex: 1, borderRadius: 12 }}
+                    style={{ flex: 1 }}
                   />
                   <button
                     className="btn btn-primary"
-                    style={{ padding: '8px 14px', borderRadius: 12 }}
+                    style={{ padding: '10px 14px' }}
                     onClick={addAppointment}
                   >
                     <Plus size={14} />
@@ -370,14 +389,16 @@ export default function DailyPlanner() {
             </div>
           </div>
 
-        </div>
+        </section>
 
-        <div style={{ marginTop: 20 }}>
+        <StitchDivider />
+
+        <section>
           <AppointmentNotesPanel
             externalSelection={focusNote}
             onExternalSelectionConsumed={() => setFocusNote(null)}
           />
-        </div>
+        </section>
 
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 interface TopNavProps {
   currentPage: string;
@@ -13,8 +14,6 @@ const SECTIONS = [
     label: 'Home',
     items: [
       { id: 'maidwizard', label: 'Maid Wizard' },
-      { id: 'plants', label: 'My Plants' },
-      { id: 'pets', label: 'My Pets' },
     ],
   },
   {
@@ -31,19 +30,8 @@ const SECTIONS = [
     id: 'open-kitchen',
     label: 'Open Kitchen',
     items: [
-      { id: 'cook', label: 'Cook' },
-      { id: 'suggest', label: 'Suggestions' },
-      { id: 'planner', label: 'Meal Planner' },
+      { id: 'meals', label: 'Meals' },
       { id: 'grocery', label: 'Grocery List' },
-    ],
-  },
-  {
-    id: 'craft-table',
-    label: 'Craft Table',
-    items: [
-      { id: 'recipes', label: 'Recipe Library' },
-      { id: 'wizard', label: 'Recipe Wizard' },
-      { id: 'add-recipe', label: 'Add Recipe' },
     ],
   },
 ];
@@ -77,9 +65,12 @@ export default function TopNav({ currentPage, onNavigate }: TopNavProps) {
     <>
       <header className="topbar">
         <span className="topbar-mark">Polly</span>
-        <button className="topbar-trigger" onClick={() => setOpen(true)}>
-          {currentLabel} · Menu
-        </button>
+        <div className="topbar-actions">
+          <ThemeToggle />
+          <button className="topbar-trigger" onClick={() => setOpen(true)}>
+            {currentLabel} · Menu
+          </button>
+        </div>
       </header>
 
       {open && (

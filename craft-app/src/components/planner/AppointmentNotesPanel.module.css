@@ -21,6 +21,13 @@
   color: var(--an-ink, #4a3f35);
 }
 
+.actionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .newButton {
   display: flex;
   align-items: center;
@@ -33,5 +40,18 @@
   background: var(--an-apricot-soft, #fbe3d0);
   color: var(--an-ink, #4a3f35);
   cursor: pointer;
-  margin-bottom: 16px;
+}
+
+.unlinkedButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--an-ink-soft, #8c7c6e);
+  background: var(--an-cream, #fbf6ef);
+  color: var(--an-ink, #4a3f35);
+  cursor: pointer;
 }
