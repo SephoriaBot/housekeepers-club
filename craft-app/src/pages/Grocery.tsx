@@ -169,6 +169,52 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   },
 }
 
+// Smart Cart chain whitelist — only results whose seller name matches one of
+// these aliases get kept. This filtering happens AFTER the SerpAPI search
+// comes back, not by trying to scope the search query itself — restricting
+// at the query level is what caused the old "Walmart or nothing" behavior,
+// since Google Shopping doesn't reliably narrow to one retailer that way.
+// Key = the canonical name shown in the UI/tally. Value = lowercase
+// substrings that identify that chain in a raw seller string (SerpAPI
+// results show things like "Walmart.com", "Walmart Supercenter", etc, so
+// aliases need to be loose substrings, not exact matches).
+const ALLOWED_STORES: Record<string, string[]> = {
+  'Walmart': ['walmart'],
+  'Kroger': ['kroger'],
+  'Target': ['target'],
+  'Food Lion': ['food lion'],
+  'Publix': ['publix'],
+  'Harris Teeter': ['harris teeter'],
+  'Whole Foods': ['whole foods'],
+  "Trader Joe's": ['trader joe'],
+  'Aldi': ['aldi'],
+}
+
+// Matches a raw seller/store string against ALLOWED_STORES and returns the
+// canonical chain name, or null if it's not on the whitelist. Normalizing
+// to the canonical name (rather than just filtering) means "Walmart" and
+// "Walmart.com" get grouped together in the tally instead of counted as
+// two different stores.
+function normalizeStoreName(raw: string | undefined | null): string | null {
+  if (!raw) return null
+  const lower = raw.toLowerCase()
+  for (const [canonical, aliases] of Object.entries(ALLOWED_STORES)) {
+    if (aliases.some(alias => lower.includes(alias))) return canonical
+  }
+  return null
+}
+
+// Applies the whitelist to a raw results array from the product-search API
+// (or from cache). Anything that doesn't match a known chain is dropped
+// entirely rather than shown under its raw name — this is what keeps
+// random marketplace sellers / instacart-only listings out of the cart.
+function filterToAllowedStores(results: any[]): any[] {
+  if (!Array.isArray(results)) return []
+  return results
+    .map(r => ({ ...r, store: normalizeStoreName(r.store) }))
+    .filter(r => r.store !== null)
+}
+
 export default function Grocery() {
   const [items, setItems] = useState<GroceryItem[]>([])
   const [newItem, setNewItem] = useState('')
@@ -344,7 +390,9 @@ export default function Grocery() {
             const key = item.name.toLowerCase().trim()
             const cachedResults = persistedCache.get(key)
             if (cachedResults) {
-              const result = { item: item.name, results: cachedResults, cached: true }
+              // Cache rows may predate the chain whitelist, so filter on
+              // the way out too — not just on the way in.
+              const result = { item: item.name, results: filterToAllowedStores(cachedResults), cached: true }
               cache.set(item.name, result)
               return result
             }
@@ -368,11 +416,18 @@ export default function Grocery() {
               clearTimeout(timeout)
             }
 
-            const resultsArr = Array.isArray(data.results) ? data.results : []
+            const rawResultsArr = Array.isArray(data.results) ? data.results : []
+            // Whitelist filter applied right here, before anything else
+            // touches the results — both the cache write below and the
+            // cart/tally end up chain-restricted as a result.
+            const resultsArr = filterToAllowedStores(rawResultsArr)
 
             // Only persist successful lookups. A real API failure shouldn't
             // get cached as if it were a confirmed "nothing found" — that
             // would hide the failure behind a 24h cache hit next time.
+            // We cache the filtered (whitelist-only) results, so a cache
+            // hit later doesn't need to re-filter raw data that's no
+            // longer around.
             if (!data.error) {
               supabase.from('product_search_cache')
                 .upsert({ item_name: key, results: resultsArr, fetched_at: new Date().toISOString() })
@@ -507,7 +562,9 @@ export default function Grocery() {
   // whole list — part real prices, part reasonable estimate — rather than
   // being excluded or only partially totaled. This doesn't touch which
   // stores/results come back from the search itself, only how they're
-  // combined into a per-store total.
+  // combined into a per-store total. Because results are already filtered
+  // to ALLOWED_STORES upstream, "allStores" here can only ever be
+  // whitelisted chains.
   function computeTally(cartData: any[]) {
     const totalTracked = cartData.length
     if (totalTracked === 0) return []
@@ -802,7 +859,7 @@ export default function Grocery() {
               <div className="card">
                 <div className="section-label">Best Store for Your Whole List</div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', padding: '4px 0' }}>
-                  At least one item on your list had zero search results anywhere, so no store total could be estimated yet.
+                  None of your whitelisted stores (see ALLOWED_STORES) had results for every item on your list, so no store total could be estimated yet.
                 </p>
               </div>
             )
@@ -1011,7 +1068,7 @@ export default function Grocery() {
                         <span style={{ fontSize: '0.72rem', color: 'var(--danger)' }}>lookup failed</span>
                       )}
                       {!cheapest && !c.error && (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>no matches found</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>no matches at whitelisted stores</span>
                       )}
                     </div>
                     {sorted.length > 1 && (
