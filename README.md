@@ -25,7 +25,8 @@ A full-stack household management application for organizing finances, meals, an
 - Recharts
 - Lucide React
 - Groq AI
-
+- Vercel
+  
 ## Getting Started
 
 Clone the repository:
