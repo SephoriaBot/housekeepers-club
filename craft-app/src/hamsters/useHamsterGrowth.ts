@@ -8,12 +8,15 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase"; // match your actual client path
 import { rollRandomHamster } from "./hamsters";
 import type { Hamster } from "./hamsters";
+import { rollPersonality } from "./personalities";
+import type { Personality } from "./personalities";
 
 const POINTS = {
   bill_paid_on_time: 10,
   debt_payment_logged: 12,
   debt_paid_off: 40,
   savings_contribution: 8,
+  tracker_log_entry: 6,
 } as const;
 
 interface HamsterCollectionEntry {
@@ -21,6 +24,7 @@ interface HamsterCollectionEntry {
   hamsterId: string;
   hatchedAt: string;
   source: string | null;
+  personality: Personality | null;
 }
 
 export function useHamsterGrowth() {
@@ -33,10 +37,16 @@ export function useHamsterGrowth() {
   const refreshCollection = useCallback(async () => {
     const { data } = await supabase
       .from("hamster_collection")
-      .select("id, hamster_id, hatched_at, source")
+      .select("id, hamster_id, hatched_at, source, personality")
       .order("hatched_at", { ascending: false });
     setCollection(
-      (data || []).map((r) => ({ id: r.id, hamsterId: r.hamster_id, hatchedAt: r.hatched_at, source: r.source }))
+      (data || []).map((r) => ({
+        id: r.id,
+        hamsterId: r.hamster_id,
+        hatchedAt: r.hatched_at,
+        source: r.source,
+        personality: r.personality,
+      }))
     );
   }, []);
 
@@ -49,8 +59,9 @@ export function useHamsterGrowth() {
 
       while (newPoints >= threshold) {
         const h = rollRandomHamster();
+        const personality = rollPersonality();
         newPoints -= threshold;
-        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source });
+        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source, personality });
         setJustHatched(h);
         hatched = true;
       }
@@ -67,7 +78,7 @@ export function useHamsterGrowth() {
   const checkForNewGrowth = useCallback(async () => {
     const { data: lastCheck } = await supabase
       .from("hamster_last_check")
-      .select("last_bill_check, last_log_check, debt_snapshot")
+      .select("last_bill_check, last_log_check, last_tracker_check, debt_snapshot")
       .eq("id", 1)
       .maybeSingle();
 
@@ -128,11 +139,23 @@ export function useHamsterGrowth() {
       }
     }
 
+    // 4. New tracker log entries (sleep/mood/weight/etc) since last check.
+    // Assumes tracker_logs has a created_at column (standard Supabase default) —
+    // if your table doesn't, tell me and I'll switch this to compare on log_date instead.
+    const { data: newTrackerLogs } = await supabase
+      .from("tracker_logs")
+      .select("id, created_at")
+      .gt("created_at", lastCheck.last_tracker_check);
+
+    for (const _ of newTrackerLogs || []) {
+      runningPoints = await addPoints(POINTS.tracker_log_entry, "tracker_log_entry", runningPoints);
+    }
+
     setPoints(runningPoints);
 
     await supabase
       .from("hamster_last_check")
-      .upsert({ id: 1, last_bill_check: now, last_log_check: now, debt_snapshot: newSnapshot });
+      .upsert({ id: 1, last_bill_check: now, last_log_check: now, last_tracker_check: now, debt_snapshot: newSnapshot });
   }, [points, addPoints]);
 
   useEffect(() => {
