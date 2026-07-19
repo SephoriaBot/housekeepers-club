@@ -19,7 +19,6 @@ interface Budget {
   fixed_expenses: number;
   hourly_wage: number;
   current_balance: number;
-  health_deduction: number;
   net_to_gross_ratio: number;
   flat_deductions_prev: number;
 }
@@ -243,7 +242,7 @@ function EditableCell({ value, onChange, type = "number", style, className, plac
 
 export default function Wallet() {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0, current_balance: 0, health_deduction: 0, net_to_gross_ratio: 0, flat_deductions_prev: 0 });
+  const [budget, setBudget] = useState<Budget>({ take_home: 0, fixed_expenses: 0, hourly_wage: 0, current_balance: 0, net_to_gross_ratio: 0, flat_deductions_prev: 0 });
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [nextId, setNextId] = useState(20);
@@ -550,7 +549,7 @@ export default function Wallet() {
     // Saturday closes the period: tax the FULL gross total once, then
     // subtract whatever gross cash was already advanced during the week.
         if (dow === 6) {
-      const taxableGross = Math.max(0, periodEarnedGross - budget.health_deduction);
+      const taxableGross = Math.max(0, periodEarnedGross - budget.flat_deductions_prev);
       const netOwedForPeriod = taxableGross * (1 - taxRate / 100);
       pendingPayout += Math.max(0, netOwedForPeriod - periodWithdrawnGross);
     }
@@ -1005,12 +1004,6 @@ export default function Wallet() {
                     <input type="number" className="form-input" value={taxRate} onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} />
                   </div>
 
-                                  <div>
-                    <div className="form-label">Weekly Health Premium ($)</div>
-                    <input type="number" className="form-input" value={budget.health_deduction || ""} placeholder="0.00" onChange={e => updateBudget("health_deduction", parseFloat(e.target.value) || 0)} />
-                  </div>
-
-
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
@@ -1037,7 +1030,7 @@ export default function Wallet() {
                     <div className="form-label">Flat Deductions ($)</div>
                     <EditableCell type="number" className="form-input" value={budget.flat_deductions_prev || ""} placeholder="e.g. 62.84" onChange={v => updateBudget("flat_deductions_prev", parseFloat(v) || 0)} />
                     <div style={{ fontSize: 10, color: "var(--ink-muted)", marginTop: 4 }}>
-                      Flat deductions from your previous paycheck (per the Amazon app).
+                      Flat deductions from your previous paycheck (per the Amazon app) — for most people this is just the health premium.
                     </div>
                   </div>
                 </div>
