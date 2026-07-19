@@ -8,6 +8,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase"; // match your actual client path
 import { rollRandomHamster } from "./hamsters";
 import type { Hamster } from "./hamsters";
+import { rollPersonality } from "./personalities";
+import type { Personality } from "./personalities";
 
 const POINTS = {
   bill_paid_on_time: 10,
@@ -22,6 +24,7 @@ interface HamsterCollectionEntry {
   hamsterId: string;
   hatchedAt: string;
   source: string | null;
+  personality: Personality | null;
 }
 
 export function useHamsterGrowth() {
@@ -34,10 +37,16 @@ export function useHamsterGrowth() {
   const refreshCollection = useCallback(async () => {
     const { data } = await supabase
       .from("hamster_collection")
-      .select("id, hamster_id, hatched_at, source")
+      .select("id, hamster_id, hatched_at, source, personality")
       .order("hatched_at", { ascending: false });
     setCollection(
-      (data || []).map((r) => ({ id: r.id, hamsterId: r.hamster_id, hatchedAt: r.hatched_at, source: r.source }))
+      (data || []).map((r) => ({
+        id: r.id,
+        hamsterId: r.hamster_id,
+        hatchedAt: r.hatched_at,
+        source: r.source,
+        personality: r.personality,
+      }))
     );
   }, []);
 
@@ -50,8 +59,9 @@ export function useHamsterGrowth() {
 
       while (newPoints >= threshold) {
         const h = rollRandomHamster();
+        const personality = rollPersonality();
         newPoints -= threshold;
-        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source });
+        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source, personality });
         setJustHatched(h);
         hatched = true;
       }
