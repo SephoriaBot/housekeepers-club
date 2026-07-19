@@ -14,6 +14,7 @@ const POINTS = {
   debt_payment_logged: 12,
   debt_paid_off: 40,
   savings_contribution: 8,
+  tracker_log_entry: 6,
 } as const;
 
 interface HamsterCollectionEntry {
@@ -67,7 +68,7 @@ export function useHamsterGrowth() {
   const checkForNewGrowth = useCallback(async () => {
     const { data: lastCheck } = await supabase
       .from("hamster_last_check")
-      .select("last_bill_check, last_log_check, debt_snapshot")
+      .select("last_bill_check, last_log_check, last_tracker_check, debt_snapshot")
       .eq("id", 1)
       .maybeSingle();
 
@@ -128,11 +129,23 @@ export function useHamsterGrowth() {
       }
     }
 
+    // 4. New tracker log entries (sleep/mood/weight/etc) since last check.
+    // Assumes tracker_logs has a created_at column (standard Supabase default) —
+    // if your table doesn't, tell me and I'll switch this to compare on log_date instead.
+    const { data: newTrackerLogs } = await supabase
+      .from("tracker_logs")
+      .select("id, created_at")
+      .gt("created_at", lastCheck.last_tracker_check);
+
+    for (const _ of newTrackerLogs || []) {
+      runningPoints = await addPoints(POINTS.tracker_log_entry, "tracker_log_entry", runningPoints);
+    }
+
     setPoints(runningPoints);
 
     await supabase
       .from("hamster_last_check")
-      .upsert({ id: 1, last_bill_check: now, last_log_check: now, debt_snapshot: newSnapshot });
+      .upsert({ id: 1, last_bill_check: now, last_log_check: now, last_tracker_check: now, debt_snapshot: newSnapshot });
   }, [points, addPoints]);
 
   useEffect(() => {
