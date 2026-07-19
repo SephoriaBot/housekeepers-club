@@ -17,6 +17,7 @@ const POINTS = {
   debt_paid_off: 40,
   savings_contribution: 8,
   tracker_log_entry: 6,
+  daily_task_list_complete: 20,
 } as const;
 
 interface HamsterCollectionEntry {
@@ -78,7 +79,7 @@ export function useHamsterGrowth() {
   const checkForNewGrowth = useCallback(async () => {
     const { data: lastCheck } = await supabase
       .from("hamster_last_check")
-      .select("last_bill_check, last_log_check, last_tracker_check, debt_snapshot")
+      .select("last_bill_check, last_log_check, last_tracker_check, debt_snapshot, tasks_all_done_awarded")
       .eq("id", 1)
       .maybeSingle();
 
@@ -151,11 +152,33 @@ export function useHamsterGrowth() {
       runningPoints = await addPoints(POINTS.tracker_log_entry, "tracker_log_entry", runningPoints);
     }
 
+    // 5. Full daily task list completed (daily_tasks table, no date column —
+    // "done" just re-arms once a task gets unchecked or Reset is hit).
+    const { data: dailyTasks } = await supabase.from("daily_tasks").select("done");
+    const total = (dailyTasks || []).length;
+    const doneCount = (dailyTasks || []).filter((t) => t.done).length;
+    const allDone = total > 0 && doneCount === total;
+    let tasksAllDoneAwarded = lastCheck.tasks_all_done_awarded;
+
+    if (allDone && !tasksAllDoneAwarded) {
+      runningPoints = await addPoints(POINTS.daily_task_list_complete, "daily_task_list_complete", runningPoints);
+      tasksAllDoneAwarded = true;
+    } else if (!allDone) {
+      tasksAllDoneAwarded = false;
+    }
+
     setPoints(runningPoints);
 
     await supabase
       .from("hamster_last_check")
-      .upsert({ id: 1, last_bill_check: now, last_log_check: now, last_tracker_check: now, debt_snapshot: newSnapshot });
+      .upsert({
+        id: 1,
+        last_bill_check: now,
+        last_log_check: now,
+        last_tracker_check: now,
+        debt_snapshot: newSnapshot,
+        tasks_all_done_awarded: tasksAllDoneAwarded,
+      });
   }, [points, addPoints]);
 
   useEffect(() => {
