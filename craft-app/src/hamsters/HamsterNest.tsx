@@ -116,7 +116,7 @@ export default function HamsterNest() {
               />
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6, textAlign: "center" }}>
-              {points.toFixed(0)} / {threshold} — pay bills, chip at debt, finish your day, and it grows
+              {points.toFixed(0)} / {threshold} — Watch your egg slowly hatch as you accomplish tasks each day
             </div>
           </>
         )}
