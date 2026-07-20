@@ -465,25 +465,6 @@ export default function Wallet() {
     setPriorWeekHours(prev => ({ ...prev, weekStart: currentWeekStartKey(), [field]: value }));
   }
 
-  // Same idea as priorWeekHours, but for the OTHER gap the today-forward
-  // window creates: if this Wednesday's payout was earned by a period that
-  // already closed (Saturday) before the window starts, there's no Saturday
-  // row visible to rebuild pendingPayout from. Keyed to the current week's
-  // Sunday so it auto-clears once that Wednesday's release happens and a
-  // new week rolls around, instead of silently carrying a stale amount.
-  const [priorPendingPayout, setPriorPendingPayout] = useState<{ weekStart: string; amount: string }>(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("prior_pending_payout") || "null");
-      if (stored && stored.weekStart === currentWeekStartKey()) return stored;
-    } catch { /* fall through to blank */ }
-    return { weekStart: currentWeekStartKey(), amount: "" };
-  });
-  useEffect(() => { localStorage.setItem("prior_pending_payout", JSON.stringify(priorPendingPayout)); }, [priorPendingPayout]);
-
-  function setPriorPendingPayoutField(value: string) {
-    setPriorPendingPayout(prev => ({ ...prev, weekStart: currentWeekStartKey(), amount: value }));
-  }
-
   const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
@@ -535,19 +516,36 @@ export default function Wallet() {
     periodWithdrawnGross = priorGross * eligiblePercent(priorGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
   }
 
-  // Seed pendingPayout the same way: if the window's first Wednesday's
+  // Seed pendingPayout automatically: if the window's first Wednesday's
   // release would come from a period that closed (Saturday) before the
   // window starts, there's no in-window Saturday close to build it back up
-  // from. Only apply it to that first Wednesday — a Saturday close inside
-  // the window builds pendingPayout up correctly on its own from there.
+  // from. Rather than ask for a manually-guessed dollar amount, replay that
+  // already-closed week's own math using the hours already logged for those
+  // dates in dailyHours — that log is keyed by date and persists even after
+  // a day scrolls out of the visible window, so the data's already there.
   const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
   const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
-  if (
-    firstWednesdayIdx !== -1 &&
-    (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx) &&
-    priorPendingPayout.weekStart === currentWeekStartKey()
-  ) {
-    pendingPayout = parseFloat(priorPendingPayout.amount) || 0;
+  if (firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx)) {
+    const firstWednesday = allDays[firstWednesdayIdx];
+    const closingSaturday = new Date(firstWednesday);
+    closingSaturday.setDate(closingSaturday.getDate() - 4); // Wed's payout closed the Sat 4 days prior
+    const periodStartSunday = new Date(closingSaturday);
+    periodStartSunday.setDate(periodStartSunday.getDate() - 6);
+
+    let closedEarnedGross = 0;
+    let closedWithdrawnGross = 0;
+    for (let d = new Date(periodStartSunday); d <= closingSaturday; d.setDate(d.getDate() + 1)) {
+      const key = dateKey(d);
+      const reg = parseFloat(dailyHours[key]?.reg) || 0;
+      const ot = parseFloat(dailyHours[key]?.ot) || 0;
+      closedEarnedGross += reg * grossHourlyWage + ot * grossOtWage;
+      const eligiblePct = eligiblePercent(closedEarnedGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
+      const maxWithdrawableSoFar = closedEarnedGross * eligiblePct;
+      closedWithdrawnGross += Math.max(0, maxWithdrawableSoFar - closedWithdrawnGross);
+    }
+    const closedTaxableGross = Math.max(0, closedEarnedGross - budget.flat_deductions_prev);
+    const closedNetOwed = closedTaxableGross * (1 - taxRate / 100);
+    pendingPayout = Math.max(0, closedNetOwed - closedWithdrawnGross);
   }
 
   const rows = allDays.map(d => {
@@ -611,7 +609,7 @@ export default function Wallet() {
 
   const moneyCalendarResult = useMemo(
     () => buildMoneyCalendarRows([...calendarWeeks.week1, ...calendarWeeks.week2], budget.current_balance || 0),
-    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours, priorPendingPayout]
+    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours]
   );
   const week1Result = { rows: moneyCalendarResult.rows.slice(0, 7) };
   const week2Result = { rows: moneyCalendarResult.rows.slice(7, 14) };
@@ -1016,33 +1014,6 @@ export default function Wallet() {
                     </div>
                   </div>
                 )}
-
-                {(() => {
-                  const allDays = [...calendarWeeks.week1, ...calendarWeeks.week2];
-                  const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
-                  const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
-                  const needsPriorPending =
-                    firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx);
-                  if (!needsPriorPending) return null;
-                  return (
-                    <div style={{
-                      marginBottom: 14, padding: "10px 12px", borderRadius: "var(--radius-sm)",
-                      background: "var(--blush)", border: "1px solid var(--pink-light)",
-                    }}>
-                      <div className="form-label" style={{ marginBottom: 4 }}>
-                        Pending payout still owed from last week's close
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 8 }}>
-                        This Wednesday's release came from a period that already closed before the calendar's visible window — enter the net amount still owed so it shows up here instead of only on next Wednesday.
-                      </div>
-                      <input
-                        type="number" className="form-input" placeholder="0"
-                        value={priorPendingPayout.amount}
-                        onChange={e => setPriorPendingPayoutField(e.target.value)}
-                      />
-                    </div>
-                  );
-                })()}
 
                 <div style={{ marginBottom: 14 }}>
                   <div className="form-label">Current Balance</div>
