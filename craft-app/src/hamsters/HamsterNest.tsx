@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useHamsterGrowth } from "./useHamsterGrowth";
+import { useHamsterGrowth, SOURCE_LABELS } from "./useHamsterGrowth";
 
 function NestEgg({ progressPct }: { progressPct: number }) {
   const showSmallCrack = progressPct >= 35;
@@ -64,7 +64,7 @@ function NestEgg({ progressPct }: { progressPct: number }) {
 }
 
 export default function HamsterNest() {
-  const { loading, points, threshold, progressPct, justHatched, clearJustHatched } = useHamsterGrowth();
+  const { loading, points, threshold, progressPct, recentPoints, justHatched, clearJustHatched } = useHamsterGrowth();
 
   useEffect(() => {
     if (justHatched) {
@@ -116,8 +116,39 @@ export default function HamsterNest() {
               />
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6, textAlign: "center" }}>
-              {points.toFixed(0)} / {threshold} — Watch your egg slowly hatch as you accomplish tasks each day
+              {points.toFixed(0)} / {threshold} — pay bills, chip at debt, finish your day, and it grows
             </div>
+
+            {recentPoints.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  marginTop: 10,
+                  paddingBottom: 2,
+                }}
+              >
+                {recentPoints.map((entry) => (
+                  <div
+                    key={entry.id}
+                    style={{
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--pink-dark)",
+                      background: "var(--blush)",
+                      border: "1px solid var(--pink-light)",
+                      borderRadius: 99,
+                      padding: "4px 10px",
+                    }}
+                  >
+                    {SOURCE_LABELS[entry.source] || entry.source} +{entry.amount}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 
