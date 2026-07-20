@@ -28,12 +28,40 @@ interface HamsterCollectionEntry {
   personality: Personality | null;
 }
 
+export interface PointsLogEntry {
+  id: number;
+  source: string;
+  amount: number;
+  createdAt: string;
+}
+
+export const SOURCE_LABELS: Record<string, string> = {
+  bill_paid_on_time: "🏠 Bill paid on time",
+  debt_payment_logged: "💳 Debt payment",
+  debt_paid_off: "🎉 Debt paid off",
+  savings_contribution: "🏦 Savings contribution",
+  tracker_log_entry: "📓 Tracker log",
+  daily_task_list_complete: "✅ Full task list",
+};
+
 export function useHamsterGrowth() {
   const [points, setPoints] = useState(0);
   const [threshold, setThreshold] = useState(100);
   const [collection, setCollection] = useState<HamsterCollectionEntry[]>([]);
+  const [recentPoints, setRecentPoints] = useState<PointsLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [justHatched, setJustHatched] = useState<Hamster | null>(null);
+
+  const refreshRecentPoints = useCallback(async () => {
+    const { data } = await supabase
+      .from("hamster_points_log")
+      .select("id, source, amount, created_at")
+      .order("created_at", { ascending: false })
+      .limit(15);
+    setRecentPoints(
+      (data || []).map((r) => ({ id: r.id, source: r.source, amount: Number(r.amount), createdAt: r.created_at }))
+    );
+  }, []);
 
   const refreshCollection = useCallback(async () => {
     const { data } = await supabase
@@ -58,6 +86,8 @@ export function useHamsterGrowth() {
       let newPoints = currentPoints + amount;
       let hatched = false;
 
+      await supabase.from("hamster_points_log").insert({ source, amount });
+
       while (newPoints >= threshold) {
         const h = rollRandomHamster();
         const personality = rollPersonality();
@@ -69,9 +99,10 @@ export function useHamsterGrowth() {
 
       await supabase.from("hamster_growth").upsert({ id: 1, points: newPoints, threshold });
       if (hatched) await refreshCollection();
+      await refreshRecentPoints();
       return newPoints;
     },
-    [threshold, refreshCollection]
+    [threshold, refreshCollection, refreshRecentPoints]
   );
 
   // The core check — call this whenever the app loads. It looks at what's
@@ -192,9 +223,10 @@ export function useHamsterGrowth() {
         await supabase.from("hamster_growth").upsert({ id: 1, points: 0, threshold: 100 });
       }
       await refreshCollection();
+      await refreshRecentPoints();
       setLoading(false);
     })();
-  }, [refreshCollection]);
+  }, [refreshCollection, refreshRecentPoints]);
 
   useEffect(() => {
     if (!loading) checkForNewGrowth();
@@ -209,6 +241,7 @@ export function useHamsterGrowth() {
     threshold,
     progressPct: Math.min(100, Math.round((points / threshold) * 100)),
     collection,
+    recentPoints,
     justHatched,
     clearJustHatched,
   };
