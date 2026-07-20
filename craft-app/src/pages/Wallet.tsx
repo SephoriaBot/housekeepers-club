@@ -465,6 +465,30 @@ export default function Wallet() {
     setPriorWeekHours(prev => ({ ...prev, weekStart: currentWeekStartKey(), [field]: value }));
   }
 
+  // Fills the OTHER gap the today-forward window creates: if this Wednesday's
+  // release comes from a period that closed (Saturday) before the window
+  // starts, that whole week never had a visible row to log hours into, so
+  // dailyHours has nothing for it. Same pattern as priorWeekHours above, just
+  // for the full week before instead of the partial current week — keyed to
+  // THAT week's own Sunday (not currentWeekStartKey) so it can't get silently
+  // reused against the wrong week once time moves on.
+  const [closedWeekHours, setClosedWeekHours] = useState<{ weekStart: string; reg: string; ot: string }>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("closed_week_hours") || "null");
+      if (stored) return stored;
+    } catch { /* fall through to blank */ }
+    return { weekStart: "", reg: "", ot: "" };
+  });
+  useEffect(() => { localStorage.setItem("closed_week_hours", JSON.stringify(closedWeekHours)); }, [closedWeekHours]);
+
+  function setClosedWeekHourField(weekStart: string, field: "reg" | "ot", value: string) {
+    setClosedWeekHours(prev => ({
+      weekStart,
+      reg: prev.weekStart === weekStart ? (field === "reg" ? value : prev.reg) : (field === "reg" ? value : ""),
+      ot: prev.weekStart === weekStart ? (field === "ot" ? value : prev.ot) : (field === "ot" ? value : ""),
+    }));
+  }
+
   const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
@@ -516,13 +540,12 @@ export default function Wallet() {
     periodWithdrawnGross = priorGross * eligiblePercent(priorGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
   }
 
-  // Seed pendingPayout automatically: if the window's first Wednesday's
-  // release would come from a period that closed (Saturday) before the
-  // window starts, there's no in-window Saturday close to build it back up
-  // from. Rather than ask for a manually-guessed dollar amount, replay that
-  // already-closed week's own math using the hours already logged for those
-  // dates in dailyHours — that log is keyed by date and persists even after
-  // a day scrolls out of the visible window, so the data's already there.
+  // Seed pendingPayout: if the window's first Wednesday's release would
+  // come from a period that closed (Saturday) before the window starts,
+  // there's no in-window Saturday close to build it back up from, and
+  // dailyHours has nothing for that week either (it was never visible to
+  // log into). Use closedWeekHours instead — same computation the main
+  // loop below uses, just run once for the already-closed week.
   const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
   const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
   if (firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx)) {
@@ -531,21 +554,17 @@ export default function Wallet() {
     closingSaturday.setDate(closingSaturday.getDate() - 4); // Wed's payout closed the Sat 4 days prior
     const periodStartSunday = new Date(closingSaturday);
     periodStartSunday.setDate(periodStartSunday.getDate() - 6);
+    const periodStartKey = dateKey(periodStartSunday);
 
-    let closedEarnedGross = 0;
-    let closedWithdrawnGross = 0;
-    for (let d = new Date(periodStartSunday); d <= closingSaturday; d.setDate(d.getDate() + 1)) {
-      const key = dateKey(d);
-      const reg = parseFloat(dailyHours[key]?.reg) || 0;
-      const ot = parseFloat(dailyHours[key]?.ot) || 0;
-      closedEarnedGross += reg * grossHourlyWage + ot * grossOtWage;
-      const eligiblePct = eligiblePercent(closedEarnedGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
-      const maxWithdrawableSoFar = closedEarnedGross * eligiblePct;
-      closedWithdrawnGross += Math.max(0, maxWithdrawableSoFar - closedWithdrawnGross);
+    if (closedWeekHours.weekStart === periodStartKey) {
+      const closedReg = parseFloat(closedWeekHours.reg) || 0;
+      const closedOt = parseFloat(closedWeekHours.ot) || 0;
+      const closedEarnedGross = closedReg * grossHourlyWage + closedOt * grossOtWage;
+      const closedWithdrawnGross = closedEarnedGross * eligiblePercent(closedEarnedGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
+      const closedTaxableGross = Math.max(0, closedEarnedGross - budget.flat_deductions_prev);
+      const closedNetOwed = closedTaxableGross * (1 - taxRate / 100);
+      pendingPayout = Math.max(0, closedNetOwed - closedWithdrawnGross);
     }
-    const closedTaxableGross = Math.max(0, closedEarnedGross - budget.flat_deductions_prev);
-    const closedNetOwed = closedTaxableGross * (1 - taxRate / 100);
-    pendingPayout = Math.max(0, closedNetOwed - closedWithdrawnGross);
   }
 
   const rows = allDays.map(d => {
@@ -609,7 +628,7 @@ export default function Wallet() {
 
   const moneyCalendarResult = useMemo(
     () => buildMoneyCalendarRows([...calendarWeeks.week1, ...calendarWeeks.week2], budget.current_balance || 0),
-    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours]
+    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours, closedWeekHours]
   );
   const week1Result = { rows: moneyCalendarResult.rows.slice(0, 7) };
   const week2Result = { rows: moneyCalendarResult.rows.slice(7, 14) };
@@ -1014,6 +1033,55 @@ export default function Wallet() {
                     </div>
                   </div>
                 )}
+
+                {(() => {
+                  const allDays = [...calendarWeeks.week1, ...calendarWeeks.week2];
+                  const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
+                  const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
+                  const needsClosedWeek =
+                    firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx);
+                  if (!needsClosedWeek) return null;
+
+                  const firstWednesday = allDays[firstWednesdayIdx];
+                  const closingSaturday = new Date(firstWednesday);
+                  closingSaturday.setDate(closingSaturday.getDate() - 4);
+                  const periodStartSunday = new Date(closingSaturday);
+                  periodStartSunday.setDate(periodStartSunday.getDate() - 6);
+                  const periodStartKey = dateKey(periodStartSunday);
+                  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+                  return (
+                    <div style={{
+                      marginBottom: 14, padding: "10px 12px", borderRadius: "var(--radius-sm)",
+                      background: "var(--blush)", border: "1px solid var(--pink-light)",
+                    }}>
+                      <div className="form-label" style={{ marginBottom: 4 }}>
+                        Hours worked {fmt(periodStartSunday)}–{fmt(closingSaturday)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 8 }}>
+                        This week already closed out before the calendar's visible window, so it never had a row to log hours into. Enter it here and Wednesday {fmt(firstWednesday)} will show its release using the same math as everywhere else.
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="form-label" style={{ fontSize: 10 }}>Regular hrs</div>
+                          <input
+                            type="number" className="form-input" placeholder="0"
+                            value={closedWeekHours.weekStart === periodStartKey ? closedWeekHours.reg : ""}
+                            onChange={e => setClosedWeekHourField(periodStartKey, "reg", e.target.value)}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="form-label" style={{ fontSize: 10 }}>OT hrs</div>
+                          <input
+                            type="number" className="form-input" placeholder="0"
+                            value={closedWeekHours.weekStart === periodStartKey ? closedWeekHours.ot : ""}
+                            onChange={e => setClosedWeekHourField(periodStartKey, "ot", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div style={{ marginBottom: 14 }}>
                   <div className="form-label">Current Balance</div>
