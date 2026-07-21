@@ -322,4 +322,22 @@ export function useHamsterGrowth() {
 
   useEffect(() => {
     if (!loading) checkForNewGrowth();
-    // eslint-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  const clearJustHatched = useCallback(() => setJustHatched(null), []);
+  const clearJustEvolved = useCallback(() => setJustEvolved(null), []);
+
+  return {
+    loading,
+    points,
+    threshold,
+    progressPct: Math.min(100, Math.round((points / threshold) * 100)),
+    collection,
+    recentPoints,
+    justHatched,
+    clearJustHatched,
+    justEvolved,
+    clearJustEvolved,
+  };
+}
