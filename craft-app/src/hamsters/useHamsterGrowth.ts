@@ -11,12 +11,20 @@
 // teen/final form (1 of 20, independent of the starter and of each other)
 // and appends 1-2 new combat abilities on top.
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase"; // match your actual client path
 import { rollRandomHamster, rollTeenForm, rollFinalForm } from "./hamsters";
 import type { Hamster, EvolutionStage } from "./hamsters";
 import { rollPersonality, rollAbilities, TEEN_ABILITIES, FINAL_ABILITIES } from "./personalities";
 import type { Personality } from "./personalities";
+
+// NOTE: this hook does real Supabase reads/writes and hatches/evolves
+// hamsters as a side effect. It must only ever be instantiated ONCE in the
+// component tree — use HamsterGrowthContext.tsx's <HamsterGrowthProvider>
+// + useHamsterGrowth() everywhere instead of calling this directly. Two
+// independent instances (e.g. one per component) race against the same
+// "last checked" timestamp and can double-award points, which is what
+// caused two hamsters to hatch from a single accomplishment.
 
 const POINTS = {
   bill_paid_on_time: 10,
@@ -64,7 +72,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   daily_task_list_complete: "✅ Full task list",
 };
 
-export function useHamsterGrowth() {
+export function useHamsterGrowthState() {
   const [points, setPoints] = useState(0);
   const [threshold, setThreshold] = useState(100);
   const [collection, setCollection] = useState<HamsterCollectionEntry[]>([]);
@@ -199,7 +207,7 @@ export function useHamsterGrowth() {
 
   // The core check — call this whenever the app loads. It looks at what's
   // changed in your real tables since the last check and awards growth.
-  const checkForNewGrowth = useCallback(async () => {
+  const runGrowthCheck = useCallback(async () => {
     const { data: lastCheck } = await supabase
       .from("hamster_last_check")
       .select("last_bill_check, last_log_check, last_tracker_check, debt_snapshot, tasks_all_done_awarded")
@@ -303,6 +311,22 @@ export function useHamsterGrowth() {
         tasks_all_done_awarded: tasksAllDoneAwarded,
       });
   }, [points, addPoints]);
+
+  // Guards against overlapping/duplicate calls (e.g. React StrictMode's
+  // dev-mode double-invoke, or an accidental extra mount) so a single
+  // accomplishment can never be counted — and therefore hatched/evolved —
+  // twice. The structural fix is using HamsterGrowthContext so there's only
+  // ever one instance of this hook; this ref is a cheap backstop on top.
+  const checkingRef = useRef(false);
+  const checkForNewGrowth = useCallback(async () => {
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    try {
+      await runGrowthCheck();
+    } finally {
+      checkingRef.current = false;
+    }
+  }, [runGrowthCheck]);
 
   useEffect(() => {
     (async () => {
