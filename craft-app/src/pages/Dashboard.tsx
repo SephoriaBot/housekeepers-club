@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import HamsterNest from "../hamsters/HamsterNest";
 import HamsterHabitat from "../hamsters/HamsterHabitat";
+import { HamsterGrowthProvider } from "../hamsters/HamsterGrowthContext";
+
 
 interface Focus {
   id: string;
@@ -176,12 +178,15 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
 
         {/* ── HAMSTER NEST ── */}
         <section>
-          <div className="section-label">Hamster Nest</div>
-          <HamsterNest />
-          <div style={{ marginTop: 12 }}>
-            <HamsterHabitat />
-          </div>
-        </section>
+  <div className="section-label">Hamster Nest</div>
+  <HamsterGrowthProvider>
+    <HamsterNest />
+    <div style={{ marginTop: 12 }}>
+      <HamsterHabitat />
+    </div>
+  </HamsterGrowthProvider>
+</section>
+
 
         <StitchDivider />
 
