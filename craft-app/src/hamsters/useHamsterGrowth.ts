@@ -3,12 +3,19 @@
 // checks your existing tables (bill_payments, debts, daily_log) each time
 // it loads and figures out what's new since the last check, then adds
 // growth points for it. Hatches a random hamster when the threshold hits.
+//
+// Evolution: every hamster in the collection that hasn't reached its final
+// form grows toward its next stage (baby -> teen -> final) using the exact
+// same point sources and the exact same threshold as the nest hatch. Old
+// traits/abilities are never removed — evolving only rolls a random
+// teen/final form (1 of 20, independent of the starter and of each other)
+// and appends 1-2 new combat abilities on top.
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase"; // match your actual client path
-import { rollRandomHamster } from "./hamsters";
-import type { Hamster } from "./hamsters";
-import { rollPersonality } from "./personalities";
+import { rollRandomHamster, rollTeenForm, rollFinalForm } from "./hamsters";
+import type { Hamster, EvolutionStage } from "./hamsters";
+import { rollPersonality, rollAbilities, TEEN_ABILITIES, FINAL_ABILITIES } from "./personalities";
 import type { Personality } from "./personalities";
 
 const POINTS = {
@@ -26,6 +33,19 @@ interface HamsterCollectionEntry {
   hatchedAt: string;
   source: string | null;
   personality: Personality | null;
+  stage: EvolutionStage;
+  evolutionPoints: number;
+  teenFormId: string | null;
+  finalFormId: string | null;
+  abilities: string[];
+}
+
+export interface JustEvolved {
+  entryId: number;
+  hamsterId: string;
+  stage: EvolutionStage; // the stage it evolved INTO
+  formId: string;
+  newAbilities: string[];
 }
 
 export interface PointsLogEntry {
@@ -51,6 +71,7 @@ export function useHamsterGrowth() {
   const [recentPoints, setRecentPoints] = useState<PointsLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [justHatched, setJustHatched] = useState<Hamster | null>(null);
+  const [justEvolved, setJustEvolved] = useState<JustEvolved | null>(null);
 
   const refreshRecentPoints = useCallback(async () => {
     const { data } = await supabase
@@ -66,7 +87,7 @@ export function useHamsterGrowth() {
   const refreshCollection = useCallback(async () => {
     const { data } = await supabase
       .from("hamster_collection")
-      .select("id, hamster_id, hatched_at, source, personality")
+      .select("id, hamster_id, hatched_at, source, personality, stage, evolution_points, teen_form_id, final_form_id, abilities")
       .order("hatched_at", { ascending: false });
     setCollection(
       (data || []).map((r) => ({
@@ -75,12 +96,81 @@ export function useHamsterGrowth() {
         hatchedAt: r.hatched_at,
         source: r.source,
         personality: r.personality,
+        stage: (r.stage as EvolutionStage) || "baby",
+        evolutionPoints: Number(r.evolution_points) || 0,
+        teenFormId: r.teen_form_id,
+        finalFormId: r.final_form_id,
+        abilities: r.abilities || [],
       }))
     );
   }, []);
 
+  // Grows every not-yet-final hamster by the same amount that was just
+  // earned, at the same threshold as the nest. Evolves any that cross it.
+  const growCollection = useCallback(
+    async (amount: number) => {
+      const { data } = await supabase
+        .from("hamster_collection")
+        .select("id, hamster_id, stage, evolution_points, teen_form_id, final_form_id, abilities")
+        .neq("stage", "final");
+
+      let anyEvolved = false;
+
+      for (const row of data || []) {
+        let pts = (Number(row.evolution_points) || 0) + amount;
+        let stage: EvolutionStage = (row.stage as EvolutionStage) || "baby";
+        let teenFormId: string | null = row.teen_form_id;
+        let finalFormId: string | null = row.final_form_id;
+        let abilities: string[] = row.abilities || [];
+        let evolvedThisRow = false;
+        let lastNewAbilities: string[] = [];
+
+        while (pts >= threshold && stage !== "final") {
+          pts -= threshold;
+          if (stage === "baby") {
+            stage = "teen";
+            teenFormId = rollTeenForm().id;
+            lastNewAbilities = rollAbilities(TEEN_ABILITIES, 2, abilities);
+          } else {
+            stage = "final";
+            finalFormId = rollFinalForm().id;
+            lastNewAbilities = rollAbilities(FINAL_ABILITIES, 2, abilities);
+          }
+          abilities = [...abilities, ...lastNewAbilities];
+          evolvedThisRow = true;
+        }
+
+        await supabase
+          .from("hamster_collection")
+          .update({
+            stage,
+            evolution_points: pts,
+            teen_form_id: teenFormId,
+            final_form_id: finalFormId,
+            abilities,
+          })
+          .eq("id", row.id);
+
+        if (evolvedThisRow) {
+          anyEvolved = true;
+          setJustEvolved({
+            entryId: row.id,
+            hamsterId: row.hamster_id,
+            stage,
+            formId: stage === "teen" ? teenFormId! : finalFormId!,
+            newAbilities: lastNewAbilities,
+          });
+        }
+      }
+
+      return anyEvolved;
+    },
+    [threshold]
+  );
+
   // Adds points, hatching as many times as needed if a jump crosses the
-  // threshold more than once, and persists everything.
+  // threshold more than once, and persists everything. Also grows every
+  // existing hamster toward its next evolution at the same rate.
   const addPoints = useCallback(
     async (amount: number, source: string, currentPoints: number) => {
       let newPoints = currentPoints + amount;
@@ -92,17 +182,19 @@ export function useHamsterGrowth() {
         const h = rollRandomHamster();
         const personality = rollPersonality();
         newPoints -= threshold;
-        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source, personality });
+        await supabase.from("hamster_collection").insert({ hamster_id: h.id, source, personality, stage: "baby", evolution_points: 0, abilities: [] });
         setJustHatched(h);
         hatched = true;
       }
 
+      const evolved = await growCollection(amount);
+
       await supabase.from("hamster_growth").upsert({ id: 1, points: newPoints, threshold });
-      if (hatched) await refreshCollection();
+      if (hatched || evolved) await refreshCollection();
       await refreshRecentPoints();
       return newPoints;
     },
-    [threshold, refreshCollection, refreshRecentPoints]
+    [threshold, growCollection, refreshCollection, refreshRecentPoints]
   );
 
   // The core check — call this whenever the app loads. It looks at what's
@@ -230,19 +322,4 @@ export function useHamsterGrowth() {
 
   useEffect(() => {
     if (!loading) checkForNewGrowth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
-
-  const clearJustHatched = useCallback(() => setJustHatched(null), []);
-
-  return {
-    loading,
-    points,
-    threshold,
-    progressPct: Math.min(100, Math.round((points / threshold) * 100)),
-    collection,
-    recentPoints,
-    justHatched,
-    clearJustHatched,
-  };
-}
+    // eslint-
