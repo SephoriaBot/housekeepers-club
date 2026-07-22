@@ -372,6 +372,7 @@ export default function DailyPlanner() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     className="form-input"
+                    placeholder="Date & Time"
                     type="datetime-local"
                     value={newApptDate}
                     onChange={e => setNewApptDate(e.target.value)}
