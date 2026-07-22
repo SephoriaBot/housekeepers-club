@@ -133,10 +133,13 @@ a {
 
 .main {
   padding: 20px;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
   min-width: 0;
 }
 
-/* ================= TOPNAV ================= */
+/* ================= SLIM TOPBAR ================= */
+/* Just the wordmark + theme toggle now — navigation lives in the
+   bottom tab bar, so there's nothing left to trigger up here. */
 
 .topbar {
   display: flex;
@@ -161,25 +164,59 @@ a {
   color: var(--ink);
 }
 
-.topbar-trigger {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* ================= BOTTOM NAV ================= */
+
+.bottombar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 8px 14px;
-  color: var(--ink-soft);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 24px rgba(200, 140, 160, 0.12);
+}
+
+.bottombar-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: 0.15s ease;
+  padding: 6px 2px;
+  color: var(--ink-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.01em;
 }
 
-.topbar-trigger:hover {
-  background: var(--primary);
+.bottombar-tab svg {
+  width: 21px;
+  height: 21px;
+  stroke: var(--ink-muted);
+  fill: none;
+  stroke-width: 1.8;
 }
 
-.nav-sheet-backdrop {
+.bottombar-tab.active {
+  color: var(--pink-dark);
+}
+
+.bottombar-tab.active svg {
+  stroke: var(--pink-dark);
+}
+
+/* ---- overflow "More" sheet, anchored above the bottom bar ---- */
+
+.more-sheet-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(59, 42, 46, 0.28);
@@ -187,27 +224,35 @@ a {
   animation: navFadeIn 0.18s ease;
 }
 
-.nav-sheet {
+.more-sheet {
   position: fixed;
-  top: 0;
   left: 0;
   right: 0;
-  max-height: 88vh;
+  bottom: 0;
+  max-height: 78vh;
   overflow-y: auto;
   background: var(--cream);
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   z-index: 41;
-  padding: 18px 20px 28px;
-  animation: navSlideDown 0.2s ease;
+  padding: 8px 20px calc(24px + env(safe-area-inset-bottom));
+  animation: navSlideUp 0.2s ease;
 }
 
-.nav-sheet-header {
+.more-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  margin: 8px auto 14px;
+}
+
+.more-sheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .nav-close {
@@ -220,30 +265,6 @@ a {
   color: var(--ink-muted);
   cursor: pointer;
   padding: 6px 4px;
-}
-
-.nav-dashboard-link {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: var(--blush);
-  border: 1.5px solid var(--pink-light);
-  border-radius: var(--radius-md);
-  font-family: 'Fraunces', serif;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--ink);
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  cursor: pointer;
-}
-
-.nav-dashboard-link.active {
-  color: var(--pink-dark);
-}
-
-.nav-dashboard-link:hover {
-  background: var(--pink-light);
 }
 
 .nav-group {
@@ -301,8 +322,8 @@ a {
   to { opacity: 1; }
 }
 
-@keyframes navSlideDown {
-  from { transform: translateY(-10px); opacity: 0; }
+@keyframes navSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
@@ -547,6 +568,7 @@ p {
 
   .main {
     padding: 12px;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
 
