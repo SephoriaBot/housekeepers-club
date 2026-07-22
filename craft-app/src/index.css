@@ -428,33 +428,6 @@ a {
   transition: 0.2s ease;
 }
 
-/* ================= PETS ================= */
-
-.pet-card {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.pet-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: var(--secondary);
-}
-
-/* ================= PLANTS ================= */
-
-.plant-card {
-  border-top: 4px solid var(--mint);
-}
-
-.plant-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
 /* ================= BADGES ================= */
 
 .badge {
