@@ -28,10 +28,10 @@ const PRIMARY_TABS = [
     ),
   },
   {
-    id: 'meals',
-    label: 'Meals',
+    id: 'trackers',
+    label: 'Trackers',
     icon: (
-      <svg viewBox="0 0 24 24"><path d="M6 3v18M6 3c-2 0-2 4 0 5M18 3v18M18 3a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3" /></svg>
+      <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 9-9" /><path d="M14 7h6v6" /></svg>
     ),
   },
 ];
@@ -44,15 +44,15 @@ const MORE_SECTIONS = [
   {
     id: 'open-kitchen',
     label: 'Open Kitchen',
-    items: [{ id: 'grocery', label: 'Grocery List' }],
+    items: [
+      { id: 'meals', label: 'Meals' },
+      { id: 'grocery', label: 'Grocery List' },
+    ],
   },
   {
     id: 'planning',
     label: 'Planning',
-    items: [
-      { id: 'trackers', label: 'Trackers' },
-      { id: 'decisions', label: 'Decisions' },
-    ],
+    items: [{ id: 'decisions', label: 'Decisions' }],
   },
   {
     id: 'home',
