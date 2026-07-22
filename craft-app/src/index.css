@@ -132,8 +132,8 @@ a {
 }
 
 .main {
-  padding: 20px;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  padding: 16px;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
   min-width: 0;
 }
 
