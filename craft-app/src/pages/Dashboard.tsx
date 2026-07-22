@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import HamsterNest from "../hamsters/HamsterNest";
 import HamsterHabitat from "../hamsters/HamsterHabitat";
 import { HamsterGrowthProvider } from "../hamsters/HamsterGrowthContext";
-
+import { Heart } from 'lucide-react';
 
 interface Focus {
   id: string;
@@ -184,17 +184,25 @@ export default function Dashboard() {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <button
-                    onClick={() => toggleFocus(f)}
-                    aria-label={f.completed ? 'Mark not done' : 'Mark done'}
-                    className="shape-heart"
-                    style={{
-                      width: 20, height: 20,
-                      border: `2px solid ${f.completed ? 'var(--pink-dark)' : 'var(--border)'}`,
-                      background: f.completed ? 'var(--pink-dark)' : 'transparent',
-                      cursor: 'pointer', flexShrink: 0, padding: 0,
-                    }}
-                  />
+
+                    <button
+                        onClick={() => toggleFocus(f)}
+                        aria-label={f.completed ? 'Mark not done' : 'Mark done'}
+                        style={{
+                          width: 24, height: 24, flexShrink: 0,
+                          border: 'none', background: 'none', padding: 0,
+                          cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Heart
+                          size={21}
+                          strokeWidth={1.75}
+                          color={f.completed ? 'var(--pink-dark)' : 'var(--border)'}
+                          fill={f.completed ? 'var(--pink-dark)' : 'none'}
+                        />
+                      </button>
+
                   <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: '0.88rem', fontWeight: 600,
