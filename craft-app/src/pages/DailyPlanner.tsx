@@ -369,18 +369,17 @@ export default function DailyPlanner() {
                   value={newApptTitle}
                   onChange={e => setNewApptTitle(e.target.value)}
                 />
-               <div style={{ flex: 1 }}>
-  <div style={{ fontSize: 12, marginBottom: 4 }}>
-    Date & Time
-  </div>
-
-  <input
-    className="form-input"
-    type="datetime-local"
-    value={newApptDate}
-    onChange={e => setNewApptDate(e.target.value)}
-  />
-</div>
+                    <div style={{ fontSize: 12, marginBottom: 4 }}>
+                    Date & Time
+                    </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="form-input"
+                    type="datetime-local"
+                    value={newApptDate}
+                    onChange={e => setNewApptDate(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
                   <button
                     className="btn btn-primary"
                     style={{ padding: '10px 14px' }}
