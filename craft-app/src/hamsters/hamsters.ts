@@ -32,13 +32,14 @@ export interface EvolutionForm {
 
 export const TEEN_FORMS: EvolutionForm[] = Array.from({ length: 20 }, (_, i) => {
   const n = String(i + 1).padStart(2, "0");
-  return { id: `teen_${n}`, image: `/assets/hamsters/teen/teen_${n}.png` };
+  return { id: `teen_${n}`, image: `/assets/hamsters/teen_${n}.png` };
 });
 
 export const FINAL_FORMS: EvolutionForm[] = Array.from({ length: 20 }, (_, i) => {
   const n = String(i + 1).padStart(2, "0");
-  return { id: `final_${n}`, image: `/assets/hamsters/final/final_${n}.png` };
+  return { id: `final_${n}`, image: `/assets/hamsters/final_${n}.png` };
 });
+
 
 export function rollTeenForm(): EvolutionForm {
   return TEEN_FORMS[Math.floor(Math.random() * TEEN_FORMS.length)];
