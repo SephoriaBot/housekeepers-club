@@ -189,7 +189,7 @@ export default function Dashboard() {
                     aria-label={f.completed ? 'Mark not done' : 'Mark done'}
                     className="shape-heart"
                     style={{
-                      width: 20, height: 20, borderRadius: '50%',
+                      width: 20, height: 20,
                       border: `2px solid ${f.completed ? 'var(--pink-dark)' : 'var(--border)'}`,
                       background: f.completed ? 'var(--pink-dark)' : 'transparent',
                       cursor: 'pointer', flexShrink: 0, padding: 0,
