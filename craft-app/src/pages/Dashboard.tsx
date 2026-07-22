@@ -107,7 +107,7 @@ export default function Dashboard() {
 
       <div className="page-body">
 
-        <StitchDivider />
+        
 
 
         {/* ── TODAY'S FOCUS ── */}
@@ -240,8 +240,6 @@ export default function Dashboard() {
   </HamsterGrowthProvider>
 </section>
 
-
-        <StitchDivider />
       </div>
     </div>
   );
