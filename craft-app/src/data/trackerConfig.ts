@@ -41,7 +41,7 @@ export const TRACKER_CONFIG: Record<TrackerType, TrackerTypeConfig> = {
   weight: {
     type: 'weight',
     label: 'Weight',
-    icon: 'calculator',
+    icon: 'apple-carrot',
     color: 'var(--ink)',
     chartType: 'line',
     yAxisLabel: 'lbs',
