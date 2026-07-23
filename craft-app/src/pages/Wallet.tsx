@@ -701,15 +701,16 @@ export default function Wallet() {
     unifiedFun = Math.max(0, afterBuffer - extraNeeds);
   }
 
-  const allocations: { label: string; icon: IconName; amount: number; color: string; note: string }[] = [
+  const allocations: { label: string; icon: IconName; amount: number; color: string; note: string; noteIcon?: IconName }[] = [
     {
       label: "Bills",
       icon: "house",
       amount: unifiedBills,
       color: "var(--pink-dark)",
+      noteIcon: (isCrisis || urgentBills.length > 0) ? "lightning" as IconName : undefined,
       note: isCrisis
-        ? `🚨 ${crisisBills.length} bill(s) late or due in ≤3 days -- covered first`
-        : urgentBills.length > 0 ? `⚠ ${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
+        ? `${crisisBills.length} bill(s) late or due in ≤3 days -- covered first`
+        : urgentBills.length > 0 ? `${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
     },
     {
       label: "Snowball Extra",
@@ -980,7 +981,7 @@ export default function Wallet() {
                 <div style={{ fontSize: 24, lineHeight: 1 }}><Icon name="house" size={24} /></div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Bills</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
-                  {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : "all paid up ✓"}
+                  {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : <>all paid up <Icon name="clipboard-check" size={12} /></>}
                 </div>
               </button>
               <button
@@ -1113,7 +1114,7 @@ export default function Wallet() {
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
-                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}>⚠️ {budgetSaveError}</div>}
+                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}><Icon name="lightning" size={12} /> {budgetSaveError}</div>}
                   </div>
                   <div>
                     <div className="form-label">OT Wage</div>
@@ -1304,7 +1305,7 @@ export default function Wallet() {
                       <div key={a.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
                         <div>
                           <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}><Icon name={a.icon} size={14} /> {a.label}</div>
-                          <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{a.note}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{a.noteIcon && <Icon name={a.noteIcon} size={12} />} {a.note}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 15, fontWeight: 800, color: a.color }}>{fmt(a.amount)}</div>
@@ -1365,7 +1366,7 @@ export default function Wallet() {
                 </div>
 
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 12 }}>
-                  💡 Tap any bill, amount, or due day to edit it — changes only apply to {MONTH_NAMES[selectedMonth - 1]}. Recurring bills still show up automatically in new months.
+                  <Icon name="lightning" size={12} /> Tap any bill, amount, or due day to edit it — changes only apply to {MONTH_NAMES[selectedMonth - 1]}. Recurring bills still show up automatically in new months.
                 </div>
 
                 {showBillForm && (
@@ -1425,7 +1426,7 @@ export default function Wallet() {
                             : <span className="badge badge-pink">{b.days}d away</span>}
                         </td>
                         <td style={{ padding: "9px 8px" }}>
-                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}>✕</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}><Icon name="trash-can" size={13} /></button>
                         </td>
                       </tr>
                     ))}
@@ -1464,7 +1465,7 @@ export default function Wallet() {
                 </div>
                 {snowballExtra < 0 && (
                   <div style={{ marginTop: 10, fontSize: 12, color: "var(--danger)", fontWeight: 600 }}>
-                    ⚠️ Minimums + fixed expenses exceed your take-home pay. Update your Budget Calculator on the home page.
+                    <Icon name="lightning" size={13} /> Minimums + fixed expenses exceed your take-home pay. Update your Budget Calculator on the home page.
                   </div>
                 )}
               </div>
@@ -1509,10 +1510,10 @@ export default function Wallet() {
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.min_payment} onChange={v => updateDebt(d.id, "min_payment", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}>
-                              <button className="btn btn-green btn-sm" onClick={() => markDebtPaid(d.id, d.name)}>Paid ✓</button>
+                              <button className="btn btn-green btn-sm" onClick={() => markDebtPaid(d.id, d.name)}>Paid <Icon name="clipboard-check" size={13} /></button>
                             </td>
                             <td style={{ padding: "9px 8px" }}>
-                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button>
+                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
                             </td>
                           </tr>
                         );
@@ -1539,7 +1540,7 @@ export default function Wallet() {
                           <td style={{ padding: "9px 8px" }}><span className="badge badge-green">PAID OFF</span></td>
                           <td style={{ padding: "9px 8px", display: "flex", gap: 6 }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => unmarkDebtPaid(d.id)}>Undo</button>
-                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
                           </td>
                         </tr>
                       ))}
@@ -1575,7 +1576,7 @@ export default function Wallet() {
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.balance} onChange={v => updateDebt(d.id, "balance", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px", color: "var(--ink-muted)", fontSize: 11 }}>Not targeted until active debts clear</td>
-                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button></td>
+                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -1588,7 +1589,7 @@ export default function Wallet() {
             <div className="section-label" style={{ marginTop: 4 }}><Icon name="clipboard-list" size={16} /> Payoff Schedule</div>
             {snowballExtra < 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
-                ⚠️ Snowball extra is negative — minimums exceed your budget!
+                <Icon name="lightning" size={13} /> Snowball extra is negative — minimums exceed your budget!
               </div>
             )}
 
@@ -1621,7 +1622,7 @@ export default function Wallet() {
                             const paidPct = origBal > 0 ? Math.min(100, ((origBal - bal) / origBal) * 100) : 0;
                             return (
                               <td key={d.id} style={{ padding: "8px", background: paid ? "var(--sage-light)" : isTgt ? "var(--accent)" : "transparent", color: paid ? "var(--green-dark)" : isTgt ? "var(--pink-dark)" : "var(--ink-muted)", fontWeight: isTgt ? 700 : 400, textAlign: "right" }}>
-                                <div>{paid ? "PAID ✓" : fmt(bal)}</div>
+                                <div>{paid ? <>PAID <Icon name="clipboard-check" size={12} /></> : fmt(bal)}</div>
                                 {!paid && (
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginTop: 3 }}>
                                     <div style={{ height: "100%", width: `${paidPct}%`, background: isTgt ? "var(--pink-dark)" : "var(--green-dark)", borderRadius: 99 }} />
