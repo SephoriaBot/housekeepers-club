@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from '../Icon';
 import {
   ResponsiveContainer,
   BarChart,
@@ -82,7 +83,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
                 </span>
               ) : (
                 <button className="btn-secondary" onClick={() => setDeletingDate(log.log_date)}>
-                  🗑️
+                  <Icon name="trash-can" size={16} />
                 </button>
               )}
             </div>
@@ -108,7 +109,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
     return (
       <>
         <div className="card">
-          <h3>🌙 Sleep — Hours</h3>
+          <h3><Icon name="moon-cloud" size={18} /> Sleep — Hours</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={hoursData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -119,7 +120,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
             </BarChart>
           </ResponsiveContainer>
 
-          <h3 style={{ marginTop: '1rem' }}>🌙 Sleep — Quality</h3>
+          <h3 style={{ marginTop: '1rem' }}><Icon name="moon-cloud" size={18} /> Sleep — Quality</h3>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={qualityData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -154,7 +155,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
     return (
       <>
         <div className="card">
-          <h3>🌸 Cycle — Mood</h3>
+          <h3><Icon name="flower" size={18} /> Cycle — Mood</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={moodData}>
               <CartesianGrid strokeDasharray="3 3" />
