@@ -135,7 +135,7 @@ function todayStr() {
 function isLate(dueDay: number, month: number, year: number, paid: boolean) {
   if (paid) return false;
   const today = new Date();
-  const due = new Date(year, month - 1, dueDay);
+  const due = new Date(year, month - 1, dueDay + 1);
   return today > due;
 }
 
