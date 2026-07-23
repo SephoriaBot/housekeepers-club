@@ -5,16 +5,21 @@
   existing variables directly.
 */
 :root {
-  --an-cream: #fbf6ef;
-  --an-card: #ffffff;
-  --an-apricot: #f3a26d;
-  --an-apricot-soft: #fbe3d0;
-  --an-rose: #e8a6a6;
-  --an-rose-soft: #f6dede;
-  --an-ink: #4a3f35;
-  --an-ink-soft: #8c7c6e;
-  --an-line: #efe4d6;
-  --an-covered-green: #8fae7b;
+  --an-cream: #F8F6FD;
+  --an-card: #FFFFFF;
+
+  --an-apricot: #DAD0F7;       /* lavender primary */
+  --an-apricot-soft: #F3EEFC;  /* soft lavender */
+
+  --an-rose: #E6A8C8;          /* new soft pink */
+  --an-rose-soft: #FCEEF5;     /* pale pink */
+
+  --an-ink: #3F3A5C;
+  --an-ink-soft: #706A93;
+
+  --an-line: #E7E2F7;
+
+  --an-covered-green: #A7B8E8; /* soft periwinkle accent */
 }
 
 .wrapper {
