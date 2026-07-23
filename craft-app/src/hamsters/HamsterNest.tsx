@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useHamsterGrowth } from "./HamsterGrowthContext";
 import { SOURCE_LABELS } from "./useHamsterGrowth";
+import Icon from "../components/Icon";
 
 function NestEgg({ progressPct }: { progressPct: number }) {
   const showSmallCrack = progressPct >= 35;
@@ -87,7 +88,7 @@ export default function HamsterNest() {
   return (
     <div className="card">
       <div className="card-body">
-        <div className="section-label" style={{ marginBottom: 10 }}>🥚 The Nest</div>
+        <div className="section-label" style={{ marginBottom: 10 }}><Icon name="egg-nest" size={16} /> The Nest</div>
 
         {justHatched ? (
           <div style={{ textAlign: "center", padding: "10px 0" }}>
@@ -97,7 +98,7 @@ export default function HamsterNest() {
               style={{ width: 96, height: 96, objectFit: "contain", animation: "hatchPop 0.7s ease" }}
             />
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pink-dark)", marginTop: 6 }}>
-              A new hamster hatched! 🎉
+              A new hamster hatched! <Icon name="sparkles-cluster" size={16} />
             </div>
           </div>
         ) : (
@@ -145,7 +146,9 @@ export default function HamsterNest() {
                       padding: "4px 10px",
                     }}
                   >
-                    {SOURCE_LABELS[entry.source] || entry.source} +{entry.amount}
+                    {SOURCE_LABELS[entry.source]
+                      ? <><Icon name={SOURCE_LABELS[entry.source].icon} size={13} /> {SOURCE_LABELS[entry.source].text}</>
+                      : entry.source} +{entry.amount}
                   </div>
                 ))}
               </div>
