@@ -1,6 +1,6 @@
 /* DecisionTree.css
    Uses var(--token, fallback) so it works even if your :root names differ —
-   swap the fallback hex values for your actual --apricot/--pink/--gold-light vars if named differently. */
+   swap the fallback hex values for your actual --apricot/--pink-dark/--gold-light vars if named differently. */
 
 .dt-page {
   display: flex;
@@ -15,13 +15,13 @@
   font-weight: 600;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1.5px solid var(--pink, #f3c9d4);
+  border: 1.5px solid var(--pink-dark, --gold-light);
   background: var(--gold-light, #fdf6ee);
   color: var(--text, #4a3b3b);
 }
 
 .dt-title-input:focus {
-  outline: 2px solid var(#F3EEFC, #f4a988);
+  outline: 2px solid var(#F3EEFC, --pink-dark);
   outline-offset: 1px;
 }
 
@@ -29,7 +29,7 @@
   background: var(--gold-light, #fdf6ee);
   border-radius: 18px;
   padding: 14px;
-  border: 1.5px solid var(--pink, #f3c9d4);
+  border: 1.5px solid var(--pink-dark, --gold-light);
 }
 
 .dt-node {
@@ -45,7 +45,7 @@
 .dt-collapse-btn {
   background: none;
   border: none;
-  color: var(#F3EEFC, #f4a988);
+  color: var(#F3EEFC, --pink-dark);
   font-size: 0.9rem;
   cursor: pointer;
   width: 18px;
@@ -55,23 +55,23 @@
   flex: 1;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid var(--pink, #f3c9d4);
+  border: 1px solid var(--pink-dark, --gold-light);
   background: #fff;
   font-size: 0.95rem;
 }
 
 .dt-root .dt-label-input {
   font-weight: 700;
-  border-color: var(#F3EEFC, #f4a988);
+  border-color: var(#F3EEFC, --pink-dark);
   background: #fffaf6;
 }
 
 .dt-choice .dt-label-input {
-  border-left: 3px solid var(#F3EEFC, #f4a988);
+  border-left: 3px solid var(#F3EEFC, --pink-dark);
 }
 
 .dt-outcome .dt-label-input {
-  border-left: 3px solid var(--pink, #f3c9d4);
+  border-left: 3px solid var(--pink-dark, --gold-light);
   font-style: italic;
 }
 
@@ -79,7 +79,7 @@
   width: 52px;
   padding: 8px 6px;
   border-radius: 12px;
-  border: 1px solid var(--pink, #f3c9d4);
+  border: 1px solid var(--pink-dark, --gold-light);
   text-align: center;
   font-size: 0.9rem;
 }
@@ -89,7 +89,7 @@
   width: calc(100% - 24px);
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px dashed var(--pink, #f3c9d4);
+  border: 1px dashed var(--pink-dark, --gold-light);
   background: #fffefb;
   font-size: 0.85rem;
   color: #7a6a6a;
@@ -106,7 +106,7 @@
 
 .dt-children {
   margin-left: 14px;
-  border-left: 1.5px dotted var(--pink, #f3c9d4);
+  border-left: 1.5px dotted var(--pink-dark, --gold-light);
   padding-left: 10px;
 }
 
@@ -117,7 +117,7 @@
 }
 
 .dt-add-btn {
-  background: var(--pink, #f3c9d4);
+  background: var(--pink-dark, --gold-light);
   color: #6b3f4b;
   border: none;
   border-radius: 10px;
@@ -127,13 +127,13 @@
 }
 
 .dt-add-outcome {
-  background: var(#F3EEFC, #f4a988);
+  background: var(#F3EEFC, --pink-dark);
   color: #6b3f2b;
 }
 
 .dt-save-btn {
   align-self: flex-start;
-  background: var(#F3EEFC, #f4a988);
+  background: var(#F3EEFC, --pink-dark);
   color: #5a3521;
   border: none;
   border-radius: 14px;
@@ -151,7 +151,7 @@
   width: 70px;
   padding: 8px 6px;
   border-radius: 12px;
-  border: 1px solid var(--pink, #f3c9d4);
+  border: 1px solid var(--pink-dark, --gold-light);
   text-align: center;
   font-size: 0.9rem;
 }
@@ -160,7 +160,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #6b3f2b;
-  background: var(#F3EEFC, #f4a988);
+  background: var(#F3EEFC, --pink-dark);
   padding: 3px 8px;
   border-radius: 10px;
   white-space: nowrap;
@@ -176,7 +176,7 @@
   font-weight: 700;
   font-size: 1rem;
   color: #6b3f2b;
-  background: var(--pink-dark, #f3c9d4);
+  background: var(--pink-dark, --gold-light);
   padding: 8px 14px;
   border-radius: 12px;
   align-self: flex-start;
@@ -229,7 +229,7 @@
   align-items: center;
   justify-content: space-between;
   background: var(--gold-light, #fdf6ee);
-  border: 1.5px solid var(--pink-dark, #f3c9d4);
+  border: 1.5px solid var(--pink-dark, --gold-light);
   border-radius: 14px;
   padding: 12px 14px;
   cursor: pointer;
