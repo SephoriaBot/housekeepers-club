@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { GroceryItem } from '../types/legacy'
 import { supabase } from '../lib/supabase'
+import Icon, { type IconName } from '../components/Icon'
 import {
   ShoppingCart, ListChecks, RotateCcw, X, History, ClipboardList,
   MapPin, Save, Trash2, ArrowLeft, CheckCircle2,
@@ -22,6 +23,7 @@ interface BasicItem { name: string; qty: string }
 interface BasicsPreset {
   label: string
   emoji: string
+  icon?: IconName
   items: BasicItem[]
 }
 
@@ -29,6 +31,7 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   vegan: {
     label: 'Vegan Basics',
     emoji: '🌱',
+    icon: 'apple-carrot',
     items: [
       { name: 'Tofu', qty: '1 block' },
       { name: 'Tempeh', qty: '1 pack' },
@@ -55,6 +58,7 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   vegetarian: {
     label: 'Vegetarian Basics',
     emoji: '🥦',
+    icon: 'potted-plant',
     items: [
       { name: 'Eggs', qty: '1 dozen' },
       { name: 'Greek yogurt', qty: '1 tub' },
@@ -81,6 +85,7 @@ const BASICS_PRESETS: Record<string, BasicsPreset> = {
   budget: {
     label: 'Budget Basics',
     emoji: '💵',
+    icon: 'money-bag',
     items: [
       { name: 'Eggs', qty: '1 dozen' },
       { name: 'Rice', qty: '1 bag' },
@@ -683,7 +688,7 @@ export default function Grocery() {
   return (
     <div>
       <div className="page-header">
-        <h2>Grocery List 🛒</h2>
+        <h2>Grocery List <Icon name="basket" size={22} /></h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={openBasicsModal}>
             <ListChecks size={14} /> Build Basics List
@@ -713,7 +718,13 @@ export default function Grocery() {
           <div className="modal-overlay" onClick={() => setShowBasicsModal(false)}>
             <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>{basicsPreset ? `${BASICS_PRESETS[basicsPreset].emoji} ${BASICS_PRESETS[basicsPreset].label}` : 'Build a Basics List'}</h3>
+                <h3>
+                  {basicsPreset
+                    ? <>{BASICS_PRESETS[basicsPreset].icon
+                        ? <Icon name={BASICS_PRESETS[basicsPreset].icon!} size={18} />
+                        : BASICS_PRESETS[basicsPreset].emoji} {BASICS_PRESETS[basicsPreset].label}</>
+                    : 'Build a Basics List'}
+                </h3>
                 <button className="close-btn" onClick={() => setShowBasicsModal(false)}><X size={16} /></button>
               </div>
               <div className="modal-body">
@@ -734,7 +745,9 @@ export default function Grocery() {
                             background: 'var(--white)', color: 'var(--ink)',
                           }}
                         >
-                          <span style={{ fontSize: '1.4rem' }}>{preset.emoji}</span>
+                          <span style={{ fontSize: '1.4rem' }}>
+                            {preset.icon ? <Icon name={preset.icon} size={24} /> : preset.emoji}
+                          </span>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)' }}>{preset.label}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>{preset.items.length} staple items</div>
