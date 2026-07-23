@@ -1,10 +1,12 @@
 import type { TrackerLog, TrackerType } from '../types/tracker';
+import type { IconName } from '../components/Icon';
 
 
 export interface TrackerTypeConfig {
   type: TrackerType;
   label: string;
-  emoji: string;
+  icon?: IconName; // preferred - illustrated icon
+  emoji?: string; // fallback for types with no matching illustrated icon yet (e.g. weight/scale)
   color: string; // CSS var, matches Homebody's cottagecore palette
   chartType: 'line' | 'bar';
   yAxisLabel: string;
@@ -15,7 +17,7 @@ export const TRACKER_CONFIG: Record<TrackerType, TrackerTypeConfig> = {
   sleep: {
     type: 'sleep',
     label: 'Sleep',
-    emoji: '🌙',
+    icon: 'moon-cloud',
     color: 'var(--green-dark)',
     chartType: 'bar',
     yAxisLabel: 'Hours',
@@ -24,7 +26,7 @@ export const TRACKER_CONFIG: Record<TrackerType, TrackerTypeConfig> = {
   period: {
     type: 'period',
     label: 'Cycle',
-    emoji: '🌸',
+    icon: 'flower',
     color: 'var(--pink)',
     chartType: 'line',
     yAxisLabel: 'Mood',
