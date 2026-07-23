@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
+import Icon, { type IconName } from '../components/Icon';
 
 interface Debt {
   id: number;
@@ -700,9 +701,10 @@ export default function Wallet() {
     unifiedFun = Math.max(0, afterBuffer - extraNeeds);
   }
 
-  const allocations = [
+  const allocations: { label: string; icon: IconName; amount: number; color: string; note: string }[] = [
     {
-      label: "🏠 Bills",
+      label: "Bills",
+      icon: "house",
       amount: unifiedBills,
       color: "var(--pink-dark)",
       note: isCrisis
@@ -710,25 +712,29 @@ export default function Wallet() {
         : urgentBills.length > 0 ? `⚠ ${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
     },
     {
-      label: "❄️ Snowball Extra",
+      label: "Snowball Extra",
+      icon: "settings-gear",
       amount: unifiedSnowball,
       color: "var(--sky)",
       note: isCrisis ? "paused -- bills come first" : "extra toward target debt",
     },
     {
-      label: "🏦 General Savings",
+      label: "General Savings",
+      icon: "piggy-bank",
       amount: unifiedBuffer,
       color: "var(--gold)",
       note: isCrisis ? "paused -- bills come first" : "$22/day until $650",
     },
     {
-      label: "🛒 Groceries & Gas",
+      label: "Groceries & Gas",
+      icon: "basket",
       amount: unifiedNeeds,
       color: "var(--green-dark)",
       note: isCrisis ? "protected floor, even in crisis mode" : "groceries + gas, one combined category",
     },
     {
-      label: "🎉 Treats",
+      label: "Treats",
+      icon: "trophy",
       amount: unifiedFun,
       color: "var(--ink-soft)",
       note: isCrisis ? "zeroed until crisis bills are caught up" : "whimsy -- wants, not needs!",
@@ -925,7 +931,7 @@ export default function Wallet() {
         ))}
         <style>{`@keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }`}</style>
         <div style={{ position: "absolute", top: "35%", left: "50%", transform: "translateX(-50%)", textAlign: "center", background: "var(--white)", border: "2px solid var(--border)", borderRadius: 32, padding: "24px 32px", minWidth: 220 }}>
-          <div style={{ fontSize: 48 }}>🎉</div>
+          <div style={{ fontSize: 48 }}><Icon name="trophy" size={48} /></div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "var(--green-dark)", marginTop: 8 }}>DEBT PAID OFF!</div>
           <div style={{ fontSize: 16, color: "var(--pink-dark)", marginTop: 4 }}>{paidOffDebt}</div>
           <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8 }}>Keep going — you are crushing it!</div>
@@ -934,10 +940,10 @@ export default function Wallet() {
     );
   };
 
-  const VIEW_TITLES: Record<typeof view, string> = {
-    home: "Piggybank",
-    bills: "🏠 Bills",
-    debts: "💳 Debts",
+  const VIEW_TITLES: Record<typeof view, { text: string; icon?: IconName }> = {
+    home: { text: "Piggybank" },
+    bills: { text: "Bills", icon: "house" },
+    debts: { text: "Debts", icon: "calculator-hearts" },
   };
 
   return (
@@ -950,7 +956,7 @@ export default function Wallet() {
           {view !== "home" && (
             <button className="btn btn-ghost btn-sm" onClick={() => setView("home")}>← Back</button>
           )}
-          <h2>{VIEW_TITLES[view]}</h2>
+          <h2>{VIEW_TITLES[view].icon && <Icon name={VIEW_TITLES[view].icon!} size={20} />} {VIEW_TITLES[view].text}</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
@@ -971,7 +977,7 @@ export default function Wallet() {
                   display: "flex", flexDirection: "column", gap: 6,
                 }}
               >
-                <div style={{ fontSize: 24, lineHeight: 1 }}>🏠</div>
+                <div style={{ fontSize: 24, lineHeight: 1 }}><Icon name="house" size={24} /></div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Bills</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
                   {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : "all paid up ✓"}
@@ -986,7 +992,7 @@ export default function Wallet() {
                   display: "flex", flexDirection: "column", gap: 6,
                 }}
               >
-                <div style={{ fontSize: 24, lineHeight: 1 }}>💳</div>
+                <div style={{ fontSize: 24, lineHeight: 1 }}><Icon name="calculator-hearts" size={24} /></div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Debts</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
                   {activeDebts.filter(d => !d.paid_off).length} active · {payoffMonth}mo payoff
@@ -997,7 +1003,7 @@ export default function Wallet() {
             {/* ── MONEY CALENDAR ── */}
             <div className="card">
               <div className="card-body">
-                <div className="section-label">📅 Money Calendar</div>
+                <div className="section-label"><Icon name="calendar" size={16} /> Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
                   Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay eligible percentage comes from your last paycheck's net-to-gross ratio (post-tax ÷ pre-tax), applied against your cumulative pool for the week, minus that check's flat deductions and a 2% safety buffer — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday.
                 </div>
@@ -1171,7 +1177,7 @@ export default function Wallet() {
                                 <div style={{ marginBottom: 6 }}>
                                   {row.billsToday.map(b => (
                                     <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--pink-dark)" }}>
-                                      <span>🏠 {b.name}</span>
+                                      <span><Icon name="house" size={14} /> {b.name}</span>
                                       <span style={{ fontWeight: 700 }}>-{fmt(b.amount)}</span>
                                     </div>
                                   ))}
@@ -1212,7 +1218,7 @@ export default function Wallet() {
 
                               {row.releasedToday > 0.005 && (
                                 <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginTop: 4 }}>
-                                  💰 +{fmt(row.releasedToday)} payday catch-up
+                                  <Icon name="money-bag" size={14} /> +{fmt(row.releasedToday)} payday catch-up
                                 </div>
                               )}
 
@@ -1297,7 +1303,7 @@ export default function Wallet() {
                     {allocations.map(a => (
                       <div key={a.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
                         <div>
-                          <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{a.label}</div>
+                          <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}><Icon name={a.icon} size={14} /> {a.label}</div>
                           <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{a.note}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
@@ -1521,7 +1527,7 @@ export default function Wallet() {
               <div className="card" style={{ opacity: 0.9 }}>
                 <div className="card-body">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div className="section-label" style={{ marginBottom: 0 }}>🎉 Paid Off</div>
+                    <div className="section-label" style={{ marginBottom: 0 }}><Icon name="trophy" size={16} /> Paid Off</div>
                     <span style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>Amazing work!</span>
                   </div>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -1579,7 +1585,7 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="section-label" style={{ marginTop: 4 }}>📋 Payoff Schedule</div>
+            <div className="section-label" style={{ marginTop: 4 }}><Icon name="clipboard-list" size={16} /> Payoff Schedule</div>
             {snowballExtra < 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ Snowball extra is negative — minimums exceed your budget!
