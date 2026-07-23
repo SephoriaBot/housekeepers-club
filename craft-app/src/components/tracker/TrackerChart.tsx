@@ -173,7 +173,8 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
         <div className="card">
           <h3><Icon name="flower" size={18} /> Cycle — Mood</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={moodData}>
+  <LineChart data={moodData} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" fontSize={12} />
               <YAxis domain={[1, 3]} ticks={[1, 2, 3]} fontSize={12} />
