@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Clock, Package, ChevronRight, RotateCcw, CheckCircle2, Circle, Sparkles } from 'lucide-react'
+import Icon, { type IconName } from '../components/Icon'
 
-const ROOMS = [
-  { value: 'kitchen', label: 'Kitchen', emoji: '🍳' },
+const ROOMS: { value: string; label: string; emoji: string; icon?: IconName }[] = [
+  { value: 'kitchen', label: 'Kitchen', emoji: '🍳', icon: 'cooking-pot' },
   { value: 'bathroom', label: 'Bathroom', emoji: '🛁' },
   { value: 'bedroom', label: 'Bedroom', emoji: '🛏️' },
   { value: 'living_room', label: 'Living Room', emoji: '🛋️' },
-  { value: 'laundry_room', label: 'Laundry Room', emoji: '🧺' },
+  { value: 'laundry_room', label: 'Laundry Room', emoji: '🧺', icon: 'washing-machine' },
 ]
 
 interface CleaningPlan {
@@ -96,7 +97,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
     <div>
       <div className="page-header">
         <div>
-          <h2>Maid Wizard 🧹</h2>
+          <h2>Maid Wizard <Icon name="cleaning-spray" size={22} /></h2>
           <p>Pick a room and get a deep clean plan</p>
         </div>
         {wizardState === 'plan' && (
@@ -149,7 +150,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: '1.4rem' }}>{r.emoji}</span>
+                    <span style={{ fontSize: '1.4rem' }}>{r.icon ? <Icon name={r.icon} size={22} /> : r.emoji}</span>
                     <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{r.label}</span>
                   </div>
                   <ChevronRight size={16} style={{ color: 'var(--ink-muted)' }} />
@@ -196,13 +197,13 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '1.5rem' }}>{room?.emoji}</span>
+                <span style={{ fontSize: '1.5rem' }}>{room?.icon ? <Icon name={room.icon} size={24} /> : room?.emoji}</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)' }}>
                     {room?.label} Deep Clean
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#b56575' }}>
-                    {allDone ? '🌸 All done! Amazing work~' : `${doneCount} of ${totalSteps} steps done`}
+                    {allDone ? <><Icon name="flower" size={14} /> All done! Amazing work~</> : `${doneCount} of ${totalSteps} steps done`}
                   </div>
                 </div>
               </div>
@@ -230,7 +231,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-                  🧽 Steps
+                  <Icon name="clipboard-list" size={14} /> Steps
                 </div>
                 {plan.steps.map((step, i) => {
                   const done = checkedSteps.has(i)
@@ -275,7 +276,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
 
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                  🧴 Supplies
+                  <Icon name="cleaning-spray" size={14} /> Supplies
                 </div>
                 <div className="card" style={{ borderRadius: 16, border: '1.5px solid #f6cfd6' }}>
                   <div className="card-body">
@@ -305,7 +306,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                 background: 'linear-gradient(135deg, var(--cream), var(--blush))',
                 border: '1.5px solid #e8a0ac',
               }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🌸✨</div>
+                <div style={{ fontSize: '1.5rem', marginBottom: 6 }}><Icon name="sparkles-cluster" size={28} /></div>
                 <div style={{ fontWeight: 700, color: '#b56575', marginBottom: 4 }}>Spotless! You did it!</div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>Your {room?.label.toLowerCase()} is sparkling clean.</div>
                 <button
@@ -316,7 +317,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                     border: 'none', color: 'var(--white)', fontWeight: 600, fontSize: '0.85rem',
                   }}
                 >
-                  Clean another room ✨
+                  Clean another room <Icon name="sparkle-single" size={14} />
                 </button>
               </div>
             )}
