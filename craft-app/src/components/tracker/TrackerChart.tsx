@@ -33,6 +33,22 @@ function parseValue(raw: unknown): any {
   return raw ?? {};
 }
 
+function iconRefLabel(iconName: string) {
+  return (props: any) => {
+    const { viewBox } = props;
+    const size = 16;
+    return (
+      <image
+        href={`/icons/${iconName}.png`}
+        x={(viewBox?.x ?? 0) - size / 2}
+        y={(viewBox?.y ?? 0) - size - 2}
+        width={size}
+        height={size}
+      />
+    );
+  };
+}
+
 export default function TrackerChart({ type, startDate, endDate, refreshKey }: Props) {
   const [logs, setLogs] = useState<TrackerLog[]>([]);
   const [deletingDate, setDeletingDate] = useState<string | null>(null);
@@ -169,7 +185,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
                   x={m.date}
                   stroke={m.kind === 'start' ? '#e0789a' : '#8ba888'}
                   strokeDasharray="4 4"
-                  label={m.kind === 'start' ? '🩸' : '✅'}
+                  label={iconRefLabel(m.kind === 'start' ? 'heart-medical' : 'clipboard-check')}
                 />
               ))}
             </LineChart>
@@ -188,7 +204,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
   return (
     <>
       <div className="card">
-        <h3>⚖️ Weight</h3>
+        <h3><Icon name="calculator" size={18} /> Weight</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={weightData}>
             <CartesianGrid strokeDasharray="3 3" />
