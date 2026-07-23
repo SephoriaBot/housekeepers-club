@@ -307,7 +307,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                 border: '1.5px solid #FFF8DE',
               }}>
                 <div style={{ fontSize: '1.5rem', marginBottom: 6 }}><Icon name="sparkles-cluster" size={28} /></div>
-                <div style={{ fontWeight: 700, color: '#DAD0F7', marginBottom: 4 }}>Spotless! You did it!</div>
+                <div style={{ fontWeight: 700, color: '#DAD0F7', marginBottom: 4 }}>Spotless! Great job.</div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>Your {room?.label.toLowerCase()} is sparkling clean.</div>
                 <button
                   onClick={reset}
