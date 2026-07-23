@@ -168,7 +168,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
           }}>
             <div className="shape-teddy" style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #fbe1e5, #ffe0d1)',
+              background: 'linear-gradient(135deg, #DAD0F7, #FCEEF5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               animation: 'gentlePulse 1.4s ease-in-out infinite',
             }}>
@@ -192,7 +192,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
 
             <div style={{
               padding: '16px 20px', borderRadius: 16, marginBottom: 20,
-              background: 'linear-gradient(135deg, --white, --gold-light)',
+              background: 'linear-gradient(135deg, #DAD0F7, #FCEEF5)',
               border: '1.5px solid --gold-light',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
             }}>
@@ -219,8 +219,8 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   height: '100%',
                   width: `${totalSteps > 0 ? (doneCount / totalSteps) * 100 : 0}%`,
                   background: allDone
-                    ? 'linear-gradient(90deg, #f7b89c, #e8a0ac)'
-                    : 'linear-gradient(90deg, #e8a0ac, #f6cfd6)',
+                    ? 'linear-gradient(90deg, #DAD0F7, #FCEEF5)'
+                    : 'linear-gradient(90deg, #DAD0F7, #FCEEF5)',
                   borderRadius: 99,
                   transition: 'width 0.4s ease',
                 }} />
@@ -242,7 +242,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                       style={{
                         display: 'flex', alignItems: 'flex-start', gap: 10,
                         padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
-                        background: done ? 'linear-gradient(135deg, #fff7f0, #fbe1e5)' : 'var(--cream)',
+                        background: done ? 'linear-gradient(135deg, #DAD0F7, #FCEEF5)' : 'var(--cream)',
                         border: `1.5px solid ${done ? '#e8a0ac' : 'var(--border)'}`,
                         transition: 'all 0.2s ease',
                         boxShadow: done ? '0 1px 6px rgba(232,160,172,0.15)' : 'none',
@@ -285,7 +285,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: 10,
                           padding: '8px 10px', borderRadius: 10,
-                          background: 'linear-gradient(135deg, var(--cream), var(--pink-dark))',
+                          background: 'linear-gradient(135deg, #DAD0F7, #FCEEF5)',
                           border: '1px solid #f6cfd6',
                           fontSize: '0.84rem', color: 'var(--ink)',
                         }}>
@@ -303,7 +303,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
             {allDone && (
               <div style={{
                 marginTop: 24, padding: '16px 20px', borderRadius: 16, textAlign: 'center',
-                background: 'linear-gradient(135deg, var(--cream), var(--pink-dark))',
+                background: 'linear-gradient(135deg, #DAD0F7, #FCEEF5)',
                 border: '1.5px solid #e8a0ac',
               }}>
                 <div style={{ fontSize: '1.5rem', marginBottom: 6 }}><Icon name="sparkles-cluster" size={28} /></div>
@@ -313,7 +313,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   onClick={reset}
                   style={{
                     marginTop: 12, padding: '8px 20px', borderRadius: 12, cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #e8a0ac, #f7b89c)',
+                    background: 'linear-gradient(135deg, #DAD0F7, #FCEEF5)',
                     border: 'none', color: 'var(--white)', fontWeight: 600, fontSize: '0.85rem',
                   }}
                 >
