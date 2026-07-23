@@ -15,21 +15,21 @@
   font-weight: 600;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1.5px solid var(--pink-dark, --gold-light);
-  background: var(--gold-light, #fdf6ee);
+  border: 1.5px solid var(--pink-dark, #C8B7FF);
+  background: var(--gold-light, #FFF8DE);
   color: var(--text, #4a3b3b);
 }
 
 .dt-title-input:focus {
-  outline: 2px solid var(#F3EEFC, --pink-dark);
+  outline: 2px solid var(--pink-dark, #C8B7FF);
   outline-offset: 1px;
 }
 
 .dt-tree-container {
-  background: var(--gold-light, #fdf6ee);
+  background: var(--gold-light, #FFF8DE);
   border-radius: 18px;
   padding: 14px;
-  border: 1.5px solid var(--pink-dark, --gold-light);
+  border: 1.5px solid var(--pink-dark, #C8B7FF);
 }
 
 .dt-node {
@@ -45,7 +45,7 @@
 .dt-collapse-btn {
   background: none;
   border: none;
-  color: var(#F3EEFC, --pink-dark);
+  color: var(--pink-dark, #C8B7FF);
   font-size: 0.9rem;
   cursor: pointer;
   width: 18px;
@@ -55,23 +55,23 @@
   flex: 1;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid var(--pink-dark, --gold-light);
+  border: 1px solid var(--pink-dark, #C8B7FF);
   background: #fff;
   font-size: 0.95rem;
 }
 
 .dt-root .dt-label-input {
   font-weight: 700;
-  border-color: var(#F3EEFC, --pink-dark);
+  border-color: var(--pink-dark, #C8B7FF);
   background: #fffaf6;
 }
 
 .dt-choice .dt-label-input {
-  border-left: 3px solid var(#F3EEFC, --pink-dark);
+  border-left: 3px solid var(--pink-dark, #C8B7FF);
 }
 
 .dt-outcome .dt-label-input {
-  border-left: 3px solid var(--pink-dark, --gold-light);
+  border-left: 3px solid var(--pink-dark, #C8B7FF);
   font-style: italic;
 }
 
@@ -79,7 +79,7 @@
   width: 52px;
   padding: 8px 6px;
   border-radius: 12px;
-  border: 1px solid var(--pink-dark, --gold-light);
+  border: 1px solid var(--pink-dark, #C8B7FF);
   text-align: center;
   font-size: 0.9rem;
 }
@@ -89,7 +89,7 @@
   width: calc(100% - 24px);
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px dashed var(--pink-dark, --gold-light);
+  border: 1px dashed var(--pink-dark, #C8B7FF);
   background: #fffefb;
   font-size: 0.85rem;
   color: #7a6a6a;
@@ -106,7 +106,7 @@
 
 .dt-children {
   margin-left: 14px;
-  border-left: 1.5px dotted var(--pink-dark, --gold-light);
+  border-left: 1.5px dotted var(--pink-dark, #C8B7FF);
   padding-left: 10px;
 }
 
@@ -117,7 +117,7 @@
 }
 
 .dt-add-btn {
-  background: var(--pink-dark, --gold-light);
+  background: var(--pink-dark, #C8B7FF);
   color: #6b3f4b;
   border: none;
   border-radius: 10px;
@@ -127,13 +127,13 @@
 }
 
 .dt-add-outcome {
-  background: var(#F3EEFC, --pink-dark);
+  background: var(--pink-dark, #C8B7FF);
   color: #6b3f2b;
 }
 
 .dt-save-btn {
   align-self: flex-start;
-  background: var(#F3EEFC, --pink-dark);
+  background: var(--pink-dark, #C8B7FF);
   color: #5a3521;
   border: none;
   border-radius: 14px;
@@ -151,7 +151,7 @@
   width: 70px;
   padding: 8px 6px;
   border-radius: 12px;
-  border: 1px solid var(--pink-dark, --gold-light);
+  border: 1px solid var(--pink-dark, #C8B7FF);
   text-align: center;
   font-size: 0.9rem;
 }
@@ -160,7 +160,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #6b3f2b;
-  background: var(#F3EEFC, --pink-dark);
+  background: var(--pink-dark, #C8B7FF);
   padding: 3px 8px;
   border-radius: 10px;
   white-space: nowrap;
@@ -176,7 +176,7 @@
   font-weight: 700;
   font-size: 1rem;
   color: #6b3f2b;
-  background: var(--pink-dark, --gold-light);
+  background: var(--pink-dark, #C8B7FF);
   padding: 8px 14px;
   border-radius: 12px;
   align-self: flex-start;
@@ -228,8 +228,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--gold-light, #fdf6ee);
-  border: 1.5px solid var(--pink-dark, --gold-light);
+  background: var(--gold-light, #FFF8DE);
+  border: 1.5px solid var(--pink-dark, #C8B7FF);
   border-radius: 14px;
   padding: 12px 14px;
   cursor: pointer;
