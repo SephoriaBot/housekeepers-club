@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
+import Icon, { type IconName } from '../components/Icon';
 
 interface Debt {
   id: number;
@@ -134,8 +135,8 @@ function todayStr() {
 function isLate(dueDay: number, month: number, year: number, paid: boolean) {
   if (paid) return false;
   const today = new Date();
-  const due = new Date(year, month - 1, dueDay);
-  return today > due;
+  const due = new Date(year, month - 1, dueDay + 1);
+  return today >= due;
 }
 
 function daysUntilDue(dueDay: number, month: number, year: number) {
@@ -465,6 +466,30 @@ export default function Wallet() {
     setPriorWeekHours(prev => ({ ...prev, weekStart: currentWeekStartKey(), [field]: value }));
   }
 
+  // Fills the OTHER gap the today-forward window creates: if this Wednesday's
+  // release comes from a period that closed (Saturday) before the window
+  // starts, that whole week never had a visible row to log hours into, so
+  // dailyHours has nothing for it. Same pattern as priorWeekHours above, just
+  // for the full week before instead of the partial current week — keyed to
+  // THAT week's own Sunday (not currentWeekStartKey) so it can't get silently
+  // reused against the wrong week once time moves on.
+  const [closedWeekHours, setClosedWeekHours] = useState<{ weekStart: string; reg: string; ot: string }>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("closed_week_hours") || "null");
+      if (stored) return stored;
+    } catch { /* fall through to blank */ }
+    return { weekStart: "", reg: "", ot: "" };
+  });
+  useEffect(() => { localStorage.setItem("closed_week_hours", JSON.stringify(closedWeekHours)); }, [closedWeekHours]);
+
+  function setClosedWeekHourField(weekStart: string, field: "reg" | "ot", value: string) {
+    setClosedWeekHours(prev => ({
+      weekStart,
+      reg: prev.weekStart === weekStart ? (field === "reg" ? value : prev.reg) : (field === "reg" ? value : ""),
+      ot: prev.weekStart === weekStart ? (field === "ot" ? value : prev.ot) : (field === "ot" ? value : ""),
+    }));
+  }
+
   const [extraFunds, setExtraFunds] = useState<Record<string, string>>(() => {
     try {
       return JSON.parse(localStorage.getItem("extra_funds_log") || "{}");
@@ -514,6 +539,33 @@ export default function Wallet() {
 
     periodEarnedGross = priorGross;
     periodWithdrawnGross = priorGross * eligiblePercent(priorGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
+  }
+
+  // Seed pendingPayout: if the window's first Wednesday's release would
+  // come from a period that closed (Saturday) before the window starts,
+  // there's no in-window Saturday close to build it back up from, and
+  // dailyHours has nothing for that week either (it was never visible to
+  // log into). Use closedWeekHours instead — same computation the main
+  // loop below uses, just run once for the already-closed week.
+  const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
+  const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
+  if (firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx)) {
+    const firstWednesday = allDays[firstWednesdayIdx];
+    const closingSaturday = new Date(firstWednesday);
+    closingSaturday.setDate(closingSaturday.getDate() - 4); // Wed's payout closed the Sat 4 days prior
+    const periodStartSunday = new Date(closingSaturday);
+    periodStartSunday.setDate(periodStartSunday.getDate() - 6);
+    const periodStartKey = dateKey(periodStartSunday);
+
+    if (closedWeekHours.weekStart === periodStartKey) {
+      const closedReg = parseFloat(closedWeekHours.reg) || 0;
+      const closedOt = parseFloat(closedWeekHours.ot) || 0;
+      const closedEarnedGross = closedReg * grossHourlyWage + closedOt * grossOtWage;
+      const closedWithdrawnGross = closedEarnedGross * eligiblePercent(closedEarnedGross, budget.net_to_gross_ratio, budget.flat_deductions_prev);
+      const closedTaxableGross = Math.max(0, closedEarnedGross - budget.flat_deductions_prev);
+      const closedNetOwed = closedTaxableGross * (1 - taxRate / 100);
+      pendingPayout = Math.max(0, closedNetOwed - closedWithdrawnGross);
+    }
   }
 
   const rows = allDays.map(d => {
@@ -577,7 +629,7 @@ export default function Wallet() {
 
   const moneyCalendarResult = useMemo(
     () => buildMoneyCalendarRows([...calendarWeeks.week1, ...calendarWeeks.week2], budget.current_balance || 0),
-    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours]
+    [calendarWeeks, billsByDate, dailyHours, extraFunds, netHourlyWage, netOtWage, budget.current_balance, budget.net_to_gross_ratio, budget.flat_deductions_prev, priorWeekHours, closedWeekHours]
   );
   const week1Result = { rows: moneyCalendarResult.rows.slice(0, 7) };
   const week2Result = { rows: moneyCalendarResult.rows.slice(7, 14) };
@@ -649,35 +701,41 @@ export default function Wallet() {
     unifiedFun = Math.max(0, afterBuffer - extraNeeds);
   }
 
-  const allocations = [
+  const allocations: { label: string; icon: IconName; amount: number; color: string; note: string; noteIcon?: IconName }[] = [
     {
-      label: "🏠 Bills",
+      label: "Bills",
+      icon: "house",
       amount: unifiedBills,
       color: "var(--pink-dark)",
+      noteIcon: (isCrisis || urgentBills.length > 0) ? "lightning" as IconName : undefined,
       note: isCrisis
-        ? `🚨 ${crisisBills.length} bill(s) late or due in ≤3 days -- covered first`
-        : urgentBills.length > 0 ? `⚠ ${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
+        ? `${crisisBills.length} bill(s) late or due in ≤3 days -- covered first`
+        : urgentBills.length > 0 ? `${urgentBills.length} bill(s) due soon!` : "bills + debt minimums",
     },
     {
-      label: "❄️ Snowball Extra",
+      label: "Snowball Extra",
+      icon: "settings-gear",
       amount: unifiedSnowball,
       color: "var(--sky)",
       note: isCrisis ? "paused -- bills come first" : "extra toward target debt",
     },
     {
-      label: "🏦 General Savings",
+      label: "General Savings",
+      icon: "piggy-bank",
       amount: unifiedBuffer,
       color: "var(--gold)",
       note: isCrisis ? "paused -- bills come first" : "$22/day until $650",
     },
     {
-      label: "🛒 Groceries & Gas",
+      label: "Groceries & Gas",
+      icon: "basket",
       amount: unifiedNeeds,
       color: "var(--green-dark)",
       note: isCrisis ? "protected floor, even in crisis mode" : "groceries + gas, one combined category",
     },
     {
-      label: "🎉 Treats",
+      label: "Treats",
+      icon: "trophy",
       amount: unifiedFun,
       color: "var(--ink-soft)",
       note: isCrisis ? "zeroed until crisis bills are caught up" : "whimsy -- wants, not needs!",
@@ -874,7 +932,7 @@ export default function Wallet() {
         ))}
         <style>{`@keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }`}</style>
         <div style={{ position: "absolute", top: "35%", left: "50%", transform: "translateX(-50%)", textAlign: "center", background: "var(--white)", border: "2px solid var(--border)", borderRadius: 32, padding: "24px 32px", minWidth: 220 }}>
-          <div style={{ fontSize: 48 }}>🎉</div>
+          <div style={{ fontSize: 48 }}><Icon name="trophy" size={48} /></div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "var(--green-dark)", marginTop: 8 }}>DEBT PAID OFF!</div>
           <div style={{ fontSize: 16, color: "var(--pink-dark)", marginTop: 4 }}>{paidOffDebt}</div>
           <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8 }}>Keep going — you are crushing it!</div>
@@ -883,10 +941,10 @@ export default function Wallet() {
     );
   };
 
-  const VIEW_TITLES: Record<typeof view, string> = {
-    home: "Piggybank",
-    bills: "🏠 Bills",
-    debts: "💳 Debts",
+  const VIEW_TITLES: Record<typeof view, { text: string; icon?: IconName }> = {
+    home: { text: "Piggybank" },
+    bills: { text: "Bills", icon: "house" },
+    debts: { text: "Debts", icon: "calculator-hearts" },
   };
 
   return (
@@ -899,7 +957,7 @@ export default function Wallet() {
           {view !== "home" && (
             <button className="btn btn-ghost btn-sm" onClick={() => setView("home")}>← Back</button>
           )}
-          <h2>{VIEW_TITLES[view]}</h2>
+          <h2>{VIEW_TITLES[view].icon && <Icon name={VIEW_TITLES[view].icon!} size={20} />} {VIEW_TITLES[view].text}</h2>
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
@@ -920,10 +978,10 @@ export default function Wallet() {
                   display: "flex", flexDirection: "column", gap: 6,
                 }}
               >
-                <div style={{ fontSize: 24, lineHeight: 1 }}>🏠</div>
+                <div style={{ fontSize: 24, lineHeight: 1 }}><Icon name="house" size={24} /></div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Bills</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
-                  {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : "all paid up ✓"}
+                  {unpaidTotal > 0 ? `${fmt(unpaidTotal)} unpaid` : <>all paid up <Icon name="clipboard-check" size={12} /></>}
                 </div>
               </button>
               <button
@@ -935,7 +993,7 @@ export default function Wallet() {
                   display: "flex", flexDirection: "column", gap: 6,
                 }}
               >
-                <div style={{ fontSize: 24, lineHeight: 1 }}>💳</div>
+                <div style={{ fontSize: 24, lineHeight: 1 }}><Icon name="calculator-hearts" size={24} /></div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Debts</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
                   {activeDebts.filter(d => !d.paid_off).length} active · {payoffMonth}mo payoff
@@ -946,7 +1004,7 @@ export default function Wallet() {
             {/* ── MONEY CALENDAR ── */}
             <div className="card">
               <div className="card-body">
-                <div className="section-label">📅 Money Calendar</div>
+                <div className="section-label"><Icon name="calendar" size={16} /> Money Calendar</div>
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 14 }}>
                   Runs from today forward. Log the hours you're working (or plan to work) each day. Anytime Pay eligible percentage comes from your last paycheck's net-to-gross ratio (post-tax ÷ pre-tax), applied against your cumulative pool for the week, minus that check's flat deductions and a 2% safety buffer — whatever's unclaimed by Saturday night lands as a lump catch-up the following Wednesday.
                 </div>
@@ -983,6 +1041,55 @@ export default function Wallet() {
                   </div>
                 )}
 
+                {(() => {
+                  const allDays = [...calendarWeeks.week1, ...calendarWeeks.week2];
+                  const firstSaturdayIdx = allDays.findIndex(d => d.getDay() === 6);
+                  const firstWednesdayIdx = allDays.findIndex(d => d.getDay() === 3);
+                  const needsClosedWeek =
+                    firstWednesdayIdx !== -1 && (firstSaturdayIdx === -1 || firstWednesdayIdx < firstSaturdayIdx);
+                  if (!needsClosedWeek) return null;
+
+                  const firstWednesday = allDays[firstWednesdayIdx];
+                  const closingSaturday = new Date(firstWednesday);
+                  closingSaturday.setDate(closingSaturday.getDate() - 4);
+                  const periodStartSunday = new Date(closingSaturday);
+                  periodStartSunday.setDate(periodStartSunday.getDate() - 6);
+                  const periodStartKey = dateKey(periodStartSunday);
+                  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+                  return (
+                    <div style={{
+                      marginBottom: 14, padding: "10px 12px", borderRadius: "var(--radius-sm)",
+                      background: "var(--blush)", border: "1px solid var(--pink-light)",
+                    }}>
+                      <div className="form-label" style={{ marginBottom: 4 }}>
+                        Hours worked {fmt(periodStartSunday)}–{fmt(closingSaturday)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 8 }}>
+                        This week already closed out before the calendar's visible window, so it never had a row to log hours into. Enter it here and Wednesday {fmt(firstWednesday)} will show its release using the same math as everywhere else.
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="form-label" style={{ fontSize: 10 }}>Regular hrs</div>
+                          <input
+                            type="number" className="form-input" placeholder="0"
+                            value={closedWeekHours.weekStart === periodStartKey ? closedWeekHours.reg : ""}
+                            onChange={e => setClosedWeekHourField(periodStartKey, "reg", e.target.value)}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="form-label" style={{ fontSize: 10 }}>OT hrs</div>
+                          <input
+                            type="number" className="form-input" placeholder="0"
+                            value={closedWeekHours.weekStart === periodStartKey ? closedWeekHours.ot : ""}
+                            onChange={e => setClosedWeekHourField(periodStartKey, "ot", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div style={{ marginBottom: 14 }}>
                   <div className="form-label">Current Balance</div>
                   <EditableCell
@@ -1007,7 +1114,7 @@ export default function Wallet() {
                   <div>
                     <div className="form-label">Hourly Wage</div>
                     <EditableCell type="number" className="form-input" value={budget.hourly_wage || ""} placeholder="set in Budget Calculator" onChange={v => updateBudget("hourly_wage", parseFloat(v) || 0)} />
-                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}>⚠️ {budgetSaveError}</div>}
+                    {budgetSaveError && <div style={{ fontSize: 10, color: "var(--danger)", marginTop: 4 }}><Icon name="lightning" size={12} /> {budgetSaveError}</div>}
                   </div>
                   <div>
                     <div className="form-label">OT Wage</div>
@@ -1071,7 +1178,7 @@ export default function Wallet() {
                                 <div style={{ marginBottom: 6 }}>
                                   {row.billsToday.map(b => (
                                     <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--pink-dark)" }}>
-                                      <span>🏠 {b.name}</span>
+                                      <span><Icon name="house" size={14} /> {b.name}</span>
                                       <span style={{ fontWeight: 700 }}>-{fmt(b.amount)}</span>
                                     </div>
                                   ))}
@@ -1112,7 +1219,7 @@ export default function Wallet() {
 
                               {row.releasedToday > 0.005 && (
                                 <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginTop: 4 }}>
-                                  💰 +{fmt(row.releasedToday)} payday catch-up
+                                  <Icon name="money-bag" size={14} /> +{fmt(row.releasedToday)} payday catch-up
                                 </div>
                               )}
 
@@ -1197,8 +1304,8 @@ export default function Wallet() {
                     {allocations.map(a => (
                       <div key={a.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
                         <div>
-                          <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>{a.label}</div>
-                          <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{a.note}</div>
+                          <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}><Icon name={a.icon} size={14} /> {a.label}</div>
+                          <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>{a.noteIcon && <Icon name={a.noteIcon} size={12} />} {a.note}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 15, fontWeight: 800, color: a.color }}>{fmt(a.amount)}</div>
@@ -1259,7 +1366,7 @@ export default function Wallet() {
                 </div>
 
                 <div style={{ fontSize: 11, color: "var(--ink-muted)", marginBottom: 12 }}>
-                  💡 Tap any bill, amount, or due day to edit it — changes only apply to {MONTH_NAMES[selectedMonth - 1]}. Recurring bills still show up automatically in new months.
+                  <Icon name="lightning" size={12} /> Tap any bill, amount, or due day to edit it — changes only apply to {MONTH_NAMES[selectedMonth - 1]}. Recurring bills still show up automatically in new months.
                 </div>
 
                 {showBillForm && (
@@ -1315,11 +1422,12 @@ export default function Wallet() {
                           {b.paid
                             ? <span className="badge badge-green">PAID</span>
                             : b.late ? <span className="badge" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>LATE</span>
+                            : b.days === 0 ? <span className="badge badge-lavender">DUE TODAY</span>
                             : b.days <= 3 ? <span className="badge badge-lavender">DUE SOON</span>
                             : <span className="badge badge-pink">{b.days}d away</span>}
-                        </td>
+                            </td>
                         <td style={{ padding: "9px 8px" }}>
-                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}>✕</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}><Icon name="trash-can" size={13} /></button>
                         </td>
                       </tr>
                     ))}
@@ -1358,7 +1466,7 @@ export default function Wallet() {
                 </div>
                 {snowballExtra < 0 && (
                   <div style={{ marginTop: 10, fontSize: 12, color: "var(--danger)", fontWeight: 600 }}>
-                    ⚠️ Minimums + fixed expenses exceed your take-home pay. Update your Budget Calculator on the home page.
+                    <Icon name="lightning" size={13} /> Minimums + fixed expenses exceed your take-home pay. Update your Budget Calculator on the home page.
                   </div>
                 )}
               </div>
@@ -1403,10 +1511,10 @@ export default function Wallet() {
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.min_payment} onChange={v => updateDebt(d.id, "min_payment", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}>
-                              <button className="btn btn-green btn-sm" onClick={() => markDebtPaid(d.id, d.name)}>Paid ✓</button>
+                              <button className="btn btn-green btn-sm" onClick={() => markDebtPaid(d.id, d.name)}>Paid <Icon name="clipboard-check" size={13} /></button>
                             </td>
                             <td style={{ padding: "9px 8px" }}>
-                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button>
+                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
                             </td>
                           </tr>
                         );
@@ -1421,7 +1529,7 @@ export default function Wallet() {
               <div className="card" style={{ opacity: 0.9 }}>
                 <div className="card-body">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div className="section-label" style={{ marginBottom: 0 }}>🎉 Paid Off</div>
+                    <div className="section-label" style={{ marginBottom: 0 }}><Icon name="trophy" size={16} /> Paid Off</div>
                     <span style={{ fontSize: 12, color: "var(--green-dark)", fontWeight: 600 }}>Amazing work!</span>
                   </div>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -1433,7 +1541,7 @@ export default function Wallet() {
                           <td style={{ padding: "9px 8px" }}><span className="badge badge-green">PAID OFF</span></td>
                           <td style={{ padding: "9px 8px", display: "flex", gap: 6 }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => unmarkDebtPaid(d.id)}>Undo</button>
-                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
                           </td>
                         </tr>
                       ))}
@@ -1469,7 +1577,7 @@ export default function Wallet() {
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.balance} onChange={v => updateDebt(d.id, "balance", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px", color: "var(--ink-muted)", fontSize: 11 }}>Not targeted until active debts clear</td>
-                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}>✕</button></td>
+                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -1479,10 +1587,10 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="section-label" style={{ marginTop: 4 }}>📋 Payoff Schedule</div>
+            <div className="section-label" style={{ marginTop: 4 }}><Icon name="clipboard-list" size={16} /> Payoff Schedule</div>
             {snowballExtra < 0 && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>
-                ⚠️ Snowball extra is negative — minimums exceed your budget!
+                <Icon name="lightning" size={13} /> Snowball extra is negative — minimums exceed your budget!
               </div>
             )}
 
@@ -1515,7 +1623,7 @@ export default function Wallet() {
                             const paidPct = origBal > 0 ? Math.min(100, ((origBal - bal) / origBal) * 100) : 0;
                             return (
                               <td key={d.id} style={{ padding: "8px", background: paid ? "var(--sage-light)" : isTgt ? "var(--accent)" : "transparent", color: paid ? "var(--green-dark)" : isTgt ? "var(--pink-dark)" : "var(--ink-muted)", fontWeight: isTgt ? 700 : 400, textAlign: "right" }}>
-                                <div>{paid ? "PAID ✓" : fmt(bal)}</div>
+                                <div>{paid ? <>PAID <Icon name="clipboard-check" size={12} /></> : fmt(bal)}</div>
                                 {!paid && (
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginTop: 3 }}>
                                     <div style={{ height: "100%", width: `${paidPct}%`, background: isTgt ? "var(--pink-dark)" : "var(--green-dark)", borderRadius: 99 }} />

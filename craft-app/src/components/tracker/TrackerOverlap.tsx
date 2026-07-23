@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from '../Icon';
 import {
   ComposedChart,
   Line,
@@ -155,7 +156,7 @@ export default function TrackerOverlap({ refreshKey = 0 }: { refreshKey?: number
 
       {sameMetric && (
         <div className="card" style={{ background: 'var(--blush)' }}>
-          Pick two different metrics to compare 🌷
+          Pick two different metrics to compare <Icon name="flower" size={16} />
         </div>
       )}
 

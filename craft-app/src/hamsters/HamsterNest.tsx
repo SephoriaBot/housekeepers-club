@@ -1,5 +1,7 @@
 import { useEffect } from "react";
-import { useHamsterGrowth } from "./useHamsterGrowth";
+import { useHamsterGrowth } from "./HamsterGrowthContext";
+import { SOURCE_LABELS } from "./useHamsterGrowth";
+import Icon from "../components/Icon";
 
 function NestEgg({ progressPct }: { progressPct: number }) {
   const showSmallCrack = progressPct >= 35;
@@ -64,7 +66,7 @@ function NestEgg({ progressPct }: { progressPct: number }) {
 }
 
 export default function HamsterNest() {
-  const { loading, points, threshold, progressPct, justHatched, clearJustHatched } = useHamsterGrowth();
+  const { loading, points, threshold, progressPct, recentPoints, justHatched, clearJustHatched } = useHamsterGrowth();
 
   useEffect(() => {
     if (justHatched) {
@@ -86,7 +88,7 @@ export default function HamsterNest() {
   return (
     <div className="card">
       <div className="card-body">
-        <div className="section-label" style={{ marginBottom: 10 }}>🥚 The Nest</div>
+        <div className="section-label" style={{ marginBottom: 10 }}><Icon name="egg-nest" size={16} /> The Nest</div>
 
         {justHatched ? (
           <div style={{ textAlign: "center", padding: "10px 0" }}>
@@ -96,7 +98,7 @@ export default function HamsterNest() {
               style={{ width: 96, height: 96, objectFit: "contain", animation: "hatchPop 0.7s ease" }}
             />
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pink-dark)", marginTop: 6 }}>
-              A new hamster hatched! 🎉
+              A new hamster hatched! <Icon name="sparkles-cluster" size={16} />
             </div>
           </div>
         ) : (
@@ -116,8 +118,41 @@ export default function HamsterNest() {
               />
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 6, textAlign: "center" }}>
-              {points.toFixed(0)} / {threshold} — Watch your egg slowly hatch as you accomplish tasks each day
+              {points.toFixed(0)} / {threshold} — pay bills, chip at debt, finish your day, and it grows
             </div>
+
+            {recentPoints.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  marginTop: 10,
+                  paddingBottom: 2,
+                }}
+              >
+                {recentPoints.map((entry) => (
+                  <div
+                    key={entry.id}
+                    style={{
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--pink-dark)",
+                      background: "var(--blush)",
+                      border: "1px solid var(--pink-light)",
+                      borderRadius: 99,
+                      padding: "4px 10px",
+                    }}
+                  >
+                    {SOURCE_LABELS[entry.source]
+                      ? <><Icon name={SOURCE_LABELS[entry.source].icon} size={13} /> {SOURCE_LABELS[entry.source].text}</>
+                      : entry.source} +{entry.amount}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 

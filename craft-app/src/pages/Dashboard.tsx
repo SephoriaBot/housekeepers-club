@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import HamsterNest from "../hamsters/HamsterNest";
 import HamsterHabitat from "../hamsters/HamsterHabitat";
+import { HamsterGrowthProvider } from "../hamsters/HamsterGrowthContext";
+import { Heart } from 'lucide-react';
 
 interface Focus {
   id: string;
@@ -10,13 +12,6 @@ interface Focus {
   completed: boolean;
   date: string;
 }
-
-interface Glance {
-  appointmentsToday: number;
-  trackerLogsToday: number;
-  groceryItems: number;
-}
-
 
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -28,11 +23,6 @@ function getGreeting() {
   if (h < 17) return 'Good afternoon';
   if (h < 21) return 'Good evening';
   return 'Winding down';
-}
-
-function fmt(n: number) {
-  if (n == null || isNaN(n)) return '$0.00';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
 
 function Sprig() {
@@ -56,10 +46,8 @@ function StitchDivider() {
   );
 }
 
-export default function Dashboard({ onNavigate }: { onNavigate: (page: string) => void }) {
+export default function Dashboard() {
   const [focuses, setFocuses] = useState<Focus[]>([]);
-  const [glance, setGlance] = useState<Glance>({ appointmentsToday: 0, trackerLogsToday: 0, groceryItems: 0 });
-  const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [newFocus, setNewFocus] = useState('');
   const [newFocusMins, setNewFocusMins] = useState('');
   const [addingFocus, setAddingFocus] = useState(false);
@@ -72,29 +60,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   }, []);
 
   async function loadAll() {
-    const startOfDay = `${todayStr}T00:00:00`;
-    const endOfDay = `${todayStr}T23:59:59`;
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const currentDay = now.getDate();
-
-    const [focusRes, plannerRes, trackerRes, groceryRes, budgetRes] = await Promise.all([
-      supabase.from('focuses').select('*').eq('date', todayStr).order('created_at'),
-      supabase.from('appointments').select('id', { count: 'exact', head: true })
-        .gte('date_time', startOfDay).lte('date_time', endOfDay),
-      supabase.from('tracker_logs').select('id', { count: 'exact', head: true }).eq('log_date', todayStr),
-      supabase.from('grocery_items').select('id', { count: 'exact', head: true }).eq('checked', false),
-      supabase.from('budget').select('current_balance').eq('id', 1).maybeSingle(),
-    ]);
-
-    setFocuses(focusRes.data || []);
-    setGlance({
-      appointmentsToday: plannerRes.count || 0,
-      trackerLogsToday: trackerRes.count || 0,
-      groceryItems: groceryRes.count || 0,
-    });
-    setCurrentBalance(budgetRes.data?.current_balance || 0);
+    const { data } = await supabase.from('focuses').select('*').eq('date', todayStr).order('created_at');
+    setFocuses(data || []);
   }
 
   async function addFocus() {
@@ -140,50 +107,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
 
       <div className="page-body">
 
-        {/* ── AT A GLANCE ── */}
-        <section>
-          <div className="section-label">At a Glance</div>
-         <div className="dashboard-grid">
-  <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('wallet')}>
-      <div className="glance-value">{fmt(currentBalance)}</div>
-      <div className="glance-label">PiggyBank</div>
-    </div>
-  </div>
-  <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('dailyplanner')}>
-      <div className="glance-value">{glance.appointmentsToday}</div>
-      <div className="glance-label">Appointments & Schedule</div>
-    </div>
-  </div>
-  <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('trackers')}>
-      <div className="glance-value">{glance.trackerLogsToday}</div>
-      <div className="glance-label">Tracker Logs</div>
-    </div>
-  </div>
-  <div className="glance-wrap">
-    <div className="card stat-card glance-card" onClick={() => onNavigate('grocery')}>
-      <div className="glance-value">{glance.groceryItems}</div>
-      <div className="glance-label">Grocery List</div>
-    </div>
-  </div>
-</div>
+        
 
-        </section>
-
-        <StitchDivider />
-
-        {/* ── HAMSTER NEST ── */}
-        <section>
-          <div className="section-label">Hamster Nest</div>
-          <HamsterNest />
-          <div style={{ marginTop: 12 }}>
-            <HamsterHabitat />
-          </div>
-        </section>
-
-        <StitchDivider />
 
         {/* ── TODAY'S FOCUS ── */}
         <section>
@@ -259,17 +184,25 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <button
-                    onClick={() => toggleFocus(f)}
-                    aria-label={f.completed ? 'Mark not done' : 'Mark done'}
-                    className="shape-heart"
-                    style={{
-                      width: 20, height: 20, borderRadius: '50%',
-                      border: `2px solid ${f.completed ? 'var(--pink-dark)' : 'var(--border)'}`,
-                      background: f.completed ? 'var(--pink-dark)' : 'transparent',
-                      cursor: 'pointer', flexShrink: 0, padding: 0,
-                    }}
-                  />
+
+                    <button
+                        onClick={() => toggleFocus(f)}
+                        aria-label={f.completed ? 'Mark not done' : 'Mark done'}
+                        style={{
+                          width: 24, height: 24, flexShrink: 0,
+                          border: 'none', background: 'none', padding: 0,
+                          cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Heart
+                          size={21}
+                          strokeWidth={1.75}
+                          color={f.completed ? 'var(--pink-dark)' : 'var(--border)'}
+                          fill={f.completed ? 'var(--pink-dark)' : 'none'}
+                        />
+                      </button>
+
                   <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: '0.88rem', fontWeight: 600,
@@ -302,6 +235,19 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
         </section>
 
         <StitchDivider />
+
+        
+        {/* ── HAMSTER NEST ── */}
+        <section>
+  <div className="section-label">Hamster Nest</div>
+  <HamsterGrowthProvider>
+    <HamsterNest />
+    <div style={{ marginTop: 12 }}>
+      <HamsterHabitat />
+    </div>
+  </HamsterGrowthProvider>
+</section>
+
       </div>
     </div>
   );

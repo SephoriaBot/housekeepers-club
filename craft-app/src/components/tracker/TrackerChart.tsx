@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from '../Icon';
 import {
   ResponsiveContainer,
   BarChart,
@@ -30,6 +31,22 @@ function parseValue(raw: unknown): any {
     }
   }
   return raw ?? {};
+}
+
+function iconRefLabel(iconName: string) {
+  return (props: any) => {
+    const { viewBox } = props;
+    const size = 16;
+    return (
+      <image
+        href={`/icons/${iconName}.png`}
+        x={(viewBox?.x ?? 0) - size / 2}
+        y={(viewBox?.y ?? 0) - size - 2}
+        width={size}
+        height={size}
+      />
+    );
+  };
 }
 
 export default function TrackerChart({ type, startDate, endDate, refreshKey }: Props) {
@@ -82,7 +99,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
                 </span>
               ) : (
                 <button className="btn-secondary" onClick={() => setDeletingDate(log.log_date)}>
-                  🗑️
+                  <Icon name="trash-can" size={16} />
                 </button>
               )}
             </div>
@@ -108,7 +125,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
     return (
       <>
         <div className="card">
-          <h3>🌙 Sleep — Hours</h3>
+          <h3><Icon name="moon-cloud" size={18} /> Sleep — Hours</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={hoursData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -119,7 +136,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
             </BarChart>
           </ResponsiveContainer>
 
-          <h3 style={{ marginTop: '1rem' }}>🌙 Sleep — Quality</h3>
+          <h3 style={{ marginTop: '1rem' }}><Icon name="moon-cloud" size={18} /> Sleep — Quality</h3>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={qualityData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -154,9 +171,10 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
     return (
       <>
         <div className="card">
-          <h3>🌸 Cycle — Mood</h3>
+          <h3><Icon name="flower" size={18} /> Cycle — Mood</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={moodData}>
+  <LineChart data={moodData} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
+
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" fontSize={12} />
               <YAxis domain={[1, 3]} ticks={[1, 2, 3]} fontSize={12} />
@@ -168,7 +186,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
                   x={m.date}
                   stroke={m.kind === 'start' ? '#e0789a' : '#8ba888'}
                   strokeDasharray="4 4"
-                  label={m.kind === 'start' ? '🩸' : '✅'}
+                  label={iconRefLabel(m.kind === 'start' ? 'heart-medical' : 'clipboard-check')}
                 />
               ))}
             </LineChart>
@@ -187,7 +205,7 @@ export default function TrackerChart({ type, startDate, endDate, refreshKey }: P
   return (
     <>
       <div className="card">
-        <h3>⚖️ Weight</h3>
+        <h3><Icon name="calculator" size={18} /> Weight</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={weightData}>
             <CartesianGrid strokeDasharray="3 3" />

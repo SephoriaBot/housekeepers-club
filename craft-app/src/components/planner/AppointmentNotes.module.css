@@ -1,5 +1,5 @@
 /*
-  ⚠️ These custom properties assume fallback values in case your global
+  NOTE: These custom properties assume fallback values in case your global
   token names differ. If Polly already defines --color-cream, --color-ink,
   etc. globally, delete the :root block below and just reference your
   existing variables directly.

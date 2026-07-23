@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { RotateCcw, Plus, X, Circle, CheckCircle2 } from 'lucide-react';
 import { useAppointmentNotes } from '../../hooks/useAppointmentNotes';
 import type { AppointmentNoteItem, AppointmentNoteType } from '../../types/appointmentNotes';
-import styles from './AppointmentNotes.module.css'; // ⚠️ adjust to your CSS token setup
+import styles from './AppointmentNotes.module.css'; // NOTE: adjust to your CSS token setup
 
 interface AppointmentNotesProps {
   appointmentId: string;

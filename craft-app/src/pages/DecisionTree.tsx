@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { supabase } from '../lib/supabase'; // adjust path to your existing client
+import Icon from '../components/Icon';
 
 type NodeType = 'root' | 'choice' | 'outcome';
 
@@ -140,7 +141,7 @@ const TreeNodeView: FC<{
         )}
         {ev != null && <span style={styles.evBadge}>EV: {ev.toFixed(1)}</span>}
         {node.type !== 'root' && (
-          <button style={styles.removeBtn} onClick={() => onRemove(node.id)}>✕</button>
+          <button style={styles.removeBtn} onClick={() => onRemove(node.id)}><Icon name="trash-can" size={12} /></button>
         )}
       </div>
 

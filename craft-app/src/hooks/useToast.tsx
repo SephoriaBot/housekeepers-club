@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import Icon from '../components/Icon';
 
 interface Toast {
   id: string;
@@ -28,7 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-container">
         {toasts.map(t => (
           <div key={t.id} className={`toast toast-${t.type}`}>
-            {t.type === 'success' ? '✓' : '✕'} {t.message}
+            <Icon name={t.type === 'success' ? 'clipboard-check' : 'trash-can'} size={14} /> {t.message}
           </div>
         ))}
       </div>

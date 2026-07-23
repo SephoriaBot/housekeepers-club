@@ -1,5 +1,6 @@
 import { useState, Suspense, lazy } from 'react';
-import TopNav from './components/TopNav';
+import BottomNav from './components/BottomNav';
+import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './context/ThemeContext';
 import ShapeDefs from './components/ShapeDefs';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -26,10 +27,15 @@ type Page = 'dashboard' | 'meals' | 'grocery' | 'dailyplanner' | 'maidwizard' | 
       <ShapeDefs />
       <ToastProvider>
         <div className="app-shell">
-          <TopNav currentPage={page} onNavigate={navigate} />
+          <header className="topbar">
+            <span className="topbar-mark">Polly</span>
+            <div className="topbar-actions">
+              <ThemeToggle />
+            </div>
+          </header>
           <main className="main">
             <Suspense fallback={<div className="page-loading">Loading…</div>}>
-              {page === 'dashboard'    && <Dashboard onNavigate={navigate} />}
+              {page === 'dashboard'    && <Dashboard />}
               {page === 'meals'        && <Meals />}
               {page === 'grocery'      && <Grocery />}
               {page === 'dailyplanner' && <DailyPlanner />}
@@ -39,6 +45,7 @@ type Page = 'dashboard' | 'meals' | 'grocery' | 'dailyplanner' | 'maidwizard' | 
               {page === 'decisions'    && <DecisionTree />}
             </Suspense>
           </main>
+          <BottomNav currentPage={page} onNavigate={navigate} />
         </div>
       </ToastProvider>
     </ThemeProvider>

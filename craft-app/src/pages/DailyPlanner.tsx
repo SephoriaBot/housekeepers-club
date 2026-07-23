@@ -369,6 +369,9 @@ export default function DailyPlanner() {
                   value={newApptTitle}
                   onChange={e => setNewApptTitle(e.target.value)}
                 />
+                    <div style={{ fontSize: 12, marginBottom: 4 }}>
+                    Date & Time
+                    </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     className="form-input"
