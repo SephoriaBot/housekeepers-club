@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Clock, Package, ChevronRight, RotateCcw, CheckCircle2, Circle, Sparkles } from 'lucide-react'
 import Icon, { type IconName } from '../components/Icon'
 
-const ROOMS: { value: string; label: string; emoji: string; icon?: IconName }[] = [
-  { value: 'kitchen', label: 'Kitchen', emoji: '🍳', icon: 'cooking-pot' },
-  { value: 'bathroom', label: 'Bathroom', emoji: '🛁' },
-  { value: 'bedroom', label: 'Bedroom', emoji: '🛏️' },
-  { value: 'living_room', label: 'Living Room', emoji: '🛋️' },
-  { value: 'laundry_room', label: 'Laundry Room', emoji: '🧺', icon: 'washing-machine' },
+const ROOMS: { value: string; label: string; icon: IconName }[] = [
+  { value: 'kitchen', label: 'Kitchen', icon: 'cooking-pot' },
+  { value: 'bathroom', label: 'Bathroom', icon: 'cleaning-spray' },
+  { value: 'bedroom', label: 'Bedroom', icon: 'moon-cloud' },
+  { value: 'living_room', label: 'Living Room', icon: 'house' },
+  { value: 'laundry_room', label: 'Laundry Room', icon: 'washing-machine' },
 ]
 
 interface CleaningPlan {
@@ -150,7 +150,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: '1.4rem' }}>{r.icon ? <Icon name={r.icon} size={22} /> : r.emoji}</span>
+                    <span style={{ fontSize: '1.4rem' }}><Icon name={r.icon} size={22} /></span>
                     <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{r.label}</span>
                   </div>
                   <ChevronRight size={16} style={{ color: 'var(--ink-muted)' }} />
@@ -197,7 +197,7 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '1.5rem' }}>{room?.icon ? <Icon name={room.icon} size={24} /> : room?.emoji}</span>
+                <span style={{ fontSize: '1.5rem' }}>{room && <Icon name={room.icon} size={24} />}</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ink)' }}>
                     {room?.label} Deep Clean
