@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase'; // ⚠️ adjust path to your actual client
+import { supabase } from '../lib/supabase'; // NOTE: adjust path to your actual client
 import type {
   AppointmentNoteItem,
   AppointmentNoteType,
