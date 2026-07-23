@@ -84,7 +84,7 @@ export default function TrackerPage() {
           className={activeType === 'overlap' ? 'btn-primary' : 'btn-secondary'}
           onClick={() => setActiveType('overlap')}
         >
-          🔗 Overlap
+          <Icon name="calculator" size={16} /> Overlap
         </button>
       </div>
 
