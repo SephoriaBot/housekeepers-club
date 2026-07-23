@@ -953,10 +953,6 @@ export default function Grocery() {
                               ${cheapest.price.toFixed(2)} @ {cheapest.store}
                             </span>
                           )}
-                          <button onClick={() => searchOnInstacart(item.id, item.name)} title="Search on Instacart"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', flexShrink: 0 }}>
-                            <ExternalLink size={13} />
-                          </button>
                           <button onClick={() => setExpandedItem(isOpen ? null : item.id)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', flexShrink: 0 }}>
                             {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
