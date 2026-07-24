@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import AppointmentNotesPanel from '../components/planner/AppointmentNotesPanel';
 import type { AppointmentNoteSelection } from '../components/planner/AppointmentNotesPanel';
 import { useAppointmentNoteMap } from '../hooks/useAppointmentNoteMap';
+import Lantern from "../components/Lantern";
 
 interface DailyTask {
   id: string;
@@ -170,7 +171,9 @@ export default function DailyPlanner() {
 
       <div className="page-header">
         <div>
+          <Lantern size {60} />
           <h2>Planner</h2>
+          <Lantern size {100} />
           <p style={{ color: allDone ? 'var(--pink-dark)' : 'var(--ink-muted)' }}>
             {allDone ? 'All done! Good job.' : `${doneCount} of ${tasks.length} done today`}
           </p>

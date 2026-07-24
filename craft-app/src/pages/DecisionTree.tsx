@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { supabase } from '../lib/supabase'; // adjust path to your existing client
 import Icon from '../components/Icon';
+import Lantern from "../components/Lantern";
 
 type NodeType = 'root' | 'choice' | 'outcome';
 
@@ -363,7 +364,9 @@ const DecisionTreeList: FC<{ onSelect: (id: string) => void; onNew: () => void; 
   return (
     <div style={styles.page}>
       <div style={styles.listHeaderRow}>
+        <Lantern size {60} />
         <h2 style={styles.pageTitle}>Decisions</h2>
+        <Lantern size {100} />
         <button style={styles.newBtn} onClick={onNew}>+ New decision</button>
       </div>
       {status === 'loading' && <p>Loading saved decisions...</p>}

@@ -8,6 +8,7 @@ import TrackerOverlap from '../components/tracker/TrackerOverlap';
 import { TRACKER_CONFIG } from '../data/trackerConfig';
 import type { TrackerType, PeriodValue } from '../types/tracker';
 import { getTrackerLogsInRange } from '../lib/trackerApi';
+import Lantern from "../components/Lantern";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -60,7 +61,9 @@ export default function TrackerPage() {
 
   return (
     <div>
+      <Lantern size {60} />
       <h1>Tracker</h1>
+      <Lantern size {100} />
 
       {cycleDay !== null && (
         <div className="card" style={{ background: 'var(--blush)' }}>

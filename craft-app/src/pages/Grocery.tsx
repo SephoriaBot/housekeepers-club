@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
-import type { GroceryItem } from '../types/legacy'
-import { supabase } from '../lib/supabase'
-import Icon, { type IconName } from '../components/Icon'
+import { useState, useEffect } from 'react';
+import type { GroceryItem } from '../types/legacy';
+import { supabase } from '../lib/supabase';
+import Icon, { type IconName } from '../components/Icon';
 import {
   ShoppingCart, ListChecks, RotateCcw, X, History, ClipboardList,
   MapPin, Save, Trash2, ArrowLeft, CheckCircle2,
   ChevronUp, ChevronDown, ExternalLink, Plus,
-} from 'lucide-react'
+} from 'lucide-react';
+import Lantern from "../components/Lantern";
 
 interface SavedList { id: string; name: string; items: string[]; created_at: string }
 
@@ -685,7 +686,9 @@ export default function Grocery() {
   return (
     <div>
       <div className="page-header">
+        <Lantern size {60} />
         <h2>Grocery List <Icon name="basket" size={22} /></h2>
+        <Lantern size {100} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={openBasicsModal}>
             <ListChecks size={14} /> Build Basics List

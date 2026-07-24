@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Clock, Package, ChevronRight, RotateCcw, CheckCircle2, Circle, Sparkles } from 'lucide-react'
-import Icon, { type IconName } from '../components/Icon'
+import { useState } from 'react';
+import { Clock, Package, ChevronRight, RotateCcw, CheckCircle2, Circle, Sparkles } from 'lucide-react';
+import Icon, { type IconName } from '../components/Icon';
+import Lantern from "../components/Lantern";
 
 const ROOMS: { value: string; label: string; icon: IconName }[] = [
   { value: 'kitchen', label: 'Kitchen', icon: 'cooking-pot' },
@@ -97,7 +98,9 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
     <div>
       <div className="page-header">
         <div>
+          <Lantern size {60} />
           <h2>Maid Wizard <Icon name="cleaning-spray" size={22} /></h2>
+          <Lantern size {100} />
           <p>Pick a room and get a deep clean plan</p>
         </div>
         {wizardState === 'plan' && (

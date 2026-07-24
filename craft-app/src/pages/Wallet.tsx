@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
 import Icon, { type IconName } from '../components/Icon';
+import Lantern from "../components/Lantern";
 
 interface Debt {
   id: number;
@@ -942,7 +943,7 @@ export default function Wallet() {
   };
 
   const VIEW_TITLES: Record<typeof view, { text: string; icon?: IconName }> = {
-    home: { text: "Piggybank" },
+    home: { text: "Wallet" },
     bills: { text: "Bills", icon: "house" },
     debts: { text: "Debts", icon: "calculator-hearts" },
   };
@@ -952,12 +953,15 @@ export default function Wallet() {
       {showConfetti && <Confetti />}
 
       {/* ── HEADER ── */}
+      
       <div className="page-header">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {view !== "home" && (
             <button className="btn btn-ghost btn-sm" onClick={() => setView("home")}>← Back</button>
           )}
+          <Lantern size {60} />
           <h2>{VIEW_TITLES[view].icon && <Icon name={VIEW_TITLES[view].icon!} size={20} />} {VIEW_TITLES[view].text}</h2>
+          <Lantern size {100} />
         </div>
         {savedMsg && <span className="badge badge-green">Saved!</span>}
       </div>
