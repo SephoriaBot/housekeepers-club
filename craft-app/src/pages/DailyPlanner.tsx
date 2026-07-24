@@ -171,9 +171,9 @@ export default function DailyPlanner() {
 
       <div className="page-header">
         <div>
-          <Lantern size {60} />
+          <Lantern  />
           <h2>Planner</h2>
-          <Lantern size {100} />
+          <Lantern  />
           <p style={{ color: allDone ? 'var(--pink-dark)' : 'var(--ink-muted)' }}>
             {allDone ? 'All done! Good job.' : `${doneCount} of ${tasks.length} done today`}
           </p>

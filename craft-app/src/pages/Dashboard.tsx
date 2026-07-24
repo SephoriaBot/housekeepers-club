@@ -98,9 +98,9 @@ export default function Dashboard() {
     <div>
       <div className="page-header dash-greeting">
         <div>
-          <Lantern size {60} />
+          <Lantern />
           <h1>{getGreeting()}</h1>
-          <Lantern size {100} />
+          <Lantern />
           <div className="dash-subdate">
             {todayName}, {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
           </div>
@@ -236,7 +236,7 @@ export default function Dashboard() {
           )}
         </section>
 
-        <Lantern size {40} />
+        <Lantern />
 
         
         {/* ── HAMSTER NEST ── */}

@@ -211,9 +211,9 @@ export default function Meals() {
   return (
     <div>
       <div className="page-header">
-        <Lantern size {60} />
+        <Lantern />
         <h2>Meals <Icon name="cookbook" size={22} /></h2>
-        <Lantern size {100} />
+        <Lantern />
       </div>
 
       <div className="page-body">

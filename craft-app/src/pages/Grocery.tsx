@@ -686,9 +686,9 @@ export default function Grocery() {
   return (
     <div>
       <div className="page-header">
-        <Lantern size {60} />
+        <Lantern />
         <h2>Grocery List <Icon name="basket" size={22} /></h2>
-        <Lantern size {100} />
+        <Lantern />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={openBasicsModal}>
             <ListChecks size={14} /> Build Basics List

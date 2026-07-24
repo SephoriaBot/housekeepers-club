@@ -98,9 +98,9 @@ Include 4–8 supplies, a realistic time estimate, and 6–10 steps in logical c
     <div>
       <div className="page-header">
         <div>
-          <Lantern size {60} />
+          <Lantern />
           <h2>Maid Wizard <Icon name="cleaning-spray" size={22} /></h2>
-          <Lantern size {100} />
+          <Lantern />
           <p>Pick a room and get a deep clean plan</p>
         </div>
         {wizardState === 'plan' && (
