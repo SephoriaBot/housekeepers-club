@@ -344,6 +344,7 @@ a {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 18px;
+  flex-wrap: wrap;
 }
 
 .page-header h1 {
@@ -521,9 +522,7 @@ input:focus {
   transition: 0.15s ease;
   font-family: 'Nunito Sans', sans-serif;
 }
-.btn-danger:hover { transform: translateY(-2px); background: var(--danger); }
-.btn-danger img { filter: brightness(0); opacity: 0.75; }
-.btn-danger:hover img { filter: brightness(0) invert(1); opacity: 1; }
+.btn-danger:hover { transform: translateY(-2px); background: var(--danger); color: var(--white); }
 
 .btn-sm {
   padding: 5px 9px;
@@ -636,6 +635,7 @@ body {
   filter: drop-shadow(0 2px 6px rgba(184, 164, 245, 0.35));
   animation: lantern-sway 4s ease-in-out infinite;
   transform-origin: top center;
+  flex-shrink: 0;
 }
 
 @keyframes lantern-sway {

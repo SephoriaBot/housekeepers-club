@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { supabase } from '../lib/supabase';
 import Icon, { type IconName } from '../components/Icon';
 import Lantern from "../components/Lantern";
+import { Trash2 } from "lucide-react";
 
 interface Debt {
   id: number;
@@ -773,7 +774,7 @@ export default function Wallet() {
       await supabase.from("bill_payments").update({ paid: newPaid, paid_at: newPaid ? new Date().toISOString() : null }).eq("id", bill.paymentId);
       setPayments(prev => prev.map(p => p.id === bill.paymentId ? { ...p, paid: newPaid } : p));
     } else {
-      const newPayment: BillPayment = { bill_id: bill.id, month: selectedMonth, year: selectedYear, paid: newPaid };
+      const newPayment: BillPayment = { bill_id: bill.id, month: selectedMonth, year: selectedYear, paid: newPaid, paid_at: newPaid ? new Date().toISOString() : undefined };
       const { data } = await supabase.from("bill_payments").insert(newPayment).select().single();
       if (data) setPayments(prev => [...prev, data]);
     }
@@ -1268,6 +1269,8 @@ export default function Wallet() {
               </div>
             </div>
 
+            <Lantern variant="divider" />
+
             {/* ── TODAY'S PAYCHECK CALCULATOR ── */}
             {isCrisis && (
               <div style={{ background: "var(--danger-bg)", border: "1.5px solid var(--danger)", borderRadius: 16, padding: "12px 16px", fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
@@ -1430,7 +1433,7 @@ export default function Wallet() {
                             : <span className="badge badge-pink">{b.days}d away</span>}
                             </td>
                         <td style={{ padding: "9px 8px" }}>
-                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}><Icon name="trash-can" size={13} /></button>
+                          <button className="btn btn-danger btn-sm" onClick={() => removeBill(b.id)}><Trash2 size={13} /></button>
                         </td>
                       </tr>
                     ))}
@@ -1517,7 +1520,7 @@ export default function Wallet() {
                               <button className="btn btn-green btn-sm" onClick={() => markDebtPaid(d.id, d.name)}>Paid <Icon name="clipboard-check" size={13} /></button>
                             </td>
                             <td style={{ padding: "9px 8px" }}>
-                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
+                              <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Trash2 size={13} /></button>
                             </td>
                           </tr>
                         );
@@ -1544,7 +1547,7 @@ export default function Wallet() {
                           <td style={{ padding: "9px 8px" }}><span className="badge badge-green">PAID OFF</span></td>
                           <td style={{ padding: "9px 8px", display: "flex", gap: 6 }}>
                             <button className="btn btn-ghost btn-sm" onClick={() => unmarkDebtPaid(d.id)}>Undo</button>
-                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button>
+                            <button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Trash2 size={13} /></button>
                           </td>
                         </tr>
                       ))}
@@ -1580,7 +1583,7 @@ export default function Wallet() {
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.balance} onChange={v => updateDebt(d.id, "balance", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px" }}><EditableCell value={d.apr} onChange={v => updateDebt(d.id, "apr", parseFloat(v) || 0)} /></td>
                             <td style={{ padding: "9px 8px", color: "var(--ink-muted)", fontSize: 11 }}>Not targeted until active debts clear</td>
-                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Icon name="trash-can" size={13} /></button></td>
+                            <td style={{ padding: "9px 8px" }}><button className="btn btn-danger btn-sm" onClick={() => removeDebt(d.id)}><Trash2 size={13} /></button></td>
                           </tr>
                         ))}
                       </tbody>

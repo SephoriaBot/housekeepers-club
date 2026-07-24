@@ -62,8 +62,10 @@ export default function TrackerPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Tracker</h1>
-        <Lantern />
+        <div className="title-row">
+          <h1>Tracker</h1>
+          <Lantern />
+        </div>
       </div>
 
       {cycleDay !== null && (
