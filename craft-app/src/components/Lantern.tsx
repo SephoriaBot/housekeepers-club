@@ -8,7 +8,7 @@ type LanternProps = {
 };
 
 export default function Lantern({ size, className = "", variant = "accent" }: LanternProps) {
-  const resolvedSize = size ?? (variant === "divider" ? 26 : 32);
+  const resolvedSize = size ?? (variant === "divider" ? 32 : 45);
 
   const img = (
     <img
